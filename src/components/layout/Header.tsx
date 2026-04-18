@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { ShoppingBag, User, Menu, X, ChevronDown } from 'lucide-react'
 
@@ -24,16 +25,20 @@ const nav = [
 ]
 
 export function Header() {
+  const pathname = usePathname()
+  const isHome = pathname === '/'
+
   const [open, setOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(!isHome)
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!isHome) return
     const unsub = scrollY.on('change', (y) => setScrolled(y > 60))
     return unsub
-  }, [scrollY])
+  }, [scrollY, isHome])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -48,9 +53,11 @@ export function Header() {
   const bg = useTransform(
     scrollY,
     [0, 60],
-    ['rgba(240,241,243,0)', 'rgba(240,241,243,0.95)']
+    isHome
+      ? ['rgba(240,241,243,0)', 'rgba(240,241,243,0.97)']
+      : ['rgba(240,241,243,0.97)', 'rgba(240,241,243,0.97)']
   )
-  const borderOpacity = useTransform(scrollY, [0, 60], [0, 1])
+  const borderOpacity = useTransform(scrollY, [0, 60], isHome ? [0, 1] : [1, 1])
 
   const textClass = scrolled
     ? 'text-[var(--color-granito)] hover:text-[var(--foreground)]'
