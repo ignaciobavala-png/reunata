@@ -289,24 +289,62 @@ proxy.ts → updateSession()
 - [x] Mi cuenta: edición de datos personales y de facturación
 
 ### 🔲 Fase 5 — Pagos (ver `payments.md`)
-- [ ] Migración SQL: expandir `medio_pago` a 9 valores + campos cheque/cueva
-- [ ] Cálculo recargo Cueva: `(total / 1.21) × 1.05`
-- [ ] Confirmación/rechazo de pago en dashboard admin
-- [ ] MercadoPago para consumidor_final
-- [ ] Exportación de pedidos a PDF / Excel / CSV
+
+**Mayoristas:**
+- [ ] Migración SQL: expandir `medio_pago` CHECK a 9 valores (`transferencia_blanco`, `transferencia_cueva`, `efectivo`, `echeq_propio`, `echeq_tercero`, `cheque_fisico_propio`, `cheque_fisico_tercero`, `cuenta_corriente`, `mercadopago`)
+- [ ] Migración SQL: nuevos campos en pedidos (`recargo_cueva`, `fecha_cobro_cheq`, `nro_cheque`)
+- [ ] Confirmación/rechazo de pago en dashboard admin (botón sobre pedidos con comprobante subido)
+- [ ] Vista de comprobante subido por el cliente en el panel admin
+- [ ] Cálculo automático recargo Cueva: `(total / 1.21) × 1.05` mostrado en instrucciones
+- [ ] Cuenta Corriente: flag `permite_cuenta_corriente` en profiles + tabla `cc_movimientos` (baja prioridad)
+
+**Minoristas (MercadoPago):**
+- [ ] Instalar SDK: `@mercadopago/sdk-react` + `mercadopago`
+- [ ] Variables de entorno: `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET`
+- [ ] Route `/api/checkout/mp` — crea preferencia de pago
+- [ ] Route `/api/webhooks/mp` — recibe confirmación y actualiza estado del pedido
+- [ ] Solo habilitado para rol `consumidor_final`
+
+**Exportación de pedidos (puente con Gesu):**
+- [ ] Instalar: `xlsx` (SheetJS) + `@react-pdf/renderer`
+- [ ] Botón exportar PDF desde detalle del pedido (remito informal)
+- [ ] Botón exportar Excel/CSV desde lista de pedidos (importable en Gesu)
 
 ### 🔲 Fase 6 — CRM (ver `crm.md`)
-- [ ] Migración SQL: ~20 campos CRM en profiles
-- [ ] Código alfanumérico por cliente (LOC-001, DIS-047…)
-- [ ] Ficha individual de cliente con tabs CRM / Pedidos / Mapa / Notas
-- [ ] Mapa interactivo con Mapbox
-- [ ] Botones WhatsApp `wa.me` en ficha de cliente
-- [ ] Email marketing con Brevo
+- [ ] Migración SQL: ~20 campos CRM en `profiles` (tipo_comercio, zona_geografica, es_buen_pagador, forma_entrega, financiacion_dias, categorias_items, canal_atencion, etc.)
+- [ ] Campo `codigo_cliente` alfanumérico con auto-generación por tipo (LOC-001, DIS-047…)
+- [ ] Ficha individual `/dashboard/admin/clientes/[id]` con tabs:
+  - **CRM** — todos los campos editables inline
+  - **Pedidos** — historial con totales y estados
+  - **Mapa** — pin de ubicación
+  - **Notas** — log de contactos internos
+- [ ] Filtros avanzados en lista de clientes (zona, tipo comercio, buen pagador, canal)
+- [ ] Campos calculados en ficha: ticket promedio, compras últimos 6 meses, periodicidad
+- [ ] Botones WhatsApp `wa.me` en ficha de cliente (número prellenado con mensaje)
+- [ ] Mapa interactivo con Mapbox + geocodificación automática por localidad/provincia
+- [ ] Email marketing con Brevo: sincronizar listas al aprobar cliente, tags por segmento
+- [ ] Difusiones programadas por segmento (nuevos ingresos, ofertas, novedades para comisionistas)
 
 ### 🔲 Fase 7 — Registro público
-- [ ] `/registro` — formulario público para nuevos clientes
-- [ ] Email de bienvenida con Resend
-- [ ] Notificación al admin de nuevo cliente pendiente
+- [ ] `/registro` — formulario público para nuevos clientes (nombre, email, teléfono, tipo de comercio, CUIT)
+- [ ] Al registrarse: perfil queda `aprobado = false`, rol según tipo declarado
+- [ ] Email de bienvenida con Resend ("Tu solicitud fue recibida, te avisamos cuando esté aprobada")
+- [ ] Notificación badge en dashboard admin cuando hay clientes pendientes de aprobación
+
+### 🔲 Fase 8 — Comisionista
+- [ ] Dashboard propio para rol `comisionista`: ver sus clientes y sus pedidos
+- [ ] Crear pedido en nombre de un cliente desde el dashboard del comisionista
+- [ ] Flujo de descuento sugerido: comisionista propone %, master aprueba o rechaza
+- [ ] Vista de comisiones devengadas por pedidos entregados
+
+### 🔲 Fase 9 — Optimizaciones y deploy final
+- [ ] Configurar `next.config.ts` con `remotePatterns` para imágenes de Supabase Storage
+- [ ] Conectar repo a Vercel y configurar las 6 variables de entorno (ver checklist despliegue)
+- [ ] Verificar cron jobs activos en Vercel (requiere plan Pro para frecuencia cada 2h)
+- [ ] Dominio personalizado `reunata.com` con DNS en Vercel
+- [ ] Revisar RLS en Supabase: confirmar que ningún dato sensible es accesible sin auth
+- [ ] Test end-to-end del flujo completo: registro → aprobación → catálogo → pedido → pago → confirmación
+- [ ] Smoke test con usuario de cada rol (master, empleado, distribuidor, consumidor_final)
 
 ---
 
