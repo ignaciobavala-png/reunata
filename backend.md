@@ -307,6 +307,11 @@ DOLAR_API_URL=                  # API para obtener cotización del dólar
 - [ ] ¿Con qué frecuencia se actualizan los precios en el sistema de gestión?
 - [ ] ¿La API de Gesu tiene webhook o hay que hacer polling?
 - [ ] ¿Los pedidos generados en Reunata se deben reflejar en el sistema Gesu?
+  - Los endpoints compartidos (`api_items.php`, `api_clieprov.php`) son solo de lectura (GET)
+  - La comunicación es unidireccional por ahora: Gesu → Reunata
+  - **Confirmar con Gastón**: ¿Gesu tiene endpoints POST para recibir pedidos, o los pedidos del sitio se cargan manualmente en Gesu?
+  - Si no hay API de escritura → los pedidos viven solo en Supabase (implementación actual)
+  - Si hay API de escritura → integración como segunda etapa sin afectar lo construido
 - [ ] ¿Qué empleados ya existen y qué permisos específicos necesitan?
 
 ---
