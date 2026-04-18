@@ -12,15 +12,15 @@ import {
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
 
 const navMaster = [
-  { label: 'Inicio',       href: '/dashboard/admin',           icon: LayoutDashboard },
-  { label: 'Productos',    href: '/dashboard/admin/productos',  icon: Package },
-  { label: 'Multimedia',   href: '/dashboard/admin/multimedia', icon: Images },
-  { label: 'Canales',      href: '/dashboard/admin/canales',    icon: Layers },
-  { label: 'Pedidos',      href: '/dashboard/admin/pedidos',    icon: ShoppingCart },
-  { label: 'Clientes',     href: '/dashboard/admin/clientes',   icon: Users },
-  { label: 'Empleados',    href: '/dashboard/admin/empleados',  icon: UserCog },
-  { label: 'Sincronizar',  href: '/dashboard/admin/sync',       icon: RefreshCw },
-  { label: 'Configuración',href: '/dashboard/admin/configuracion', icon: Settings },
+  { label: 'Inicio',        href: '/dashboard/admin',                icon: LayoutDashboard },
+  { label: 'Productos',     href: '/dashboard/admin/productos',       icon: Package },
+  { label: 'Multimedia',    href: '/dashboard/admin/multimedia',      icon: Images },
+  { label: 'Canales',       href: '/dashboard/admin/canales',         icon: Layers },
+  { label: 'Pedidos',       href: '/dashboard/admin/pedidos',         icon: ShoppingCart },
+  { label: 'Clientes',      href: '/dashboard/admin/clientes',        icon: Users },
+  { label: 'Equipo',        href: '/dashboard/admin/empleados',       icon: UserCog },
+  { label: 'Sincronizar',   href: '/dashboard/admin/sync',            icon: RefreshCw },
+  { label: 'Configuración', href: '/dashboard/admin/configuracion',   icon: Settings },
 ]
 
 const navEmpleado = [
