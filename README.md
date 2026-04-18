@@ -325,14 +325,35 @@ supabase db push
 - [ ] `/dashboard/cliente/pedidos` — historial de pedidos del cliente
 - [ ] `/dashboard/cliente/cuenta` — datos de perfil editables
 - [ ] Carrito con Zustand: items, cantidades, subtotal, mínimo de pedido
-- [ ] Checkout: formulario → instrucciones de transferencia → upload comprobante
+- [ ] Checkout: formulario → instrucciones de pago → upload comprobante
 
-### 🔲 Fase 5 — Registro público
+### 🔲 Fase 5 — Pagos
+Ver detalle completo en `payments.md`.
+
+**Mayoristas** (6 métodos, manual):
+- [ ] Migración SQL: expandir `medio_pago` CHECK (9 valores) + campos nro_cheque, fecha_cobro, recargo_cueva
+- [ ] Pantalla instrucciones de pago con tabs por método (CBU copiable, datos cueva por fuera)
+- [ ] Cálculo automático recargo Cueva: `(total / 1.21) * 1.05`
+- [ ] Upload comprobante por el cliente → estado `comprobante_subido`
+- [ ] Confirmación/rechazo manual en dashboard admin
+- [ ] Cuenta Corriente: flag por cliente + tabla `cc_movimientos` (baja prioridad)
+
+**Minoristas** (MercadoPago):
+- [ ] SDK: `@mercadopago/sdk-react` + `mercadopago`
+- [ ] Route `/api/checkout/mp` — crea preferencia
+- [ ] Route `/api/webhooks/mp` — confirma pago automáticamente
+- [ ] Solo activo para rol `consumidor_final`
+
+**Exportación de pedidos** (puente con Gesu):
+- [ ] PDF de pedido con `@react-pdf/renderer`
+- [ ] Excel/CSV con `xlsx` (SheetJS)
+
+### 🔲 Fase 6 — Registro público
 - [ ] `/registro` — formulario público para nuevos clientes
-- [ ] Email de bienvenida (pendiente integrar Resend)
-- [ ] Notificación al admin de nuevo cliente pendiente de aprobación
+- [ ] Email de bienvenida (Resend)
+- [ ] Notificación al admin de nuevo cliente pendiente
 
-### 🔲 Fase 6 — Deploy
+### 🔲 Fase 7 — Deploy
 - [ ] Proyecto en Vercel vinculado al repo
 - [ ] Variables de entorno en Vercel Dashboard
 - [ ] Vercel Cron para sync automático de Gesu (cada 2 horas)
