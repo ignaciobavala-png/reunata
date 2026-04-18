@@ -348,7 +348,18 @@ Ver detalle completo en `payments.md`.
 - [ ] PDF de pedido con `@react-pdf/renderer`
 - [ ] Excel/CSV con `xlsx` (SheetJS)
 
-### 🔲 Fase 6 — Registro público
+### 🔲 Fase 6 — CRM
+Ver detalle completo en `crm.md`.
+- [ ] Migración SQL: ~20 campos CRM en `profiles` (tipo comercio, zona, pagador, etc.)
+- [ ] Código alfanumérico por cliente (`LOC-001`, `DIS-047`, etc.)
+- [ ] Ficha individual `/dashboard/admin/clientes/[id]` con tabs CRM / Pedidos / Mapa / Notas
+- [ ] Filtros avanzados en lista de clientes
+- [ ] Mapa interactivo de clientes con Mapbox (pins por zona)
+- [ ] Botones WhatsApp `wa.me` en ficha de cliente
+- [ ] Email marketing con Brevo (listas por segmento)
+- [ ] Difusiones programadas por tipo de cliente y comisionistas
+
+### 🔲 Fase 7 — Registro público
 - [ ] `/registro` — formulario público para nuevos clientes
 - [ ] Email de bienvenida (Resend)
 - [ ] Notificación al admin de nuevo cliente pendiente
