@@ -41,6 +41,35 @@ export function MultimediaClient({
   const getPublicUrl = (url: string) =>
     `${supabaseUrl}/storage/v1/object/public/multimedia/${url}`
 
+  async function optimizarImagen(archivo: File): Promise<Blob> {
+    const MAX_LADO = 1920
+    const CALIDAD  = 0.85
+
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      const url = URL.createObjectURL(archivo)
+
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+
+        let { width, height } = img
+        if (width > MAX_LADO || height > MAX_LADO) {
+          if (width >= height) { height = Math.round((height * MAX_LADO) / width); width = MAX_LADO }
+          else                 { width  = Math.round((width  * MAX_LADO) / height); height = MAX_LADO }
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width  = width
+        canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob falló')), 'image/webp', CALIDAD)
+      }
+
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo cargar la imagen')) }
+      img.src = url
+    })
+  }
+
   async function subirArchivos(archivos: FileList | File[]) {
     if (!productoSeleccionado || subiendo) return
     setSubiendo(true)
@@ -49,12 +78,19 @@ export function MultimediaClient({
     const nuevasFotos: Foto[] = []
 
     for (const archivo of lista) {
-      const ext = archivo.name.split('.').pop()
-      const path = `productos/${productoSeleccionado.codigo_interno}/${Date.now()}.${ext}`
+      let blob: Blob
+      try {
+        blob = await optimizarImagen(archivo)
+      } catch {
+        console.error('Error optimizando', archivo.name)
+        continue
+      }
+
+      const path = `productos/${productoSeleccionado.codigo_interno}/${Date.now()}.webp`
 
       const { error: uploadError } = await supabase.storage
         .from('multimedia')
-        .upload(path, archivo, { upsert: false })
+        .upload(path, blob, { contentType: 'image/webp', upsert: false })
 
       if (uploadError) { console.error(uploadError); continue }
 
