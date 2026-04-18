@@ -32,12 +32,23 @@ async function fetchPagina(pag: number): Promise<{ header: Record<string, number
   return res.json()
 }
 
-export async function POST(request: Request) {
+function verificarAuth(request: Request) {
   const auth = request.headers.get('authorization')
-  if (SYNC_SECRET && auth !== `Bearer ${SYNC_SECRET}`) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const secret = SYNC_SECRET || process.env.CRON_SECRET
+  return !secret || auth === `Bearer ${secret}`
+}
 
+export async function GET(request: Request) {
+  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  return syncClientes()
+}
+
+export async function POST(request: Request) {
+  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  return syncClientes()
+}
+
+async function syncClientes() {
   const inicio = Date.now()
   let totalImportados = 0
   let error: string | null = null
