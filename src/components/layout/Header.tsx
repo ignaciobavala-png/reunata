@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ShoppingBag, Menu, X } from 'lucide-react'
+import { ShoppingBag, User, Menu, X } from 'lucide-react'
 
 const nav = [
   { label: 'Tienda', href: '/tienda' },
@@ -75,6 +75,13 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
+          <Link href="/login" aria-label="Mi cuenta">
+            <User
+              size={20}
+              strokeWidth={1.5}
+              className={`transition-colors duration-300 ${iconColor}`}
+            />
+          </Link>
           <Link href="/carrito" aria-label="Carrito">
             <ShoppingBag
               size={20}
