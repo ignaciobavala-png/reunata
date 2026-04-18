@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
-  Users, UserCog, Settings, LogOut, Layers, Store,
+  Users, UserCog, Settings, LogOut, Layers, Store, Images,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -14,6 +14,7 @@ type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distri
 const navMaster = [
   { label: 'Inicio',       href: '/dashboard/admin',           icon: LayoutDashboard },
   { label: 'Productos',    href: '/dashboard/admin/productos',  icon: Package },
+  { label: 'Multimedia',   href: '/dashboard/admin/multimedia', icon: Images },
   { label: 'Canales',      href: '/dashboard/admin/canales',    icon: Layers },
   { label: 'Pedidos',      href: '/dashboard/admin/pedidos',    icon: ShoppingCart },
   { label: 'Clientes',     href: '/dashboard/admin/clientes',   icon: Users },
