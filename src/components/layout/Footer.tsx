@@ -25,22 +25,9 @@ const links = {
 export function Footer() {
   return (
     <footer className="border-t border-[var(--border)] overflow-hidden">
-      {/* Giant brand name */}
-      <FadeIn direction="none">
-        <div className="pt-16 md:pt-24 pb-6 px-2 overflow-hidden">
-          <h2
-            className="text-[18vw] leading-none tracking-[-0.04em] text-[var(--foreground)] select-none"
-            style={{ fontFamily: 'var(--font-display)' }}
-            aria-hidden="true"
-          >
-            REUNATA
-          </h2>
-        </div>
-      </FadeIn>
-
       {/* Links + newsletter */}
       <FadeIn delay={0.1}>
-        <div className="px-6 md:px-10 pb-16 md:pb-20 grid grid-cols-2 md:grid-cols-4 gap-10 border-t border-[var(--border)] pt-12">
+        <div className="px-6 md:px-10 py-16 md:py-20 grid grid-cols-2 md:grid-cols-4 gap-10">
           {Object.entries(links).map(([section, items]) => (
             <div key={section}>
               <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-5">
