@@ -170,7 +170,7 @@ Estos links funcionan en mobile y desktop. No requieren ninguna API.
 - **360dialog** (más económico a escala)
 - **Meta directamente** (más complejo de configurar)
 
-**Recomendación:** empezar con links `wa.me` (costo cero, disponible hoy). Evaluar Business API cuando el volumen de clientes lo justifique.
+**Decisión tomada:** links `wa.me` (costo cero, disponible hoy). El empleado hace click por cada cliente — suficiente para el volumen actual. WhatsApp Business API queda descartada por ahora.
 
 ---
 
