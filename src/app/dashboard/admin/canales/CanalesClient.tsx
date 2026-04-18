@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, Fragment } from 'react'
 import { toggleProductoCanal, asignarCanalMasivo } from '@/app/actions/canales'
 import { Search, Loader2, CheckSquare, Square } from 'lucide-react'
 
@@ -155,9 +155,9 @@ export function CanalesClient({
             </thead>
             <tbody>
               {categoriasList.map(cat => (
-                <>
+                <Fragment key={cat}>
                   {/* Encabezado de categoría */}
-                  <tr key={`cat-${cat}`} style={{ background: 'var(--color-acero-brillo)' }}>
+                  <tr style={{ background: 'var(--color-acero-brillo)' }}>
                     <td
                       colSpan={canales.length + 1}
                       className="px-4 py-2 text-xs font-medium tracking-wide uppercase"
@@ -207,7 +207,7 @@ export function CanalesClient({
                       })}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
 
               {categoriasList.length === 0 && (
