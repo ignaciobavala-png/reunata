@@ -1,91 +1,105 @@
 import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
 
-const links = {
-  Tienda: [
-    { label: 'Todos los productos', href: '/tienda' },
-    { label: 'Mates', href: '/tienda/mates' },
-    { label: 'Termos', href: '/tienda/termos' },
-    { label: 'Bombillas', href: '/tienda/bombillas' },
-  ],
-  Ayuda: [
-    { label: 'Envíos', href: '/envios' },
-    { label: 'Devoluciones', href: '/devoluciones' },
-    { label: 'Preguntas frecuentes', href: '/faq' },
-    { label: 'Contacto', href: '/contacto' },
-  ],
-  Marca: [
-    { label: 'Nosotros', href: '/nosotros' },
-    { label: 'Prensa', href: '/prensa' },
-    { label: 'Mayoristas', href: '/mayoristas' },
-    { label: 'Instagram', href: 'https://instagram.com/reunata_ar' },
-  ],
-}
+const tienda = [
+  { label: 'Todos los productos',     href: '/tienda' },
+  { label: 'Mates',                   href: '/tienda/mates' },
+  { label: 'Térmicos de acero',       href: '/tienda/termicos-de-acero' },
+  { label: 'Bombillas y sorbetes',    href: '/tienda/bombillas-y-sorbetes' },
+  { label: 'Materas y mochilas',      href: '/tienda/materas-y-mochilas' },
+  { label: 'Accesorios para el mate', href: '/tienda/accesorios' },
+  { label: 'Merchandising',           href: '/tienda/merchandising' },
+  { label: 'Gift Card',               href: '/tienda/gift-card' },
+]
+
+const empresa = [
+  { label: 'Nosotros',             href: '/nosotros' },
+  { label: 'Trabajá con nosotros', href: '/trabaja-con-nosotros' },
+  { label: 'Contacto',             href: '/contacto' },
+  { label: 'Instagram',            href: 'https://instagram.com/reunata_ar' },
+]
+
+const cuenta = [
+  { label: 'Ingresá',      href: '/login' },
+  { label: 'Registrate',   href: '/registro' },
+  { label: 'Mi catálogo',  href: '/dashboard/cliente/catalogo' },
+  { label: 'Mis pedidos',  href: '/dashboard/cliente/pedidos' },
+]
+
+const sectionLabel = 'text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-4'
+const linkClass = 'text-sm text-[var(--color-acero)] hover:text-[var(--color-acero-brillo)] transition-colors duration-200'
 
 export function Footer() {
   return (
-    <footer className="border-t border-[var(--border)] overflow-hidden">
-      {/* Links + newsletter */}
+    <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
-        <div className="px-6 md:px-10 py-16 md:py-20 grid grid-cols-2 md:grid-cols-4 gap-10">
-          {Object.entries(links).map(([section, items]) => (
-            <div key={section}>
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-5">
-                {section}
-              </p>
-              <ul className="flex flex-col gap-3">
-                {items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-[var(--color-granito-claro)] hover:text-[var(--foreground)] transition-colors duration-200"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="px-6 md:px-10 py-10 md:py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+
+          {/* Tienda — 2 columnas internas para reducir altura */}
+          <div className="col-span-2 md:col-span-1">
+            <p className={sectionLabel}>Tienda</p>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+              {tienda.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={linkClass}>{item.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Empresa */}
+          <div>
+            <p className={sectionLabel}>Empresa</p>
+            <ul className="flex flex-col gap-2">
+              {empresa.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={linkClass}>{item.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Cuenta */}
+          <div>
+            <p className={sectionLabel}>Mi cuenta</p>
+            <ul className="flex flex-col gap-2">
+              {cuenta.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={linkClass}>{item.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {/* Newsletter */}
           <div>
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-5">
-              Newsletter
+            <p className={sectionLabel}>Newsletter</p>
+            <p className="text-sm text-[var(--color-acero-oscuro)] mb-3 leading-relaxed">
+              Novedades y cultura del mate.
             </p>
-            <p className="text-sm text-[var(--color-granito-claro)] mb-4 leading-relaxed">
-              Novedades, lanzamientos y cultura del mate.
-            </p>
-            <form className="flex border border-[var(--border)] hover:border-[var(--foreground)] transition-colors duration-300">
+            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300">
               <input
                 type="email"
                 placeholder="tu@email.com"
-                className="flex-1 px-4 py-3 bg-transparent text-xs outline-none text-[var(--foreground)] placeholder:text-[var(--color-acero)]"
+                className="flex-1 px-3 py-2.5 bg-transparent text-xs outline-none text-[var(--color-acero-brillo)] placeholder:text-[var(--color-granito-claro)]"
               />
               <button
                 type="submit"
-                className="px-4 py-3 text-[10px] tracking-widest uppercase bg-[var(--foreground)] text-[var(--color-acero-brillo)] hover:bg-[var(--color-granito)] transition-colors duration-200 whitespace-nowrap"
+                className="px-3 py-2.5 text-[10px] tracking-widest uppercase bg-[var(--color-acero-oscuro)] text-[var(--color-granito-oscuro)] hover:bg-[var(--color-acero)] transition-colors duration-200 whitespace-nowrap"
               >
                 OK
               </button>
             </form>
           </div>
+
         </div>
       </FadeIn>
 
       {/* Bottom bar */}
-      <div className="px-6 md:px-10 py-5 border-t border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div className="px-6 md:px-10 py-4 border-t border-[var(--color-granito-claro)]">
         <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">
           © {new Date().getFullYear()} Reunata. Todos los derechos reservados.
         </p>
-        <div className="flex gap-6">
-          <Link href="/privacidad" className="text-[10px] tracking-wider text-[var(--color-acero-oscuro)] hover:text-[var(--foreground)] transition-colors">
-            Privacidad
-          </Link>
-          <Link href="/terminos" className="text-[10px] tracking-wider text-[var(--color-acero-oscuro)] hover:text-[var(--foreground)] transition-colors">
-            Términos
-          </Link>
-        </div>
       </div>
     </footer>
   )

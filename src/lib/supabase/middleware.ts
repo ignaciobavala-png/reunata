@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
     const rol = profile?.rol
     const url = request.nextUrl.clone()
 
-    if (rol === 'master' || rol === 'empleado') {
+    if (rol === 'master' || rol === 'empleado' || rol === 'comisionista') {
       url.pathname = '/dashboard/admin'
     } else {
       url.pathname = '/dashboard/cliente'

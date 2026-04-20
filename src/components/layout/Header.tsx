@@ -54,8 +54,8 @@ export function Header() {
     scrollY,
     [0, 60],
     isHome
-      ? ['rgba(240,241,243,0)', 'rgba(240,241,243,0.97)']
-      : ['rgba(240,241,243,0.97)', 'rgba(240,241,243,0.97)']
+      ? ['rgba(240,241,243,0)', 'rgba(255,255,255,0.97)']
+      : ['rgba(255,255,255,0.97)', 'rgba(255,255,255,0.97)']
   )
   const borderOpacity = useTransform(scrollY, [0, 60], isHome ? [0, 1] : [1, 1])
 
@@ -64,7 +64,7 @@ export function Header() {
     : 'text-white/80 hover:text-white'
 
   const iconColor = scrolled ? 'text-[var(--foreground)]' : 'text-white'
-  const logoFilter = scrolled ? '' : 'brightness-0 invert'
+  const logoFilter = scrolled ? 'brightness-0' : 'brightness-0 invert'
 
   return (
     <>
