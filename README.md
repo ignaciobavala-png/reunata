@@ -187,19 +187,7 @@ El archivo `vercel.json` ya configura los cron jobs. Se activan automáticamente
 En Vercel → Settings → Domains: agregar `reunata.com` y configurar los DNS según indique Vercel.
 
 ### 11. Verificar `next.config` para imágenes remotas
-Si se usan imágenes desde Supabase Storage en componentes `next/image`, agregar en `next.config.ts`:
-
-```ts
-images: {
-  remotePatterns: [
-    {
-      protocol: 'https',
-      hostname: 'znmqvjxdnslrrvsjquej.supabase.co',
-      pathname: '/storage/v1/object/public/**',
-    },
-  ],
-},
-```
+✅ Ya configurado en `next.config.ts` con `remotePatterns` para `znmqvjxdnslrrvsjquej.supabase.co`.
 
 ---
 
@@ -288,10 +276,10 @@ proxy.ts → updateSession()
 - [x] Upload de comprobante de pago
 - [x] Mi cuenta: edición de datos personales y de facturación
 
-### 🔲 Fase 5 — Pagos (ver `payments.md`)
+### 🔲 Fase 5 — Pagos (ver `docs/payments.md`)
 
 **Mayoristas:**
-- [ ] Migración SQL: expandir `medio_pago` CHECK a 9 valores (`transferencia_blanco`, `transferencia_cueva`, `efectivo`, `echeq_propio`, `echeq_tercero`, `cheque_fisico_propio`, `cheque_fisico_tercero`, `cuenta_corriente`, `mercadopago`)
+- [x] Migración SQL: `medio_pago` CHECK expandido a 9 valores (migración `20260419000001`)
 - [ ] Migración SQL: nuevos campos en pedidos (`recargo_cueva`, `fecha_cobro_cheq`, `nro_cheque`)
 - [ ] Confirmación/rechazo de pago en dashboard admin (botón sobre pedidos con comprobante subido)
 - [ ] Vista de comprobante subido por el cliente en el panel admin
@@ -310,7 +298,7 @@ proxy.ts → updateSession()
 - [ ] Botón exportar PDF desde detalle del pedido (remito informal)
 - [ ] Botón exportar Excel/CSV desde lista de pedidos (importable en Gesu)
 
-### 🔲 Fase 6 — CRM (ver `crm.md`)
+### 🔲 Fase 6 — CRM (ver `docs/crm.md`)
 - [ ] Migración SQL: ~20 campos CRM en `profiles` (tipo_comercio, zona_geografica, es_buen_pagador, forma_entrega, financiacion_dias, categorias_items, canal_atencion, etc.)
 - [ ] Campo `codigo_cliente` alfanumérico con auto-generación por tipo (LOC-001, DIS-047…)
 - [ ] Ficha individual `/dashboard/admin/clientes/[id]` con tabs:
@@ -332,13 +320,16 @@ proxy.ts → updateSession()
 - [ ] Notificación badge en dashboard admin cuando hay clientes pendientes de aprobación
 
 ### 🔲 Fase 8 — Comisionista
+- [x] Migración SQL: `producto_canales` con 800 asignaciones iniciales (todos los productos × 4 canales)
+- [x] Redirect de comisionista a `/dashboard/admin` en `proxy.ts`
 - [ ] Dashboard propio para rol `comisionista`: ver sus clientes y sus pedidos
 - [ ] Crear pedido en nombre de un cliente desde el dashboard del comisionista
 - [ ] Flujo de descuento sugerido: comisionista propone %, master aprueba o rechaza
 - [ ] Vista de comisiones devengadas por pedidos entregados
 
 ### 🔲 Fase 9 — Optimizaciones y deploy final
-- [ ] Configurar `next.config.ts` con `remotePatterns` para imágenes de Supabase Storage
+- [x] `next.config.ts` con `remotePatterns` para imágenes de Supabase Storage
+- [x] Migración 5 (`whatsapp_config`) — ⚠️ pendiente aplicar en Supabase (archivo existe, no se ejecutó)
 - [ ] Conectar repo a Vercel y configurar las 6 variables de entorno (ver checklist despliegue)
 - [ ] Verificar cron jobs activos en Vercel (requiere plan Pro para frecuencia cada 2h)
 - [ ] Dominio personalizado `reunata.com` con DNS en Vercel
