@@ -29,7 +29,7 @@ export default async function MultimediaPage({
   ])
 
   return (
-    <div className="p-8">
+    <div className="p-8 h-full flex flex-col">
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Multimedia
       </h1>

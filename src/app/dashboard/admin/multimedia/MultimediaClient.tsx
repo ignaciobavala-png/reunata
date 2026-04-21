@@ -178,7 +178,7 @@ export function MultimediaClient({
   }
 
   return (
-    <div className="flex gap-6 max-w-6xl">
+    <div className="flex gap-6 max-w-6xl flex-1 min-h-0">
 
       {/* Toast */}
       {toast && (
@@ -190,7 +190,7 @@ export function MultimediaClient({
       )}
 
       {/* Panel izquierdo */}
-      <div className="w-72 flex-shrink-0 flex flex-col">
+      <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
 
         {/* Progreso */}
         <div className="mb-3">
@@ -245,7 +245,7 @@ export function MultimediaClient({
         </div>
 
         {/* Lista de productos */}
-        <div className="overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--color-acero-claro)', height: 'calc(100vh - 26rem)' }}>
+        <div className="flex-1 overflow-y-auto rounded-lg border min-h-0" style={{ borderColor: 'var(--color-acero-claro)' }}>
           {Object.entries(productosPorCategoria).map(([cat, prods]) => (
             <div key={cat}>
               <div
@@ -302,7 +302,7 @@ export function MultimediaClient({
       </div>
 
       {/* Panel derecho */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         {!productoSeleccionado ? (
           <div className="flex-1 rounded-xl border-2 border-dashed flex items-center justify-center"
             style={{ borderColor: 'var(--color-acero-claro)' }}>
@@ -389,7 +389,7 @@ export function MultimediaClient({
             )}
 
             {/* Galería */}
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32rem)' }}>
+            <div className="flex-1 overflow-y-auto min-h-0">
               {fotosDelProducto.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3">
                   {fotosDelProducto.map(foto => (
