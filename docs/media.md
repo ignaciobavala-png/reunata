@@ -66,7 +66,7 @@ Macrocategorías iniciales:
 
 ---
 
-## Estado actual de la rama
+## Estado actual de la rama (mergeado a main)
 
 | Feature | Estado |
 |---|---|
@@ -74,9 +74,21 @@ Macrocategorías iniciales:
 | Fotos ⭐ en slider "Más elegidos" | ✅ Funcionando |
 | CategoryBento con fotos reales | ✅ Implementado (requiere fotos subidas) |
 | Gestión de categorías home | ✅ Implementado |
+| Optimización layout multimedia | ✅ Implementado |
+| Página /colecciones | ✅ Implementado |
+| Fix TypeScript page.tsx | ✅ Implementado |
 | Fotos en catálogo cliente (dashboard) | ⏳ Pendiente |
 | Drag & drop para reordenar fotos | ⏳ Pendiente |
 | Carrusel hero gestionable | ⏳ No iniciado |
+
+---
+
+## Fixes implementados post-merge
+
+### Fix TypeScript en `page.tsx`
+- **Problema:** Error de type checking en Vercel build: `productos` es array pero se trataba como objeto
+- **Solución:** Cambiar `f.productos as { titulo: string; codigo_interno: string } | null` → `f.productos as { titulo: string; codigo_interno: string }[] | null`
+- **Commit:** `22566dd` - fix: type error en page.tsx - productos es array no objeto
 
 ---
 
@@ -84,3 +96,10 @@ Macrocategorías iniciales:
 
 1. `add_destacada_to_producto_fotos` — columna `destacada boolean` en `producto_fotos`
 2. `create_categorias_home` — tabla `categorias_home` con RLS y datos iniciales
+
+---
+
+## Deploy en Vercel
+- **Estado:** ✅ Build exitoso después del fix TypeScript
+- **Fecha:** 21/04/2026
+- **Commit:** `22566dd` (main)
