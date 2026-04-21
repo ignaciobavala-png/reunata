@@ -43,19 +43,35 @@ async function fetchPagina(pag: number): Promise<{ header: Record<string, number
   return json
 }
 
-function verificarAuth(request: Request) {
+async function verificarAuth(request: Request): Promise<boolean> {
   const auth = request.headers.get('authorization')
   const secret = SYNC_SECRET || process.env.CRON_SECRET
-  return !secret || auth === `Bearer ${secret}`
+
+  // Cron / server-to-server con SYNC_SECRET
+  if (secret && auth === `Bearer ${secret}`) return true
+
+  // Sesión de usuario master desde el dashboard (via cookies SSR)
+  const { createClient } = await import('@/lib/supabase/server')
+  const userClient = await createClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) return false
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+
+  return data?.rol === 'master'
 }
 
 export async function GET(request: Request) {
-  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   return syncProductos()
 }
 
 export async function POST(request: Request) {
-  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   return syncProductos()
 }
 

@@ -25,8 +25,14 @@ export async function PATCH(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { id, orden } = await request.json()
-  await admin.from('producto_fotos').update({ orden }).eq('id', id)
+  const body = await request.json()
+  const { id } = body
+
+  const update: Record<string, unknown> = {}
+  if ('orden' in body) update.orden = body.orden
+  if ('destacada' in body) update.destacada = body.destacada
+
+  await admin.from('producto_fotos').update(update).eq('id', id)
 
   return NextResponse.json({ ok: true })
 }
