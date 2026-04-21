@@ -16,7 +16,8 @@ export default async function Home() {
     .order('orden')
 
   const fotos = (fotosDestacadas ?? []).map((f) => {
-    const producto = f.productos as { titulo: string; codigo_interno: string } | null
+    const productos = f.productos as { titulo: string; codigo_interno: string }[] | null
+    const producto = productos?.[0] ?? null
     return {
       id: f.id,
       url: f.url,
