@@ -1,0 +1,173 @@
+# Base de Datos — Reunata Web
+
+Esquema PostgreSQL en Supabase. 11 tablas, RLS completo.
+
+---
+
+## Tablas
+
+### `profiles`
+Extiende `auth.users`. Un registro por usuario.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | FK → `auth.users.id` |
+| `nombre` | text | |
+| `email` | text | |
+| `telefono` | text | |
+| `cuit_dni` | text | |
+| `condicion_fiscal` | text | |
+| `rol` | text | CHECK: master, empleado, comisionista, consumidor_final, distribuidor, local, mercha |
+| `aprobado` | boolean | null = pendiente, true = aprobado |
+| `activo` | boolean | Para empleados/comisionistas |
+| `canal_id` | integer | FK → `canales.id` |
+| `bonificacion` | numeric | Descuento especial |
+| `created_at` | timestamptz | default now() |
+
+### `productos`
+Catálogo sincronizado desde Gesu.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `codigo_interno` | text UNIQUE | Identificador en Gesu |
+| `codigo_barras` | text | |
+| `tipo` | text | |
+| `titulo` | text | |
+| `categoria` | text | |
+| `sub_categoria` | text | |
+| `marca` | text | |
+| `proveedor` | text | |
+| `stock` | integer | |
+| `stock_minimo` | integer | |
+| `moneda` | text | default 'u$s' |
+| `precio_compra` | numeric | |
+| `precio_lista1..5` | numeric | Precios según canal |
+| `iva` | numeric | |
+| `descripcion` | text | |
+| `palabras_clave` | text | |
+| `activo` | boolean | default true |
+| `ultima_sync` | timestamptz | |
+
+### `producto_fotos`
+Fotos por producto, almacenadas en bucket `multimedia`.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `producto_id` | integer FK → `productos.id` | |
+| `url` | text | Ruta en Storage |
+| `orden` | integer | |
+| `destacada` | boolean | Para slider "Más elegidos" en home |
+
+### `producto_canales`
+Junction: qué productos son visibles en cada canal.
+
+| Columna | Tipo |
+|---|---|
+| `producto_id` | integer FK → `productos.id` |
+| `canal_id` | integer FK → `canales.id` |
+
+### `canales`
+Canales de venta con lista de precios.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `slug` | text UNIQUE | consumidor_final, distribuidor, local, mercha |
+| `nombre` | text | |
+| `lista_precios` | integer | 1..5, mapea a `precio_listaN` en productos |
+| `descripcion` | text | |
+
+### `categorias_home`
+Macrocategorías para el bento de portada.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `nombre` | text | |
+| `descripcion` | text | |
+| `href` | text | Link de la categoría |
+| `activo` | boolean | default true |
+| `orden` | integer | |
+| `categoria_keys` | text[] | Categorías Gesu agrupadas |
+
+### `pedidos`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `cliente_id` | uuid FK → `profiles.id` | |
+| `estado` | text | CHECK: borrador, pendiente_pago, comprobante_subido, pago_confirmado, en_preparacion, enviado, entregado, cancelado |
+| `total_usd` | numeric | |
+| `medio_pago` | text | CHECK: mercadopago, transferencia_blanco, transferencia_cueva, efectivo, echeq_propio, echeq_tercero, cheque_fisico_propio, cheque_fisico_tercero, cuenta_corriente |
+| `referencia_pago` | text | |
+| `pago_confirmado_por` | uuid | FK → `profiles.id` |
+| `fecha_pago` | timestamptz | |
+| `canal_id` | integer | FK → `canales.id` |
+| `comisionista_id` | uuid | FK → `profiles.id` |
+| `notas` | text | |
+| `created_at` | timestamptz | |
+
+### `pedido_items`
+Líneas de cada pedido con snapshot del precio.
+
+| Columna | Tipo |
+|---|---|
+| `id` | serial PK |
+| `pedido_id` | uuid FK → `pedidos.id` |
+| `producto_id` | integer FK → `productos.id` |
+| `cantidad` | integer |
+| `precio_unit` | numeric |
+
+### `comprobantes`
+Archivos de pago subidos por el cliente.
+
+| Columna | Tipo |
+|---|---|
+| `id` | serial PK |
+| `pedido_id` | uuid FK → `pedidos.id` |
+| `url` | text |
+| `created_at` | timestamptz |
+
+### `configuracion`
+Clave/valor para parámetros del sistema.
+
+| Columna | Tipo |
+|---|---|
+| `clave` | text PK |
+| `valor` | text |
+
+Claves: `banco_cbu`, `banco_alias`, `banco_nombre`, `banco_razon_social`, `banco_cuit`, `pedido_monto_minimo`, `pedido_dias_vencimiento`, `whatsapp_ventas`
+
+### `sync_log`
+Historial de sincronizaciones con Gesu.
+
+| Columna | Tipo |
+|---|---|
+| `id` | serial PK |
+| `tipo` | text |
+| `estado` | text |
+| `registros` | integer |
+| `mensaje` | text |
+| `created_at` | timestamptz |
+
+---
+
+## Row Level Security
+
+Resumen de políticas por tabla:
+
+| Tabla | Política general |
+|---|---|
+| `profiles` | master = todo. empleado/comisionista = solo work items. cliente = solo propio |
+| `productos` | Lectura: autenticados. Escritura: master + service_role (sync) |
+| `producto_fotos` | Lectura: cualquier autenticado. Escritura: master |
+| `producto_canales` | Lectura: según canal del usuario. Escritura: master |
+| `canales` | Lectura: autenticados. Escritura: master |
+| `categorias_home` | Lectura: público. Escritura: master |
+| `pedidos` | master = todos. cliente = propios. empleado = por asignar |
+| `pedido_items` | Misma lógica que pedidos (hereda visibilidad) |
+| `comprobantes` | master = todos. cliente = propios |
+| `configuracion` | Lectura: autenticados. Escritura: master |
+| `sync_log` | Lectura: master. Inserción: service_role |

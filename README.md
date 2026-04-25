@@ -104,6 +104,8 @@ CRON_SECRET=                    # Vercel lo inyecta automáticamente al crear cr
                                 # No hace falta definirlo manualmente
 ```
 
+> **Nota sobre API keys de Supabase:** Las claves legacy en formato JWT fueron desactivadas por Supabase el 20/04/2026. Las nuevas claves usan formato `sb_publishable_...` / `sb_secret_...`. El alias `NEXT_PUBLIC_SUPABASE_ANON_KEY` apunta a la publishable key para compatibilidad con el código existente.
+
 ---
 
 ## Despliegue en Vercel — Checklist completo
@@ -135,11 +137,13 @@ supabase db push
 ```
 
 O ejecutarlas manualmente en el SQL editor de Supabase en este orden:
-1. `supabase/migrations/20260418000001_schema_inicial.sql`
-2. `supabase/migrations/20260418000002_rls.sql`
-3. `supabase/migrations/20260418000003_roles_y_canales.sql`
-4. `supabase/migrations/20260418000004_storage_multimedia.sql`
-5. `supabase/migrations/20260418000005_whatsapp_config.sql`
+1. `20260418000001_schema_inicial.sql` — Schema base: 10 tablas, triggers
+2. `20260418000002_rls.sql` — Row Level Security: políticas por rol
+3. `20260418000003_roles_y_canales.sql` — Roles expandidos + canales de venta
+4. `20260418000004_storage_multimedia.sql` — Bucket público `multimedia`
+5. `20260418000005_whatsapp_config.sql` — Clave `whatsapp_ventas` en config
+6. `20260419000001_medio_pago_completo.sql` — CHECK de medio_pago con 9 métodos
+7. `20260419000002_producto_canales_inicial.sql` — Asignación inicial productos × canales
 
 ### 4. Supabase Storage
 Verificar que el bucket `multimedia` exista y tenga las políticas correctas (creado en migración 4). Si no existe, crearlo manualmente:
@@ -210,13 +214,14 @@ supabase db push                # aplicar migraciones SQL
 ### Base de datos
 
 | Tabla | Descripción |
-|---|---|
+|---|---|---|
 | `profiles` | Extiende `auth.users`. Rol, nombre, aprobado, canal_id, cuit_dni, bonificacion |
 | `productos` | Catálogo de Gesu. Precios lista1…lista5, costo, stock |
-| `producto_fotos` | Fotos por producto en Supabase Storage |
+| `producto_fotos` | Fotos por producto en Supabase Storage. Columna `destacada` para slider home |
 | `producto_canales` | Junction: qué productos son visibles en cada canal |
 | `canales` | 4 canales de venta con lista de precios y políticas |
-| `pedidos` | 8 estados, medio de pago, total en USD |
+| `categorias_home` | Macrocategorías para el bento de portada (4 iniciales) |
+| `pedidos` | 8 estados, medio de pago (9 métodos), total en USD |
 | `pedido_items` | Líneas de cada pedido con precio snapshot |
 | `comprobantes` | Archivos de pago subidos por el cliente |
 | `configuracion` | Clave/valor: CBU, alias, monto mínimo, días vencimiento, WhatsApp |
@@ -266,6 +271,16 @@ proxy.ts → updateSession()
 - [x] Empleados: invitación por email
 - [x] Sync manual desde Gesu + Cron automático (vercel.json)
 - [x] Configuración: datos bancarios, WhatsApp de ventas, parámetros
+- [x] Categorías Home: gestión CRUD desde el panel multimedia
+
+### ✅ Fase 3b — Multimedia y Home dinámica
+- [x] Gallery rediseñada: productos agrupados por categoría, badges, barra de progreso, filtros
+- [x] Fotos destacadas: columna `destacada` en `producto_fotos`, toggle ⭐ desde galería
+- [x] ProductSlider: fetcha fotos destacadas con join a productos
+- [x] CategoryBento conectado a DB `categorias_home`: 4 macrocategorías, fotos aleatorias, fallback gradiente
+- [x] API `/api/categorias-home` (PATCH + POST) con verificación de rol master
+- [x] Página `/colecciones`: lista pública de colecciones
+- [x] Fix auth en rutas sync: soporte dual SYNC_SECRET + sesión SSR para master
 
 ### ✅ Fase 4 — Dashboard Cliente
 - [x] Catálogo filtrado por canal con precio de lista correcto
@@ -329,7 +344,7 @@ proxy.ts → updateSession()
 
 ### 🔲 Fase 9 — Optimizaciones y deploy final
 - [x] `next.config.ts` con `remotePatterns` para imágenes de Supabase Storage
-- [x] Migración 5 (`whatsapp_config`) — ⚠️ pendiente aplicar en Supabase (archivo existe, no se ejecutó)
+- [x] Migraciones 1–7 aplicadas
 - [ ] Conectar repo a Vercel y configurar las 6 variables de entorno (ver checklist despliegue)
 - [ ] Verificar cron jobs activos en Vercel (requiere plan Pro para frecuencia cada 2h)
 - [ ] Dominio personalizado `reunata.com` con DNS en Vercel
