@@ -32,6 +32,7 @@ Reunata es una tienda **mayorista B2B** que importa y distribuye productos relac
 | Carruseles | Embla Carousel React 8 |
 | Estado global | Zustand 5 (carrito) |
 | Iconos | Lucide React |
+| IA | Groq SDK (Llama 3.3 70B) — solo lectura en dashboard |
 | Base de datos | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth con SSR cookies |
 | Storage | Supabase Storage — bucket `multimedia` |
@@ -99,6 +100,7 @@ SUPABASE_SERVICE_ROLE_KEY=      # solo server-side, nunca al cliente
 GESU_API_BASE_URL=https://gesu.com.ar
 GESU_API_TOKEN=
 
+GROQ_API_KEY=gsk_                # clave de Groq para BotManager
 SYNC_SECRET=                    # string aleatorio para proteger el endpoint de sync manual
 ```
 
@@ -130,6 +132,7 @@ Ir a **Settings → Environment Variables** y cargar:
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview | Service role key (solo server) |
 | `GESU_API_BASE_URL` | Production, Preview | `https://gesu.com.ar` |
 | `GESU_API_TOKEN` | Production, Preview | Token de la API de Gesu |
+| `GROQ_API_KEY` | Production, Preview | API key de Groq para BotManager |
 | `SYNC_SECRET` | Production, Preview | String aleatorio seguro (ej: `openssl rand -hex 32`) |
 
 > `CRON_SECRET` lo genera y gestiona Vercel automáticamente. No hace falta cargarlo.
@@ -284,6 +287,8 @@ proxy.ts → updateSession()
 - [x] Sync manual desde Gesu + Cron automático (vercel.json)
 - [x] Configuración: datos bancarios, WhatsApp de ventas, parámetros
 - [x] Categorías Home: gestión CRUD desde el panel multimedia
+- [x] **BotManager**: asistente IA (Groq) solo lectura — analiza KPIs, explica secciones, sugiere mejoras. Streaming de respuestas, sin acceso a datos individuales de clientes/productos.
+- [x] Fix: todas las server actions de admin usan `createServiceClient()` + validación de errores (antes usaban `createClient()` con ANON key, fallaban silenciosamente por RLS)
 
 ### ✅ Fase 3b — Multimedia y Home dinámica
 - [x] Gallery rediseñada: productos agrupados por categoría, badges, barra de progreso, filtros
@@ -369,8 +374,9 @@ proxy.ts → updateSession()
 ## Convenciones de Código
 
 - **Server vs Client:** server components por defecto. `'use client'` solo con estado/hooks/animaciones.
-- **Server Actions:** en `src/app/actions/`. Siempre `'use server'` al tope del archivo.
+- **Server Actions:** en `src/app/actions/`. Siempre `'use server'` al tope del archivo. Acciones de admin usan `createServiceClient()` (bypassea RLS). Acciones de cliente usan `createClient()` (respeta RLS y auth).
 - **Optimistic UI:** `useTransition` + `useState` local sin esperar respuesta del servidor.
+- **Errores en acciones:** siempre `throw new Error()` si Supabase devuelve error. Nunca silenciar fallos.
 - **Imágenes:** siempre `next/image` con `fill` + `sizes`. Imágenes de Supabase Storage usan `unoptimized` (ya están en WebP optimizadas desde la subida).
 - **Colores:** siempre `var(--color-nombre)` inline. No paleta Tailwind genérica.
 - **`pnpm tsc --noEmit` antes de commitear.**

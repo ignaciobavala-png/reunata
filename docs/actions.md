@@ -1,6 +1,12 @@
 # Server Actions — Reunata Web
 
-Todas en `src/app/actions/`. Usan `'use server'` y `createClient()` de `@/lib/supabase/server` (cliente SSR con cookies).
+Todas en `src/app/actions/`. Usan `'use server'`.
+
+**Dos clientes según el caso:**
+- `createServiceClient()` — acciones de admin (bypassea RLS, usa service role key). Canales, clientes, configuración, empleados.
+- `createClient()` — acciones de cliente (respeta RLS y auth del usuario). Auth, cuenta, pedidos.
+
+**Regla:** toda acción debe validar `error` de Supabase y hacer `throw` si falla.
 
 ---
 
@@ -24,11 +30,13 @@ Todas en `src/app/actions/`. Usan `'use server'` y `createClient()` de `@/lib/su
 ## `canales.ts`
 
 ### `toggleProductoCanal(productoId: number, canalId: number, activo: boolean)`
-- **DB:** `producto_canales` (insert si activo=true, delete si activo=false)
+- **Cliente:** `createServiceClient()`
+- **DB:** `producto_canales` (insert si activo=true, delete si activo=false). Valida error con throw.
 - **Consumido por:** `CanalesClient.tsx`
 
 ### `asignarCanalMasivo(productoIds: number[], canalId: number, activo: boolean)`
-- **DB:** `producto_canales` (upsert batch si activo=true, delete batch si activo=false)
+- **Cliente:** `createServiceClient()`
+- **DB:** `producto_canales` (upsert batch si activo=true, delete batch si activo=false). Valida error con throw.
 - **Consumido por:** `CanalesClient.tsx`
 
 ---
@@ -36,11 +44,13 @@ Todas en `src/app/actions/`. Usan `'use server'` y `createClient()` de `@/lib/su
 ## `clientes.ts`
 
 ### `aprobarCliente(clienteId: string, aprobado: boolean)`
-- **DB:** `profiles` (update `aprobado`)
+- **Cliente:** `createServiceClient()`
+- **DB:** `profiles` (update `aprobado`). Valida error con throw.
 - **Consumido por:** `ClientesClient.tsx`
 
 ### `actualizarCanalCliente(clienteId: string, canalId: number | null)`
-- **DB:** `profiles` (update `canal_id`)
+- **Cliente:** `createServiceClient()`
+- **DB:** `profiles` (update `canal_id`). Valida error con throw.
 - **Consumido por:** `ClientesClient.tsx`
 
 ---
@@ -48,8 +58,9 @@ Todas en `src/app/actions/`. Usan `'use server'` y `createClient()` de `@/lib/su
 ## `configuracion.ts`
 
 ### `guardarConfiguracion(formData: FormData)`
+- **Cliente:** `createServiceClient()`
 - **Claves que guarda:** `banco_cbu`, `banco_alias`, `banco_nombre`, `banco_razon_social`, `banco_cuit`, `pedido_monto_minimo`, `pedido_dias_vencimiento`
-- **DB:** `configuracion` (upsert por `clave`)
+- **DB:** `configuracion` (upsert por `clave`). Valida error con throw.
 - **Consumido por:** `src/app/dashboard/admin/configuracion/page.tsx`
 
 ---
@@ -66,14 +77,16 @@ Todas en `src/app/actions/`. Usan `'use server'` y `createClient()` de `@/lib/su
 ## `empleados.ts`
 
 ### `invitarEmpleado(formData: FormData)`
+- **Cliente:** `createServiceClient()` (requerido para `auth.admin`)
 - **Lee:** `email`, `rol` (empleado|comisionista), `nombre`
 - **Auth:** `supabase.auth.admin.inviteUserByEmail` (requiere service_role)
-- **DB:** `profiles` (update rol, nombre tras invitación)
+- **DB:** `profiles` (update rol, nombre tras invitación). Valida error con throw.
 - **Validación:** email, rol y nombre requeridos
 - **Consumido por:** `EmpleadosClient.tsx`
 
 ### `desactivarEmpleado(empleadoId: string)`
-- **DB:** `profiles` (update `activo = false`)
+- **Cliente:** `createServiceClient()`
+- **DB:** `profiles` (update `activo = false`). Valida error con throw.
 - **Consumido por:** `EmpleadosClient.tsx`
 
 ---

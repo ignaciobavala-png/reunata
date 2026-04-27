@@ -15,6 +15,7 @@
 | Auth | Supabase Auth con SSR cookies |
 | Storage | Supabase Storage (bucket `multimedia`) |
 | API externa | Gesu ERP (lectura) |
+| IA | Groq SDK (llama-3.3-70b-versatile) — solo lectura |
 | Package manager | pnpm |
 | Deploy | Vercel |
 
@@ -46,7 +47,8 @@ src/app/
 │   │
 │   ├── admin/              Acceso: master, empleado, comisionista
 │   │   ├── page.tsx        Stats dashboard
-│   │   ├── canales/        Asignación producto ↔ canal
+│   │   ├── canales/        Asignación producto ↔ canal (5 canales)
+│   │   ├── chatbot/        Asistente IA (BotManager) — solo master
 │   │   ├── clientes/       Aprobación + canal de clientes
 │   │   ├── configuracion/  Datos bancarios, parámetros
 │   │   ├── empleados/      Invitar/desactivar internos
@@ -71,6 +73,7 @@ src/app/
 │   └── pedidos.ts
 │
 └── api/                    Route handlers
+    ├── chatbot/            POST — verifica master, llama a Groq, streaming
     ├── sync/productos/     GET + POST
     ├── sync/clientes/      GET + POST
     ├── multimedia/         PATCH + DELETE
@@ -153,8 +156,8 @@ Trigger:
 ## Patrones de código
 
 - **Server components por defecto.** Solo `'use client'` cuando se necesita estado, hooks, efectos o eventos del browser.
-- **Server actions en `src/app/actions/`.** Siempre con `'use server'` al tope. Nunca se llaman desde componentes server.
+- **Server actions en `src/app/actions/`.** Siempre con `'use server'` al tope. Acciones de admin usan `createServiceClient()` (bypassea RLS). Acciones de cliente usan `createClient()` (respeta RLS y auth). Todas validan `error` de Supabase y hacen `throw` si falla.
 - **Optimistic UI:** `useTransition` + estado local, sin esperar respuesta del servidor.
-- **Imágenes:** siempre `next/image` con `fill` + `sizes`.
+- **Imágenes:** siempre `next/image` con `fill` + `sizes`. Imágenes de Supabase usan `unoptimized` (ya optimizadas en subida).
 - **Colores:** siempre `var(--color-*)` inline, nunca clases genéricas de Tailwind.
 - **Tipos:** definidos localmente en cada archivo (no hay `src/types/` global).
