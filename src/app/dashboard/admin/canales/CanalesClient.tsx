@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo, Fragment } from 'react'
+import { useRouter } from 'next/navigation'
 import { toggleProductoCanal, asignarCanalMasivo } from '@/app/actions/canales'
 import { Search, Loader2, CheckSquare, Square } from 'lucide-react'
 
@@ -26,6 +27,7 @@ export function CanalesClient({
   asignacionesIniciales: Set<string>
   categorias: string[]
 }) {
+  const router = useRouter()
   const [asignaciones, setAsignaciones] = useState<Set<string>>(new Set(asignacionesIniciales))
   const [isPending, startTransition] = useTransition()
   const [guardando, setGuardando] = useState<string | null>(null)
@@ -70,7 +72,9 @@ export function CanalesClient({
 
     startTransition(async () => {
       try {
-        await toggleProductoCanal(productoId, canalId, nuevoValor)
+        const res = await toggleProductoCanal(productoId, canalId, nuevoValor)
+        if (!res.ok) setAsignaciones(anterior)
+        else router.refresh()
       } catch {
         setAsignaciones(anterior)
       } finally {
@@ -97,6 +101,7 @@ export function CanalesClient({
     startTransition(async () => {
       const res = await asignarCanalMasivo(ids, canalId, nuevoValor)
       if (!res.ok) setAsignaciones(anterior)
+      else router.refresh()
     })
   }
 

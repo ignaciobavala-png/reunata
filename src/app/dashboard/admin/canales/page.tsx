@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { CanalesClient } from './CanalesClient'
 
 export default async function CanalesPage() {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const [{ data: productos }, { data: canales }, { data: asignaciones }] = await Promise.all([
     supabase
