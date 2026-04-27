@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function toggleProductoCanal(productoId: number, canalId: number, activo: boolean) {
@@ -18,6 +19,7 @@ export async function toggleProductoCanal(productoId: number, canalId: number, a
       .eq('canal_id', canalId)
     if (error) return { ok: false, error: error.message }
   }
+  revalidatePath('/dashboard/admin/canales')
   return { ok: true }
 }
 
@@ -36,5 +38,6 @@ export async function asignarCanalMasivo(productoIds: number[], canalId: number,
       .eq('canal_id', canalId)
     if (error) return { ok: false, error: error.message }
   }
+  revalidatePath('/dashboard/admin/canales')
   return { ok: true }
 }
