@@ -287,8 +287,10 @@ proxy.ts → updateSession()
 - [x] Sync manual desde Gesu + Cron automático (vercel.json)
 - [x] Configuración: datos bancarios, WhatsApp de ventas, parámetros
 - [x] Categorías Home: gestión CRUD desde el panel multimedia
-- [x] **BotManager**: asistente IA (Groq) solo lectura — analiza KPIs, explica secciones, sugiere mejoras. Streaming de respuestas, sin acceso a datos individuales de clientes/productos.
-- [x] Fix: todas las server actions de admin usan `createServiceClient()` + validación de errores (antes usaban `createClient()` con ANON key, fallaban silenciosamente por RLS)
+- [x] **BotManager**: asistente IA (Groq Llama 3.3 70B) solo lectura — analiza KPIs, explica secciones, sugiere mejoras. KPIs enriquecidos: productos por categoría con stock, pedidos recientes (7 días) con montos USD, clientes nuevos del mes. Streaming de respuestas. Sin acceso a datos individuales de clientes/productos. Auth vía cookie de sesión con parseo manual (base64 URL-safe → estándar).
+- [x] Fix: todas las server actions de admin usan `createServiceClient()` + validación de errores (antes usaban `createClient()` con ANON key, fallaban silenciosamente por RLS). Acciones devuelven `{ ok, error }` en vez de `throw` para no crashear error boundary.
+- [x] Fix: persistencia en canales — `page.tsx` usa `createServiceClient()` para lectura, `CanalesClient` llama `router.refresh()` post-save, acciones usan `revalidatePath`.
+- [x] Fix: home page filtrada por canal público — `ProductSlider` y `CategoryBento` solo muestran productos asignados al canal "Público".
 
 ### ✅ Fase 3b — Multimedia y Home dinámica
 - [x] Gallery rediseñada: productos agrupados por categoría, badges, barra de progreso, filtros

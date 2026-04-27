@@ -34,14 +34,18 @@ Usa `verificarMaster()` — mismo patrón que las demás API routes de admin.
 
 ### KPIs fetcheados en cada request
 - Total de productos activos y cobertura de fotos
+- **Productos por categoría** con stock y sin stock
+- Stock general (con stock / sin stock)
 - Pedidos agrupados por estado
+- **Pedidos recientes** (últimos 7 días): cantidad y monto total en USD
 - Clientes agrupados por canal
+- **Clientes nuevos** en el mes actual
 - Última sincronización con Gesu (fecha, tipo, registros)
 
 ### System prompt
 Define rol, contexto del negocio, reglas, y lista de capacidades/restricciones:
-- **Puede**: explicar secciones, analizar KPIs, detectar anomalías, sugerir mejoras
-- **No puede**: modificar datos, acceder a info individual, inventar estadísticas
+- **Puede**: explicar secciones, consultar productos por categoría, analizar KPIs, detectar anomalías, informar pedidos recientes, sugerir mejoras
+- **No puede**: modificar datos, acceder a info individual de clientes/productos, inventar estadísticas
 
 ### Modelo
 - **Groq** con `llama-3.3-70b-versatile`, `temperature: 0.4`, `max_tokens: 2048`
@@ -69,6 +73,10 @@ Sigue el sistema de diseño Acero & Granito:
 ## Seguridad
 
 - El endpoint verifica rol `master` en cada request
+- **Auth vía cookie de sesión**: parsea manualmente la cookie `sb-*-auth-token` de Supabase SSR
+  - Formato: `base64-<base64_url_safe>` → convierte `-` y `_` a `+` y `/` → decodifica base64 → extrae `access_token`
+  - Verifica con `admin.auth.getUser(accessToken)` usando service role client
+  - Esto funciona en Vercel donde el cliente SSR tradicional (`createClient`) no propaga correctamente las cookies
 - Sin persistencia: las conversaciones viven solo en memoria del navegador
 - `temperature: 0.4` para minimizar alucinaciones
 - System prompt prohíbe explícitamente inventar datos o acceder a información individual

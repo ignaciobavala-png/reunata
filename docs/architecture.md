@@ -156,8 +156,9 @@ Trigger:
 ## Patrones de código
 
 - **Server components por defecto.** Solo `'use client'` cuando se necesita estado, hooks, efectos o eventos del browser.
-- **Server actions en `src/app/actions/`.** Siempre con `'use server'` al tope. Acciones de admin usan `createServiceClient()` (bypassea RLS). Acciones de cliente usan `createClient()` (respeta RLS y auth). Todas validan `error` de Supabase y hacen `throw` si falla.
-- **Optimistic UI:** `useTransition` + estado local, sin esperar respuesta del servidor.
+- **Server actions en `src/app/actions/`.** Siempre con `'use server'` al tope. Acciones de admin usan `createServiceClient()` (bypassea RLS). Acciones de cliente usan `createClient()` (respeta RLS y auth). **Devuelven `{ ok: boolean, error?: string }` — nunca throw** (evita crashear el error boundary de Next.js). El cliente verifica `!res.ok` y revierte el optimistic update.
+- **Optimistic UI:** `useTransition` + estado local, sin esperar respuesta del servidor. Guardar `anterior` antes del cambio para revertir si falla. Llamar `router.refresh()` post-save para invalidar router cache.
 - **Imágenes:** siempre `next/image` con `fill` + `sizes`. Imágenes de Supabase usan `unoptimized` (ya optimizadas en subida).
 - **Colores:** siempre `var(--color-*)` inline, nunca clases genéricas de Tailwind.
 - **Tipos:** definidos localmente en cada archivo (no hay `src/types/` global).
+- **Revalidación:** server actions que modifican datos llaman `revalidatePath()` para invalidar el cache del servidor. Componentes clientes que usan optimistic UI llaman `router.refresh()` para el router cache.
