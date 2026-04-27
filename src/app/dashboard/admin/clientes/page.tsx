@@ -16,6 +16,7 @@ export default async function ClientesPage() {
       .from('canales')
       .select('id, slug, nombre')
       .eq('activo', true)
+      .neq('slug', 'publico')
       .order('id'),
   ])
 
