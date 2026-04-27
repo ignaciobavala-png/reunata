@@ -56,22 +56,52 @@ async function fetchKPIs() {
   const [
     { count: totalProductos },
     { count: conFoto },
+    { data: productosCat },
     { data: pedidosEstado },
+    { data: pedidosRecientes },
     { data: clientesCanal },
+    { data: clientesNuevos },
     { data: syncLog },
   ] = await Promise.all([
     admin.from('productos').select('*', { count: 'exact', head: true }).eq('activo', true),
     admin.from('producto_fotos').select('*', { count: 'exact', head: true }).select('producto_id'),
+    admin.from('productos').select('categoria, stock').eq('activo', true),
     admin.from('pedidos').select('estado'),
-    admin.from('profiles').select('canal_id, canales(slug)'),
+    admin.from('pedidos').select('total_usd').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+    admin.from('profiles').select('canal_id, canales(slug)').in('rol', ['consumidor_final', 'distribuidor', 'local', 'mercha']),
+    admin.from('profiles').select('id').gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
     admin.from('sync_log').select('*').order('created_at', { ascending: false }).limit(1),
   ])
 
+  // Productos por categoría
+  const productosPorCategoria: Record<string, { total: number; conStock: number; sinStock: number }> = {}
+  for (const p of productosCat ?? []) {
+    const cat = p.categoria ?? 'Sin categoría'
+    if (!productosPorCategoria[cat]) productosPorCategoria[cat] = { total: 0, conStock: 0, sinStock: 0 }
+    productosPorCategoria[cat].total++
+    if ((p.stock ?? 0) > 0) productosPorCategoria[cat].conStock++
+    else productosPorCategoria[cat].sinStock++
+  }
+
+  // Stock general
+  let productosConStock = 0
+  let productosSinStock = 0
+  for (const v of Object.values(productosPorCategoria)) {
+    productosConStock += v.conStock
+    productosSinStock += v.sinStock
+  }
+
+  // Pedidos por estado
   const pedidosPorEstado: Record<string, number> = {}
   for (const p of pedidosEstado ?? []) {
     pedidosPorEstado[p.estado] = (pedidosPorEstado[p.estado] ?? 0) + 1
   }
 
+  // Pedidos recientes (últimos 7 días)
+  const totalPedidosRecientes = pedidosRecientes?.length ?? 0
+  const montoPedidosRecientes = (pedidosRecientes ?? []).reduce((sum, p) => sum + (p.total_usd ?? 0), 0)
+
+  // Clientes por canal
   const clientesPorCanal: Record<string, number> = {}
   for (const c of clientesCanal ?? []) {
     const canal = (c.canales as unknown as { slug: string } | null)?.slug ?? 'sin_canal'
@@ -84,8 +114,13 @@ async function fetchKPIs() {
     totalProductos: totalProductos ?? 0,
     conFoto: conFoto ?? 0,
     sinFoto: (totalProductos ?? 0) - (conFoto ?? 0),
+    productosConStock,
+    productosSinStock,
+    productosPorCategoria,
     pedidosPorEstado,
+    pedidosRecientes: { cantidad: totalPedidosRecientes, montoTotalUSD: Math.round(montoPedidosRecientes * 100) / 100 },
     clientesPorCanal,
+    clientesNuevosEsteMes: clientesNuevos?.length ?? 0,
     ultimoSync: ultimoSync ? `${ultimoSync.tipo} — ${ultimoSync.registros} registros — ${new Date(ultimoSync.created_at).toLocaleString('es-AR')}` : 'Nunca',
   }
 }
@@ -108,8 +143,11 @@ ${JSON.stringify(kpis, null, 2)}
 
 LO QUE PODÉS HACER:
 - Explicar cómo funciona cualquier sección de la plataforma
+- Consultar cuántos productos hay por categoría, con o sin stock (los KPIs incluyen desglose por categoría)
 - Analizar los KPIs provistos y detectar patrones, anomalías o áreas de mejora
-- Sugerir acciones basadas en los datos (ej: "hay muchos productos sin foto, deberías completar el catálogo visual")
+- Informar sobre pedidos recientes (últimos 7 días) con montos en USD
+- Decir cuántos clientes hay por canal y cuántos se registraron este mes
+- Sugerir acciones basadas en los datos (ej: "la categoría X tiene muchos productos sin stock, revisá el sync")
 - Ayudar a interpretar métricas y tendencias del negocio
 - Responder preguntas sobre roles, canales, flujos de trabajo y funcionalidades
 
