@@ -13,17 +13,17 @@ function getGroq() {
 }
 
 async function verificarMaster(request: Request) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return false
+  const userId = request.headers.get('X-User-Id')
+  if (!userId) return false
 
-  const accessToken = authHeader.slice(7)
-  if (!accessToken) return false
+  const { data: profile, error } = await admin
+    .from('profiles')
+    .select('rol')
+    .eq('id', userId)
+    .single()
 
-  const { data: { user }, error } = await admin.auth.getUser(accessToken)
-  if (error || !user) return false
-
-  const { data: profile } = await admin.from('profiles').select('rol').eq('id', user.id).single()
-  return profile?.rol === 'master'
+  if (error || !profile) return false
+  return profile.rol === 'master'
 }
 
 async function fetchKPIs() {

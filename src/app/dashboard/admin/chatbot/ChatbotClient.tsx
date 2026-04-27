@@ -13,7 +13,7 @@ const BIENVENIDA: Mensaje = {
   contenido: 'Hola, soy **BotManager**, el asistente IA de Reunata.\n\nPuedo ayudarte a:\n- Analizar métricas del negocio\n- Explicar cómo funciona cualquier sección\n- Detectar áreas de mejora\n\n¿En qué te ayudo hoy?',
 }
 
-export function ChatbotClient({ accessToken }: { accessToken: string | null }) {
+export function ChatbotClient({ userId }: { userId: string | null }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([BIENVENIDA])
   const [input, setInput] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -42,7 +42,7 @@ export function ChatbotClient({ accessToken }: { accessToken: string | null }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          ...(userId ? { 'X-User-Id': userId } : {}),
         },
         body: JSON.stringify({
           messages: historial.map(m => ({ role: m.rol, content: m.contenido })),
