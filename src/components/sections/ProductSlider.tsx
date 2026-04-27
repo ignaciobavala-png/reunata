@@ -54,7 +54,8 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                     alt={foto.titulo}
                     fill
                     className="object-cover"
-                    sizes="240px"
+                    sizes="(max-width: 768px) 200px, 240px"
+                    unoptimized
                   />
                 </div>
                 <p className="text-[10px] tracking-widest uppercase text-[var(--foreground)] mb-1">
