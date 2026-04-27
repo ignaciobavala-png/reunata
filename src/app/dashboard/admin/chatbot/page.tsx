@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/server'
 import { ChatbotClient } from './ChatbotClient'
 
 export default async function ChatbotPage() {
@@ -8,8 +7,11 @@ export default async function ChatbotPage() {
 
   let isMaster = false
   if (user) {
-    const admin = createServiceClient()
-    const { data: profile } = await admin.from('profiles').select('rol').eq('id', user.id).single()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rol')
+      .eq('id', user.id)
+      .single()
     isMaster = profile?.rol === 'master'
   }
 
