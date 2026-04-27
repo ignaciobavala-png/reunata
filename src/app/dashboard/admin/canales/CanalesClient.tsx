@@ -62,14 +62,20 @@ export function CanalesClient({
     const nuevoValor = !asignaciones.has(key)
     setGuardando(key)
 
+    const anterior = new Set(asignaciones)
     const nuevo = new Set(asignaciones)
     if (nuevoValor) nuevo.add(key)
     else nuevo.delete(key)
     setAsignaciones(nuevo)
 
     startTransition(async () => {
-      await toggleProductoCanal(productoId, canalId, nuevoValor)
-      setGuardando(null)
+      try {
+        await toggleProductoCanal(productoId, canalId, nuevoValor)
+      } catch {
+        setAsignaciones(anterior)
+      } finally {
+        setGuardando(null)
+      }
     })
   }
 
@@ -79,6 +85,7 @@ export function CanalesClient({
     const todosActivos = ids.every(id => asignaciones.has(`${id}-${canalId}`))
     const nuevoValor = !todosActivos
 
+    const anterior = new Set(asignaciones)
     const nuevo = new Set(asignaciones)
     ids.forEach(id => {
       const key = `${id}-${canalId}`
@@ -87,7 +94,10 @@ export function CanalesClient({
     })
     setAsignaciones(nuevo)
 
-    startTransition(() => asignarCanalMasivo(ids, canalId, nuevoValor))
+    startTransition(async () => {
+      const res = await asignarCanalMasivo(ids, canalId, nuevoValor)
+      if (!res.ok) setAsignaciones(anterior)
+    })
   }
 
   const categoriasList = Object.keys(porCategoria).sort()
