@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -17,7 +17,7 @@ function pickRandom<T>(arr: T[]): T | null {
 }
 
 export async function CategoryBento() {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: categorias } = await supabase
     .from('categorias_home')

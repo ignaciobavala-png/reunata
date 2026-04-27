@@ -4,10 +4,10 @@ import { Hero } from '@/components/sections/Hero'
 import { CategoryBento } from '@/components/sections/CategoryBento'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { ProductSlider } from '@/components/sections/ProductSlider'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export default async function Home() {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
