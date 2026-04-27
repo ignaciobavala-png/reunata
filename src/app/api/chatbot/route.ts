@@ -22,11 +22,21 @@ async function verificarMaster() {
 
   let accessToken: string | null = null
   try {
-    const parsed = JSON.parse(decodeURIComponent(sbCookie.value))
-    // El formato es [access_token, refresh_token, expires_at] o array de objetos
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      accessToken = typeof parsed[0] === 'string' ? parsed[0] : parsed[0]?.access_token ?? null
+    let raw = sbCookie.value
+
+    // @supabase/ssr v0.10+ usa formato base64-<base64>
+    if (raw.startsWith('base64-')) {
+      raw = Buffer.from(raw.slice(7), 'base64').toString('utf-8')
     }
+
+    const parsed = JSON.parse(raw)
+    // El formato es { access_token, refresh_token, ... } o [{ access_token }, refresh_token, expires_at]
+    if (Array.isArray(parsed)) {
+      accessToken = parsed[0]?.access_token ?? parsed[0] ?? null
+    } else {
+      accessToken = parsed.access_token ?? null
+    }
+    if (typeof accessToken !== 'string') accessToken = null
   } catch {
     return false
   }
