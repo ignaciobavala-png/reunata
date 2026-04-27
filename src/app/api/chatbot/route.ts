@@ -1,5 +1,6 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
+import { TOOLS, handleToolCall } from '@/lib/chatbot/tools'
 
 const admin = createAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,7 +47,6 @@ async function fetchKPIs() {
     admin.from('sync_log').select('*').order('created_at', { ascending: false }).limit(1),
   ])
 
-  // Productos por categoría
   const productosPorCategoria: Record<string, { total: number; conStock: number; sinStock: number }> = {}
   for (const p of productosCat ?? []) {
     const cat = p.categoria ?? 'Sin categoría'
@@ -56,7 +56,6 @@ async function fetchKPIs() {
     else productosPorCategoria[cat].sinStock++
   }
 
-  // Stock general
   let productosConStock = 0
   let productosSinStock = 0
   for (const v of Object.values(productosPorCategoria)) {
@@ -64,17 +63,14 @@ async function fetchKPIs() {
     productosSinStock += v.sinStock
   }
 
-  // Pedidos por estado
   const pedidosPorEstado: Record<string, number> = {}
   for (const p of pedidosEstado ?? []) {
     pedidosPorEstado[p.estado] = (pedidosPorEstado[p.estado] ?? 0) + 1
   }
 
-  // Pedidos recientes (últimos 7 días)
   const totalPedidosRecientes = pedidosRecientes?.length ?? 0
   const montoPedidosRecientes = (pedidosRecientes ?? []).reduce((sum, p) => sum + (p.total_usd ?? 0), 0)
 
-  // Clientes por canal
   const clientesPorCanal: Record<string, number> = {}
   for (const c of clientesCanal ?? []) {
     const canal = (c.canales as unknown as { slug: string } | null)?.slug ?? 'sin_canal'
@@ -114,24 +110,27 @@ CONTEXTO DEL NEGOCIO:
 KPIs ACTUALES (datos en vivo al momento de esta consulta):
 ${JSON.stringify(kpis, null, 2)}
 
+TENÉS ACCESO A HERRAMIENTAS (tools) para consultar datos específicos. Usalas cuando necesites información detallada que no esté en los KPIs. Ejemplos:
+- search_products: para buscar productos por nombre o código
+- get_product_detail: para ver todos los campos de un producto (precios, stock, fotos)
+- list_orders / get_order_detail: para consultar pedidos
+- list_clients / get_client_detail: para consultar clientes
+- get_sync_status: para ver el historial de sincronización con Gesu
+- get_categories_summary: resumen de productos por categoría
+- get_public_channel_status: estado del canal público
+
 LO QUE PODÉS HACER:
 - Explicar cómo funciona cualquier sección de la plataforma
-- Consultar cuántos productos hay por categoría, con o sin stock (los KPIs incluyen desglose por categoría)
-- Analizar los KPIs provistos y detectar patrones, anomalías o áreas de mejora
-- Informar sobre pedidos recientes (últimos 7 días) con montos en USD
-- Decir cuántos clientes hay por canal y cuántos se registraron este mes
-- Sugerir acciones basadas en los datos (ej: "la categoría X tiene muchos productos sin stock, revisá el sync")
-- Ayudar a interpretar métricas y tendencias del negocio
-- Responder preguntas sobre roles, canales, flujos de trabajo y funcionalidades
+- Consultar datos específicos usando las herramientas disponibles
+- Analizar KPIs y detectar patrones, anomalías o áreas de mejora
+- Sugerir acciones basadas en los datos
 
 LO QUE NO PODÉS HACER BAJO NINGÚN CONCEPTO:
-- Modificar ningún dato del sistema (no tenés acceso de escritura)
-- Acceder a información de clientes o productos individuales (solo ves los agregados en KPIs)
-- Hacer afirmaciones sobre precios, stock o datos específicos que no figuren en los KPIs
+- Modificar ningún dato del sistema (las herramientas son solo lectura)
 - Tomar decisiones por el administrador ni ejecutar acciones
-- Inventar datos o estadísticas. Si no tenés información suficiente, decilo claramente: "No tengo acceso a ese nivel de detalle, pero puedo ayudarte a..."
+- Inventar datos. Usá las herramientas para obtener información precisa.
 
-IMPORTANTE: sé conciso, directo y útil. No hagas introducciones largas ni rodeos. Si te preguntan algo que no podés responder, explicalo brevemente.`
+IMPORTANTE: sé conciso, directo y útil. Cuando el usuario pregunte por datos específicos (productos, clientes, pedidos), usá las herramientas para obtener información precisa.`
 }
 
 export async function POST(request: Request) {
@@ -152,43 +151,70 @@ export async function POST(request: Request) {
 
   const kpis = await fetchKPIs()
   const systemPrompt = buildSystemPrompt(kpis)
-
   const groq = getGroq()
-  const stream = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      ...body.messages,
-    ],
-    stream: true,
-    temperature: 0.4,
-    max_tokens: 2048,
-  })
 
-  const encoder = new TextEncoder()
+  const messages: { role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_call_id?: string; name?: string }[] = [
+    { role: 'system', content: systemPrompt },
+    ...body.messages,
+  ]
 
-  return new Response(
-    new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content
-            if (content) {
-              controller.enqueue(encoder.encode(content))
-            }
-          }
-        } catch (err) {
-          console.error('Error en stream de Groq:', err)
+  // Function calling loop (máx 3 iteraciones)
+  const MAX_ITERATIONS = 3
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: messages as any,
+      tools: TOOLS as any,
+      tool_choice: i < MAX_ITERATIONS - 1 ? 'auto' : 'none',
+      temperature: 0.4,
+      max_tokens: 2048,
+    })
+
+    const choice = completion.choices[0]
+    const toolCalls = choice?.message?.tool_calls
+
+    if (!toolCalls?.length) {
+      // Respuesta final — stream al cliente
+      const content = choice?.message?.content ?? ''
+      const encoder = new TextEncoder()
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(content))
+            controller.close()
+          },
+        }),
+        {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          },
         }
-        controller.close()
-      },
-    }),
-    {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
+      )
     }
-  )
+
+    // Ejecutar tools
+    messages.push(choice.message as any)
+
+    for (const tc of toolCalls) {
+      const fn = tc.function
+      let result: unknown
+      try {
+        const args = JSON.parse(fn.arguments)
+        result = await handleToolCall(fn.name, args)
+      } catch (err) {
+        result = { error: `Error al ejecutar ${fn.name}: ${err instanceof Error ? err.message : 'desconocido'}` }
+      }
+
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        name: fn.name,
+        content: JSON.stringify(result),
+      } as any)
+    }
+  }
+
+  // Si llegamos acá, el modelo no dio respuesta final en 3 iteraciones
+  return Response.json({ error: 'El asistente no pudo completar la consulta. Intentá con una pregunta más específica.' }, { status: 500 })
 }
