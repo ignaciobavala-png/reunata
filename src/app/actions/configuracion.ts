@@ -1,10 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export async function guardarConfiguracion(formData: FormData) {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const claves = [
     'banco_cbu', 'banco_alias', 'banco_nombre',
@@ -17,6 +17,7 @@ export async function guardarConfiguracion(formData: FormData) {
     valor: (formData.get(clave) as string) ?? '',
   }))
 
-  await supabase.from('configuracion').upsert(rows, { onConflict: 'clave' })
+  const { error } = await supabase.from('configuracion').upsert(rows, { onConflict: 'clave' })
+  if (error) throw new Error(`Error al guardar configuración: ${error.message}`)
   revalidatePath('/dashboard/admin/configuracion')
 }

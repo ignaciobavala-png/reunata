@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 type RolInterno = 'empleado' | 'comisionista'
 
@@ -12,7 +12,7 @@ export async function invitarEmpleado(formData: FormData) {
 
   if (!email || !rol || !nombre) return { error: 'Completá todos los campos.' }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { rol, nombre },
@@ -20,13 +20,15 @@ export async function invitarEmpleado(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  await supabase.from('profiles').update({ rol, nombre }).eq('id', data.user.id)
+  const { error: updateError } = await supabase.from('profiles').update({ rol, nombre }).eq('id', data.user.id)
+  if (updateError) return { error: `Perfil creado pero falló la actualización: ${updateError.message}` }
   revalidatePath('/dashboard/admin/empleados')
   return { ok: true }
 }
 
 export async function desactivarEmpleado(empleadoId: string) {
-  const supabase = await createClient()
-  await supabase.from('profiles').update({ activo: false }).eq('id', empleadoId)
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('profiles').update({ activo: false }).eq('id', empleadoId)
+  if (error) throw new Error(`Error al desactivar: ${error.message}`)
   revalidatePath('/dashboard/admin/empleados')
 }
