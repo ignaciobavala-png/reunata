@@ -24,9 +24,10 @@ async function verificarMaster() {
   try {
     let raw = sbCookie.value
 
-    // @supabase/ssr v0.10+ usa formato base64-<base64>
+    // @supabase/ssr v0.10+ usa base64 URL-safe: base64-<base64url> (- y _ en vez de + y /)
     if (raw.startsWith('base64-')) {
-      raw = Buffer.from(raw.slice(7), 'base64').toString('utf-8')
+      raw = raw.slice(7).replace(/-/g, '+').replace(/_/g, '/')
+      raw = Buffer.from(raw, 'base64').toString('utf-8')
     }
 
     const parsed = JSON.parse(raw)
@@ -37,7 +38,8 @@ async function verificarMaster() {
       accessToken = parsed.access_token ?? null
     }
     if (typeof accessToken !== 'string') accessToken = null
-  } catch {
+  } catch (err) {
+    console.error('Error parseando cookie de sesión:', err)
     return false
   }
 
