@@ -1,6 +1,10 @@
+import { createClient } from '@/lib/supabase/server'
 import { ChatbotClient } from './ChatbotClient'
 
-export default function ChatbotPage() {
+export default async function ChatbotPage() {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-8 pt-8 pb-4 flex-shrink-0">
@@ -11,7 +15,7 @@ export default function ChatbotPage() {
           Asistente IA para gestionar Reunata. Consultá métricas, pedí análisis o preguntá cómo funciona cualquier sección.
         </p>
       </div>
-      <ChatbotClient />
+      <ChatbotClient accessToken={session?.access_token ?? null} />
     </div>
   )
 }

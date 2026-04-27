@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Send, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Mensaje {
   rol: 'user' | 'assistant'
@@ -14,7 +13,7 @@ const BIENVENIDA: Mensaje = {
   contenido: 'Hola, soy **BotManager**, el asistente IA de Reunata.\n\nPuedo ayudarte a:\n- Analizar métricas del negocio\n- Explicar cómo funciona cualquier sección\n- Detectar áreas de mejora\n\n¿En qué te ayudo hoy?',
 }
 
-export function ChatbotClient() {
+export function ChatbotClient({ accessToken }: { accessToken: string | null }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([BIENVENIDA])
   const [input, setInput] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -39,15 +38,11 @@ export function ChatbotClient() {
     setRespuestaStream('')
 
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
       const res = await fetch('/api/chatbot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           messages: historial.map(m => ({ role: m.rol, content: m.contenido })),
