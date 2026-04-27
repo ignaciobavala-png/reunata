@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 
@@ -13,11 +13,31 @@ function getGroq() {
 }
 
 async function verificarMaster() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
-  const { data } = await admin.from('profiles').select('rol').eq('id', user.id).single()
-  return data?.rol === 'master'
+  const cookieStore = await cookies()
+  const allCookies = cookieStore.getAll()
+
+  // Buscar cookie de sesión de Supabase
+  const sbCookie = allCookies.find(c => c.name.includes('sb-') && c.name.includes('auth-token'))
+  if (!sbCookie) return false
+
+  let accessToken: string | null = null
+  try {
+    const parsed = JSON.parse(decodeURIComponent(sbCookie.value))
+    // El formato es [access_token, refresh_token, expires_at] o array de objetos
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      accessToken = typeof parsed[0] === 'string' ? parsed[0] : parsed[0]?.access_token ?? null
+    }
+  } catch {
+    return false
+  }
+
+  if (!accessToken) return false
+
+  const { data: { user }, error } = await admin.auth.getUser(accessToken)
+  if (error || !user) return false
+
+  const { data: profile } = await admin.from('profiles').select('rol').eq('id', user.id).single()
+  return profile?.rol === 'master'
 }
 
 async function fetchKPIs() {
