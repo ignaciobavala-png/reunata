@@ -1,9 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { ChatbotClient } from './ChatbotClient'
 
 export default async function ChatbotPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  let isMaster = false
+  if (user) {
+    const admin = createServiceClient()
+    const { data: profile } = await admin.from('profiles').select('rol').eq('id', user.id).single()
+    isMaster = profile?.rol === 'master'
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -15,7 +23,7 @@ export default async function ChatbotPage() {
           Asistente IA para gestionar Reunata. Consultá métricas, pedí análisis o preguntá cómo funciona cualquier sección.
         </p>
       </div>
-      <ChatbotClient userId={user?.id ?? null} />
+      <ChatbotClient userId={user?.id ?? null} isMaster={isMaster} />
     </div>
   )
 }

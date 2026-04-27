@@ -13,20 +13,8 @@ function getGroq() {
 }
 
 async function verificarMaster(request: Request) {
-  const userId = request.headers.get('X-User-Id')
-  console.error('[chatbot] X-User-Id header:', userId ? `${userId.slice(0, 8)}...` : 'AUSENTE')
-
-  if (!userId) return false
-
-  const { data: profile, error } = await admin
-    .from('profiles')
-    .select('rol')
-    .eq('id', userId)
-    .single()
-
-  console.error('[chatbot] profiles query:', { found: !!profile, error: error?.message, rol: profile?.rol })
-  if (error || !profile) return false
-  return profile.rol === 'master'
+  const isMaster = request.headers.get('X-Is-Master')
+  return isMaster === 'true'
 }
 
 async function fetchKPIs() {
@@ -137,12 +125,7 @@ IMPORTANTE: sé conciso, directo y útil. Cuando el usuario pregunte por datos e
 }
 
 export async function POST(request: Request) {
-  console.error('[chatbot] POST recibido, headers:', JSON.stringify(Object.fromEntries(request.headers.entries())))
-
-  const authResult = await verificarMaster(request)
-  console.error('[chatbot] verificarMaster:', authResult)
-
-  if (!authResult) {
+  if (!await verificarMaster(request)) {
     return Response.json({ error: 'No autorizado' }, { status: 401 })
   }
 
