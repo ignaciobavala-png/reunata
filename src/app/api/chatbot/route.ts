@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 
@@ -12,37 +11,11 @@ function getGroq() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY })
 }
 
-async function verificarMaster() {
-  const cookieStore = await cookies()
-  const allCookies = cookieStore.getAll()
+async function verificarMaster(request: Request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return false
 
-  // Buscar cookie de sesión de Supabase
-  const sbCookie = allCookies.find(c => c.name.includes('sb-') && c.name.includes('auth-token'))
-  if (!sbCookie) return false
-
-  let accessToken: string | null = null
-  try {
-    let raw = sbCookie.value
-
-    // @supabase/ssr v0.10+ usa base64 URL-safe: base64-<base64url> (- y _ en vez de + y /)
-    if (raw.startsWith('base64-')) {
-      raw = raw.slice(7).replace(/-/g, '+').replace(/_/g, '/')
-      raw = Buffer.from(raw, 'base64').toString('utf-8')
-    }
-
-    const parsed = JSON.parse(raw)
-    // El formato es { access_token, refresh_token, ... } o [{ access_token }, refresh_token, expires_at]
-    if (Array.isArray(parsed)) {
-      accessToken = parsed[0]?.access_token ?? parsed[0] ?? null
-    } else {
-      accessToken = parsed.access_token ?? null
-    }
-    if (typeof accessToken !== 'string') accessToken = null
-  } catch (err) {
-    console.error('Error parseando cookie de sesión:', err)
-    return false
-  }
-
+  const accessToken = authHeader.slice(7)
   if (!accessToken) return false
 
   const { data: { user }, error } = await admin.auth.getUser(accessToken)
@@ -162,7 +135,7 @@ IMPORTANTE: sé conciso, directo y útil. No hagas introducciones largas ni rode
 }
 
 export async function POST(request: Request) {
-  if (!await verificarMaster()) {
+  if (!await verificarMaster(request)) {
     return Response.json({ error: 'No autorizado' }, { status: 401 })
   }
 
