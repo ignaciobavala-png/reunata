@@ -78,6 +78,11 @@ Tokens en `src/app/globals.css`:
 | `local` | Local comercial | Lista 2 |
 | `mercha` | Merchandising | Lista 3 |
 
+### Público — visitantes sin registrar
+| Canal | Acceso |
+|---|---|
+| `publico` | Catálogo público con fotos y nombres, sin precios. El admin controla qué productos son visibles desde la matriz de Canales. |
+
 Los clientes se registran públicamente y quedan **pendientes de aprobación** hasta que un master los habilita.
 
 ---
@@ -144,6 +149,8 @@ O ejecutarlas manualmente en el SQL editor de Supabase en este orden:
 5. `20260418000005_whatsapp_config.sql` — Clave `whatsapp_ventas` en config
 6. `20260419000001_medio_pago_completo.sql` — CHECK de medio_pago con 9 métodos
 7. `20260419000002_producto_canales_inicial.sql` — Asignación inicial productos × canales
+8. `20260427000000_public_read_policies.sql` — Políticas RLS de lectura pública para anónimos
+9. **(SQL manual)** — Insertar canal `publico` en `canales` y asignar todos los productos activos
 
 ### 4. Supabase Storage
 Verificar que el bucket `multimedia` exista y tenga las políticas correctas (creado en migración 4). Si no existe, crearlo manualmente:
@@ -218,8 +225,8 @@ supabase db push                # aplicar migraciones SQL
 | `profiles` | Extiende `auth.users`. Rol, nombre, aprobado, canal_id, cuit_dni, bonificacion |
 | `productos` | Catálogo de Gesu. Precios lista1…lista5, costo, stock |
 | `producto_fotos` | Fotos por producto en Supabase Storage. Columna `destacada` para slider home |
-| `producto_canales` | Junction: qué productos son visibles en cada canal |
-| `canales` | 4 canales de venta con lista de precios y políticas |
+| `producto_canales` | Junction: qué productos son visibles en cada canal (incluye canal público) |
+| `canales` | 5 canales de venta: 4 para clientes + 1 público para la tienda abierta |
 | `categorias_home` | Macrocategorías para el bento de portada (4 iniciales) |
 | `pedidos` | 8 estados, medio de pago (9 métodos), total en USD |
 | `pedido_items` | Líneas de cada pedido con precio snapshot |
@@ -253,10 +260,15 @@ proxy.ts → updateSession()
 - [x] Header con navbar sólido en páginas internas, transparente solo sobre hero
 - [x] Hero, CategoryBento, ProductSlider, InstagramSlider, Footer
 - [x] Páginas públicas: `/nosotros`, `/tienda`, `/tienda/[slug]`, `/trabaja-con-nosotros`, `/contacto`
+- [x] Catálogo público real: `/tienda/[slug]` muestra productos con foto y título (sin precios)
+- [x] Canal "Público" en matriz de canales: el admin controla qué productos ve un visitante anónimo
+- [x] Scroll suave con Lenis: fixes de trabado en home y dashboard
+- [x] Imágenes de Supabase con `unoptimized` para evitar fallos del proxy de next/image
 
 ### ✅ Fase 2 — Backend y Auth
 - [x] Supabase: 10 tablas, RLS completa, triggers
-- [x] 7 roles, 4 canales de venta con listas de precios
+- [x] 7 roles, 5 canales de venta (incluye público)
+- [x] RLS con políticas de lectura pública para `productos` y `producto_fotos`
 - [x] Auth con proxy.ts (Next.js 16), redirect por rol
 - [x] Server actions: login, logout, canales, clientes, empleados, configuración, pedidos, cuenta
 
@@ -359,6 +371,7 @@ proxy.ts → updateSession()
 - **Server vs Client:** server components por defecto. `'use client'` solo con estado/hooks/animaciones.
 - **Server Actions:** en `src/app/actions/`. Siempre `'use server'` al tope del archivo.
 - **Optimistic UI:** `useTransition` + `useState` local sin esperar respuesta del servidor.
-- **Imágenes:** siempre `next/image` con `fill` + `sizes`. Nunca `<img>` nativo.
+- **Imágenes:** siempre `next/image` con `fill` + `sizes`. Imágenes de Supabase Storage usan `unoptimized` (ya están en WebP optimizadas desde la subida).
 - **Colores:** siempre `var(--color-nombre)` inline. No paleta Tailwind genérica.
 - **`pnpm tsc --noEmit` antes de commitear.**
+- **Scroll en layouts internos:** layouts con `overflow-auto` propio (como el dashboard) deben usar `data-lenis-prevent` para evitar conflicto con Lenis.
