@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -7,10 +6,12 @@ const admin = createAdmin(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+function verificarAuth(request: Request): boolean {
+  return request.headers.get('X-Is-Master') === 'true'
+}
+
 export async function DELETE(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { path, fotoId } = await request.json()
 
@@ -21,9 +22,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await request.json()
   const { id } = body

@@ -11,6 +11,9 @@ export default async function MultimediaPage({
   const vistaActual = tab === 'categorias' ? 'categorias' : 'fotos'
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = user ? await supabase.from('profiles').select('rol').eq('id', user.id).single() : { data: null }
+  const isMaster = profile?.rol === 'master'
 
   const [{ data: productos }, { data: todasLasFotos }, { data: categorias }] = await Promise.all([
     supabase
@@ -63,9 +66,10 @@ export default async function MultimediaPage({
           fotosIniciales={todasLasFotos ?? []}
           supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
           supabaseKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
+          isMaster={isMaster}
         />
       ) : (
-        <CategoriasClient categoriasIniciales={categorias ?? []} />
+        <CategoriasClient categoriasIniciales={categorias ?? []} isMaster={isMaster} />
       )}
     </div>
   )

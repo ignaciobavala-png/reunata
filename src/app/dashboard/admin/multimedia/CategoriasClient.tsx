@@ -14,8 +14,10 @@ interface CategoriaHome {
 
 export function CategoriasClient({
   categoriasIniciales,
+  isMaster,
 }: {
   categoriasIniciales: CategoriaHome[]
+  isMaster: boolean
 }) {
   const [categorias, setCategorias] = useState<CategoriaHome[]>(categoriasIniciales)
   const [editando, setEditando] = useState<number | null>(null)
@@ -27,7 +29,10 @@ export function CategoriasClient({
   async function toggleActivo(cat: CategoriaHome) {
     await fetch('/api/categorias-home', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Is-Master': isMaster ? 'true' : 'false',
+      },
       body: JSON.stringify({ id: cat.id, activo: !cat.activo }),
     })
     setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, activo: !c.activo } : c))
@@ -41,7 +46,10 @@ export function CategoriasClient({
 
     await fetch('/api/categorias-home', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Is-Master': isMaster ? 'true' : 'false',
+      },
       body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href, categoria_keys: keys }),
     })
     setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form, categoria_keys: keys } : c))
@@ -54,7 +62,10 @@ export function CategoriasClient({
     const keys = nuevoForm.categoria_keys.split('\n').map(s => s.trim()).filter(Boolean)
     const res = await fetch('/api/categorias-home', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Is-Master': isMaster ? 'true' : 'false',
+      },
       body: JSON.stringify({ ...nuevoForm, categoria_keys: keys }),
     })
     const { data } = await res.json()

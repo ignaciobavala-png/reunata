@@ -13,11 +13,14 @@ export function MultimediaClient({
   productos,
   fotosIniciales,
   supabaseUrl,
+  supabaseKey,
+  isMaster,
 }: {
   productos: Producto[]
   fotosIniciales: Foto[]
   supabaseUrl: string
   supabaseKey: string
+  isMaster: boolean
 }) {
   const supabase = createClient()
   const [fotos, setFotos] = useState<Foto[]>(fotosIniciales)
@@ -162,7 +165,10 @@ export function MultimediaClient({
     const nuevoValor = !foto.destacada
     await fetch('/api/multimedia', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Is-Master': isMaster ? 'true' : 'false',
+      },
       body: JSON.stringify({ id: foto.id, destacada: nuevoValor }),
     })
     setFotos(prev => prev.map(f => f.id === foto.id ? { ...f, destacada: nuevoValor } : f))
@@ -171,7 +177,10 @@ export function MultimediaClient({
   async function eliminarFoto(foto: Foto) {
     await fetch('/api/multimedia', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Is-Master': isMaster ? 'true' : 'false',
+      },
       body: JSON.stringify({ path: foto.url, fotoId: foto.id }),
     })
     setFotos(prev => prev.filter(f => f.id !== foto.id))
