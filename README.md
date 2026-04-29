@@ -182,7 +182,7 @@ Ir a `/dashboard/admin/sync` y ejecutar:
 1. **Sincronizar productos** — importa todo el catálogo de Gesu
 2. **Sincronizar clientes** — registra los clientes existentes en Gesu
 
-> ⚠️ Gesu tiene límite de 2 requests por hora. Esperar al menos 30 minutos entre syncs.
+> ⚠️ Gesu tiene un rate limit de **2 consultas por hora por endpoint** (`api_items.php` y `api_clieprov.php` tienen contadores independientes). Si ves "Límite de GESU alcanzado", esperá a que pase la ventana de 1 hora desde la última consulta.
 
 ### 8. Asignar productos a canales
 Ir a `/dashboard/admin/canales` y definir qué productos son visibles para cada tipo de cliente (consumidor final, distribuidor, local, mercha).
@@ -192,10 +192,10 @@ El archivo `vercel.json` ya configura los cron jobs. Se activan automáticamente
 
 | Cron | Frecuencia | Propósito |
 |---|---|---|
-| `/api/sync/productos` | Cada 2 horas | Mantiene el catálogo actualizado + evita que Supabase hiberne |
+| `/api/sync/productos` | Cada 4 horas | Mantiene el catálogo actualizado respetando el rate limit de Gesu (2 consultas/hora) |
 | `/api/sync/clientes` | Una vez por día | Actualiza datos de clientes Gesu |
 
-> En plan **Hobby** de Vercel los crons corren mínimo 1 vez por día (no cada 2 horas). Para la frecuencia completa se necesita plan **Pro**.
+> Los cron jobs usan el header `x-vercel-cron` (inyectado por Vercel) como método de auth. El middleware (`proxy.ts`) excluye `/api/*` para no interferir.
 
 ### 10. Dominio personalizado
 En Vercel → Settings → Domains: agregar `reunata.com` y configurar los DNS según indique Vercel.
@@ -238,9 +238,10 @@ supabase db push                # aplicar migraciones SQL
 | `sync_log` | Historial de sincronizaciones con Gesu |
 
 ### Integración Gesu
-- Sync **unidireccional** (Gesu → Reunata). No se puede escribir de vuelta.
-- Límite: **2 requests por hora** por endpoint.
-- Cron automático: productos cada 2h, clientes 1 vez/día.
+- Sync **unidireccional** (Gesu → Reunata). No se escribe de vuelta a Gesu.
+- Límite: **2 consultas por hora por endpoint** (`api_items.php` y `api_clieprov.php`).
+- Cron automático: productos cada 4h, clientes 1 vez/día.
+- Auth de API routes sync: `X-Is-Master` (manual desde dashboard) + `x-vercel-cron` (cron jobs) + `CRON_SECRET`/`SYNC_SECRET` (server-to-server).
 
 ### Auth flow
 ```
@@ -250,7 +251,8 @@ supabase db push                # aplicar migraciones SQL
 
 proxy.ts → updateSession()
   ├── /dashboard/* sin sesión → /login
-  └── /login con sesión → /dashboard
+  ├── /login con sesión → /dashboard
+  └── /api/* excluido del matcher (no pasa por middleware)
 ```
 
 ---
