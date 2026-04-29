@@ -31,11 +31,22 @@ interface GesuCliente {
 
 async function fetchPagina(pag: number): Promise<{ header: Record<string, number>; data: Record<string, GesuCliente> }> {
   const url = `${GESU_BASE}/api_clieprov.php?pag=${pag}&token=${GESU_TOKEN}`
+  console.log('[sync/clientes] Fetching:', url.replace(GESU_TOKEN, '***'))
   const res = await fetch(url, { next: { revalidate: 0 } })
-  if (!res.ok) throw new Error(`Gesu devolvió ${res.status} en página ${pag}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => 'no body')
+    console.error('[sync/clientes] Gesu devolvió', res.status, body)
+    throw new Error(`Gesu devolvió ${res.status} en página ${pag}: ${body}`)
+  }
   const json = await res.json()
-  if (json.error) throw new Error(`Gesu: ${json.error}`)
-  if (!json.header || !json.data) throw new Error('Gesu devolvió estructura inesperada')
+  if (json.error) {
+    console.error('[sync/clientes] Gesu error:', json.error)
+    throw new Error(`Gesu: ${json.error}`)
+  }
+  if (!json.header || !json.data) {
+    console.error('[sync/clientes] Gesu estructura inesperada:', JSON.stringify(json).slice(0, 200))
+    throw new Error('Gesu devolvió estructura inesperada')
+  }
   return json
 }
 

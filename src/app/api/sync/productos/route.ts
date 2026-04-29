@@ -39,11 +39,22 @@ interface GesuItem {
 
 async function fetchPagina(pag: number): Promise<{ header: Record<string, number>; data: Record<string, GesuItem> }> {
   const url = `${GESU_BASE}/api_items.php?pag=${pag}&token=${GESU_TOKEN}`
+  console.log('[sync/productos] Fetching:', url.replace(GESU_TOKEN, '***'))
   const res = await fetch(url, { next: { revalidate: 0 } })
-  if (!res.ok) throw new Error(`Gesu devolvió ${res.status} en página ${pag}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => 'no body')
+    console.error('[sync/productos] Gesu devolvió', res.status, body)
+    throw new Error(`Gesu devolvió ${res.status} en página ${pag}: ${body}`)
+  }
   const json = await res.json()
-  if (json.error) throw new Error(`Gesu: ${json.error}`)
-  if (!json.header || !json.data) throw new Error('Gesu devolvió estructura inesperada')
+  if (json.error) {
+    console.error('[sync/productos] Gesu error:', json.error)
+    throw new Error(`Gesu: ${json.error}`)
+  }
+  if (!json.header || !json.data) {
+    console.error('[sync/productos] Gesu estructura inesperada:', JSON.stringify(json).slice(0, 200))
+    throw new Error('Gesu devolvió estructura inesperada')
+  }
   return json
 }
 
