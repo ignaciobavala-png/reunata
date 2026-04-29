@@ -41,6 +41,9 @@ async function fetchPagina(pag: number): Promise<{ header: Record<string, number
   const json = await res.json()
   if (json.error) {
     console.error('[sync/clientes] Gesu error:', json.error)
+    if (json.error.includes('2 veces por hora')) {
+      throw new Error('Límite de GESU alcanzado: máximo 2 consultas por hora. Esperá y reintentá.')
+    }
     throw new Error(`Gesu: ${json.error}`)
   }
   if (!json.header || !json.data) {
