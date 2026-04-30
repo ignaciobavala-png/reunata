@@ -82,10 +82,11 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const form = e.currentTarget
     setLoading(true)
     setResultado(null)
 
-    const formData = new FormData(e.currentTarget)
+    const formData = new FormData(form)
     formData.set('tipo', tipo)
 
     const res = await crearPostulacion(formData)
@@ -93,7 +94,7 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
     setLoading(false)
 
     if (res.ok) {
-      e.currentTarget.reset()
+      form.reset()
     }
   }
 

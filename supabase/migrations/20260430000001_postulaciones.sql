@@ -42,6 +42,11 @@ create policy "interno_update_postulaciones" on public.postulaciones
   for update to authenticated
   using (get_rol() in ('master', 'empleado', 'comisionista'));
 
+-- Internos: eliminar
+create policy "interno_delete_postulaciones" on public.postulaciones
+  for delete to authenticated
+  using (get_rol() in ('master', 'empleado', 'comisionista'));
+
 -- ────────────────────────────────────────────────────────────
 -- 3. Storage bucket cv
 -- ────────────────────────────────────────────────────────────

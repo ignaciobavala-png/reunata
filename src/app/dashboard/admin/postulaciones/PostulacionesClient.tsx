@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { actualizarEstadoPostulacion } from '@/app/actions/postulaciones'
-import { Check, X, Search, FileText, Loader2 } from 'lucide-react'
+import { actualizarEstadoPostulacion, eliminarPostulacion } from '@/app/actions/postulaciones'
+import { Check, X, Search, FileText, Loader2, Trash2 } from 'lucide-react'
 
 interface Postulacion {
   id: string
@@ -60,9 +60,26 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
 
   function handleEstado(id: string, estado: 'aprobado' | 'rechazado') {
     setAccionId(id)
+    const anterior = postulaciones.find(p => p.id === id)
     setPostulaciones(prev => prev.map(p => p.id === id ? { ...p, estado } : p))
     startTransition(async () => {
-      await actualizarEstadoPostulacion(id, estado)
+      const res = await actualizarEstadoPostulacion(id, estado)
+      if (res.error && anterior) {
+        setPostulaciones(prev => prev.map(p => p.id === id ? anterior : p))
+      }
+      setAccionId(null)
+    })
+  }
+
+  function handleEliminar(id: string) {
+    setAccionId(id)
+    const eliminada = postulaciones.find(p => p.id === id)
+    setPostulaciones(prev => prev.filter(p => p.id !== id))
+    startTransition(async () => {
+      const res = await eliminarPostulacion(id)
+      if (res.error && eliminada) {
+        setPostulaciones(prev => [...prev, eliminada])
+      }
       setAccionId(null)
     })
   }
@@ -178,11 +195,26 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
                           <X size={14} style={{ color: '#ef4444' }} />
                         )}
                       </button>
+                      <button
+                        onClick={() => handleEliminar(p.id)}
+                        disabled={isPending}
+                        className="p-1.5 rounded-md transition-colors hover:bg-red-50"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} style={{ color: '#6b7280' }} />
+                      </button>
                     </div>
                   ) : (
-                    <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      —
-                    </span>
+                    <div className="flex gap-1.5 justify-end">
+                      <button
+                        onClick={() => handleEliminar(p.id)}
+                        disabled={isPending}
+                        className="p-1.5 rounded-md transition-colors hover:bg-red-50"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} style={{ color: '#6b7280' }} />
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
