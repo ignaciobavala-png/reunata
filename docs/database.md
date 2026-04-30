@@ -1,6 +1,6 @@
 # Base de Datos — Reunata Web
 
-Esquema PostgreSQL en Supabase. 11 tablas, RLS completo.
+Esquema PostgreSQL en Supabase. 12 tablas, RLS completo.
 
 ---
 
@@ -152,6 +152,26 @@ Historial de sincronizaciones con Gesu.
 | `mensaje` | text |
 | `created_at` | timestamptz |
 
+### `postulaciones`
+Postulaciones de "Trabaja con nosotros". Formulario público, solo internos gestionan.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | default gen_random_uuid() |
+| `tipo` | text | CHECK: fulltime, comisionista |
+| `nombre` | text | NOT NULL |
+| `apellido` | text | NOT NULL |
+| `email` | text | NOT NULL |
+| `dni` | text | NOT NULL |
+| `direccion` | text | NOT NULL |
+| `nacionalidad` | text | NOT NULL |
+| `cv_url` | text | Solo fulltime. URL pública del bucket `cv` |
+| `movilidad_propia` | boolean | Solo comisionista |
+| `zonas` | text | Solo comisionista |
+| `otras_marcas` | text | Solo comisionista |
+| `estado` | text | CHECK: pendiente, aprobado, rechazado. Default: pendiente |
+| `created_at` | timestamptz | default now() |
+
 ---
 
 ## Row Level Security
@@ -170,4 +190,5 @@ Resumen de políticas por tabla:
 | `pedido_items` | Misma lógica que pedidos (hereda visibilidad) |
 | `comprobantes` | master = todos. cliente = propios |
 | `configuracion` | Lectura: autenticados. Escritura: master |
+| `postulaciones` | INSERT: público. SELECT/UPDATE/DELETE: master, empleado, comisionista |
 | `sync_log` | Lectura: master. Inserción: service_role |

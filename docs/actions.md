@@ -112,3 +112,29 @@ Todas en `src/app/actions/`. Usan `'use server'`.
 - **DB:** `pedidos` (update estado)
 - **Transiciones válidas:** en_preparacion, enviado, entregado, cancelado
 - **Consumido por:** Panel admin de pedidos
+
+---
+
+## `postulaciones.ts`
+
+### `crearPostulacion(formData: FormData)`
+- **Cliente:** `createServiceClient()` (formulario público sin auth)
+- **Lee:** `tipo` (fulltime|comisionista), `nombre`, `apellido`, `email`, `dni`, `direccion`, `nacionalidad`
+- **Opcional fulltime:** `cv` (File → upload a Storage bucket `cv`, máx 5MB, MIME validado)
+- **Opcional comisionista:** `movilidad_propia`, `zonas`, `otras_marcas`
+- **Validación:** campos requeridos, longitudes máximas, tipo MIME y extensión CV, rate limit (máx 5/hora global)
+- **DB:** `postulaciones` (insert)
+- **Storage:** bucket `cv` (upload si fulltime)
+- **Consumido por:** `src/components/sections/PostulacionForm.tsx`
+
+### `actualizarEstadoPostulacion(id: string, estado: 'aprobado' | 'rechazado')`
+- **Cliente:** `createClient()` (respeta RLS)
+- **Auth:** verifica user autenticado + `profiles.rol` en (master, empleado, comisionista)
+- **DB:** `postulaciones` (update estado)
+- **Consumido por:** `PostulacionesClient.tsx`
+
+### `eliminarPostulacion(id: string)`
+- **Cliente:** `createClient()` (respeta RLS)
+- **Auth:** verifica user autenticado + `profiles.rol` en (master, empleado, comisionista)
+- **DB:** `postulaciones` (delete)
+- **Consumido por:** `PostulacionesClient.tsx`

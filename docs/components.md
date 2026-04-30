@@ -27,6 +27,7 @@
 | `CategoryBento` | Server | — | 4 cards desde `categorias_home`, fotos aleatorias, fallback gradiente |
 | `ProductSlider` | Client | `fotos: FotoDestacada[]` | Embla carousel de fotos destacadas |
 | `InstagramSlider` | Client | — | Placeholder con link a Instagram |
+| `PostulacionForm` | Client | `tipo, titulo, descripcion` | Formulario reutilizable de postulación (fulltime/comisionista). Upload CV con validación MIME y tamaño |
 
 ### UI
 
@@ -51,6 +52,7 @@ Ubicados en `src/app/dashboard/` junto a sus páginas.
 | `MultimediaClient` | `productos, fotosIniciales, supabaseUrl, supabaseKey` | Upload drag-drop con WebP resize, badges, filtros, ⭐ destacadas |
 | `CategoriasClient` | `categoriasIniciales` | CRUD de categorías de portada |
 | `SyncPage` | — | Botones para disparar sync manual |
+| `PostulacionesClient` | `postulaciones` | Tabla con filtros por tipo/estado, búsqueda, detalle expandible, aprobar/rechazar/eliminar con rollback |
 
 ### Cliente
 

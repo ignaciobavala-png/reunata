@@ -1,6 +1,6 @@
 # Migraciones — Reunata Web
 
-7 migraciones SQL en `supabase/migrations/`. Ejecutar en orden con `supabase db push`.
+8 migraciones SQL en `supabase/migrations/`. Ejecutar en orden con `supabase db push`.
 
 ---
 
@@ -67,6 +67,7 @@
 - Políticas: lectura pública, escritura solo master
 
 ---
+---
 
 ## `20260418000005_whatsapp_config.sql`
 
@@ -89,3 +90,15 @@
 **Propósito:** Asignación inicial: todos los productos activos × todos los canales.
 
 **Operación:** `INSERT ... SELECT ... CROSS JOIN ... ON CONFLICT DO NOTHING`
+
+---
+
+## `20260430000001_postulaciones.sql`
+
+**Propósito:** Agrega la funcionalidad "Trabaja con nosotros" con formularios de postulación.
+
+**Crea:**
+- Tabla `postulaciones` — postulaciones de fulltime y comisionista con estado pendiente/aprobado/rechazado
+- Bucket Storage `cv` (público, 5MB max, PDF/DOC/DOCX/JPG/PNG)
+- RLS: INSERT público, SELECT/UPDATE/DELETE solo internos (master, empleado, comisionista)
+- Políticas Storage: lectura pública, inserción pública, eliminación solo internos
