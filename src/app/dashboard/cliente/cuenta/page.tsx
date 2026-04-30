@@ -19,12 +19,12 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Mi cuenta
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Tus datos de contacto y facturación.
       </p>
 
       {guardado && (
-        <div className="rounded-lg px-4 py-3 mb-6 text-xs" style={{ background: '#10b98122', color: '#10b981' }}>
+        <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>
           Datos actualizados correctamente.
         </div>
       )}

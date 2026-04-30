@@ -7,16 +7,16 @@ import { Upload, Loader2 } from 'lucide-react'
 function Field({ label, name, type = 'text', required = true }: { label: string; name: string; type?: string; required?: boolean }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-acero)' }}>
+      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
         {label}
       </label>
       <input
         name={name}
         type={type}
         required={required}
-        className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors duration-150 focus:border-[var(--color-acero-oscuro)]"
+        className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 focus:border-[var(--color-acero-brillo)] shadow-inner"
         style={{
-          borderColor: 'var(--color-granito)',
+          borderColor: 'var(--color-granito-claro)',
           background: 'var(--color-granito)',
           color: 'var(--color-acero-brillo)',
         }}
@@ -30,15 +30,15 @@ function CVField() {
 
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-acero)' }}>
+      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
         Currículum (PDF, DOC, imágenes)
       </label>
       <label
-        className="flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors duration-150 hover:border-[var(--color-acero-oscuro)]"
-        style={{ borderColor: 'var(--color-granito)', background: 'var(--color-granito)' }}
+        className="flex items-center gap-3 px-3 py-2 rounded-lg border-2 cursor-pointer transition-colors duration-150 hover:border-[var(--color-acero-brillo)] shadow-inner"
+        style={{ borderColor: 'var(--color-granito-claro)', background: 'var(--color-granito)' }}
       >
         <Upload size={16} style={{ color: 'var(--color-acero-oscuro)' }} />
-        <span className="text-sm truncate" style={{ color: fileName ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)' }}>
+        <span className="text-base truncate" style={{ color: fileName ? 'var(--color-acero-brillo)' : 'var(--color-acero)' }}>
           {fileName || 'Seleccionar archivo (máx. 5 MB)'}
         </span>
         <input
@@ -58,7 +58,7 @@ function SubmitButton({ loading }: { loading: boolean }) {
     <button
       type="submit"
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors duration-200 disabled:opacity-60"
+      className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-base font-medium transition-colors duration-200 disabled:opacity-60"
       style={{
         background: 'var(--color-acero-brillo)',
         color: 'var(--color-granito-oscuro)',
@@ -100,23 +100,23 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
 
   return (
     <div
-      className="flex flex-col p-6 md:p-8 rounded-xl border h-full"
-      style={{ borderColor: 'var(--color-granito)' }}
+      className="flex flex-col p-5 md:p-6 rounded-xl border-2 h-full"
+      style={{ borderColor: 'var(--color-granito-claro)' }}
     >
-      <div className="mb-6">
+      <div className="mb-4">
         <h2
           className="text-xl md:text-2xl mb-2"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-acero-brillo)' }}
         >
           {titulo}
         </h2>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-acero)' }}>
+        <p className="text-base leading-relaxed" style={{ color: 'var(--color-acero)' }}>
           {descripcion}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Nombre" name="nombre" />
           <Field label="Apellido" name="apellido" />
         </div>
@@ -141,37 +141,37 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
               />
               <label
                 htmlFor={`movilidad-${tipo}`}
-                className="text-sm cursor-pointer"
+                className="text-base cursor-pointer"
                 style={{ color: 'var(--color-acero)' }}
               >
                 Tengo movilidad propia
               </label>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-acero)' }}>
+              <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
                 Zonas que recorrés habitualmente
               </label>
               <textarea
                 name="zonas"
-                rows={3}
-                className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors duration-150 resize-none focus:border-[var(--color-acero-oscuro)]"
+                rows={2}
+                className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 resize-none shadow-inner focus:border-[var(--color-acero-brillo)]"
                 style={{
-                  borderColor: 'var(--color-granito)',
+                  borderColor: 'var(--color-granito-claro)',
                   background: 'var(--color-granito)',
                   color: 'var(--color-acero-brillo)',
                 }}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-acero)' }}>
+              <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
                 ¿Vendés otras marcas? ¿Cuáles?
               </label>
               <input
                 name="otras_marcas"
                 type="text"
-                className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors duration-150 focus:border-[var(--color-acero-oscuro)]"
+                className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 shadow-inner focus:border-[var(--color-acero-brillo)]"
                 style={{
-                  borderColor: 'var(--color-granito)',
+                  borderColor: 'var(--color-granito-claro)',
                   background: 'var(--color-granito)',
                   color: 'var(--color-acero-brillo)',
                 }}
@@ -180,7 +180,7 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
           </>
         )}
 
-        <div className="flex-1 flex items-end mt-2">
+        <div className="mt-2">
           <SubmitButton loading={loading} />
         </div>
 

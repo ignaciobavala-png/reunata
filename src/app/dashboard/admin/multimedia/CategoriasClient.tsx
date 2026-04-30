@@ -77,7 +77,7 @@ export function CategoriasClient({
 
   return (
     <div className="max-w-2xl">
-      <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
         Estas categorías aparecen en el bento de la página principal. Las fotos se eligen automáticamente de los productos asociados.
       </p>
 
@@ -94,21 +94,21 @@ export function CategoriasClient({
                   value={form.nombre ?? ''}
                   onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
                   placeholder="Nombre"
-                  className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full"
+                  className="text-base border rounded-lg px-3 py-1.5 outline-none w-full"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
                 <input
                   value={form.descripcion ?? ''}
                   onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
                   placeholder="Descripción"
-                  className="text-xs border rounded-lg px-3 py-1.5 outline-none w-full"
+                  className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
                 <input
                   value={form.href ?? ''}
                   onChange={e => setForm(f => ({ ...f, href: e.target.value }))}
                   placeholder="Link (ej: /tienda/mates)"
-                  className="text-xs border rounded-lg px-3 py-1.5 outline-none w-full font-mono"
+                  className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full font-mono"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
                 <textarea
@@ -116,17 +116,17 @@ export function CategoriasClient({
                   onChange={e => setForm(f => ({ ...f, categoria_keys: e.target.value as unknown as string[] }))}
                   placeholder="Categorías Gesu (una por línea)"
                   rows={4}
-                  className="text-xs border rounded-lg px-3 py-1.5 outline-none w-full font-mono resize-none"
+                  className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full font-mono resize-none"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setEditando(null)}
-                    className="text-xs px-3 py-1.5 rounded-lg border"
+                    className="text-sm px-3 py-1.5 rounded-lg border"
                     style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
                     Cancelar
                   </button>
                   <button onClick={() => guardarEdicion(cat.id)} disabled={saving}
-                    className="text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                    className="text-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
                     style={{ background: 'var(--color-granito)', color: 'white' }}>
                     <Check size={12} /> Guardar
                   </button>
@@ -141,16 +141,16 @@ export function CategoriasClient({
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{cat.nombre}</p>
+                    <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>{cat.nombre}</p>
                     {!cat.activo && (
-                      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>inactiva</span>
+                      <span className="text-sm px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>inactiva</span>
                     )}
                   </div>
-                  <p className="text-xs mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{cat.descripcion}</p>
-                  <p className="text-xs font-mono mb-2" style={{ color: 'var(--color-acero)' }}>{cat.href}</p>
+                  <p className="text-sm mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{cat.descripcion}</p>
+                  <p className="text-sm font-mono mb-2" style={{ color: 'var(--color-acero)' }}>{cat.href}</p>
                   <div className="flex flex-wrap gap-1">
                     {cat.categoria_keys.map(k => (
-                      <span key={k} className="text-xs px-2 py-0.5 rounded-full"
+                      <span key={k} className="text-sm px-2 py-0.5 rounded-full"
                         style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
                         {k}
                       </span>
@@ -162,7 +162,7 @@ export function CategoriasClient({
                     setEditando(cat.id)
                     setForm({ ...cat, categoria_keys: cat.categoria_keys.join('\n') as unknown as string[] })
                   }}
-                  className="text-xs px-2.5 py-1 rounded-lg border flex-shrink-0"
+                  className="text-sm px-2.5 py-1 rounded-lg border flex-shrink-0"
                   style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
                 >
                   Editar
@@ -176,30 +176,30 @@ export function CategoriasClient({
       {/* Nueva categoría */}
       {creando ? (
         <div className="rounded-xl border p-4" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
-          <p className="text-xs font-medium mb-3" style={{ color: 'var(--foreground)' }}>Nueva categoría</p>
+          <p className="text-sm font-medium mb-3" style={{ color: 'var(--foreground)' }}>Nueva categoría</p>
           <div className="flex flex-col gap-2">
             <input value={nuevoForm.nombre} onChange={e => setNuevoForm(f => ({ ...f, nombre: e.target.value }))}
-              placeholder="Nombre" className="text-sm border rounded-lg px-3 py-1.5 outline-none"
+              placeholder="Nombre" className="text-base border rounded-lg px-3 py-1.5 outline-none"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <input value={nuevoForm.descripcion} onChange={e => setNuevoForm(f => ({ ...f, descripcion: e.target.value }))}
-              placeholder="Descripción" className="text-xs border rounded-lg px-3 py-1.5 outline-none"
+              placeholder="Descripción" className="text-sm border rounded-lg px-3 py-1.5 outline-none"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <input value={nuevoForm.href} onChange={e => setNuevoForm(f => ({ ...f, href: e.target.value }))}
-              placeholder="Link (ej: /tienda/termos)" className="text-xs border rounded-lg px-3 py-1.5 outline-none font-mono"
+              placeholder="Link (ej: /tienda/termos)" className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <textarea value={nuevoForm.categoria_keys}
               onChange={e => setNuevoForm(f => ({ ...f, categoria_keys: e.target.value }))}
               placeholder="Categorías Gesu (una por línea)" rows={3}
-              className="text-xs border rounded-lg px-3 py-1.5 outline-none font-mono resize-none"
+              className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono resize-none"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setCreando(false)}
-                className="text-xs px-3 py-1.5 rounded-lg border"
+                className="text-sm px-3 py-1.5 rounded-lg border"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
                 <X size={12} />
               </button>
               <button onClick={crearCategoria} disabled={saving || !nuevoForm.nombre}
-                className="text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                className="text-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
                 style={{ background: 'var(--color-granito)', color: 'white' }}>
                 <Check size={12} /> Crear
               </button>
@@ -208,7 +208,7 @@ export function CategoriasClient({
         </div>
       ) : (
         <button onClick={() => setCreando(true)}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors"
+          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-colors"
           style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
           <Plus size={13} /> Nueva categoría
         </button>

@@ -36,7 +36,7 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Sincronización con Gesu
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Actualizá los datos de productos y clientes desde el sistema de gestión externo.
       </p>
 
@@ -53,11 +53,11 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>{label}</p>
-                  <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{desc}</p>
+                  <p className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>{label}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{desc}</p>
 
                   {result && (
-                    <div className="mt-3 flex items-center gap-2 text-xs">
+                    <div className="mt-3 flex items-center gap-2 text-sm">
                       {result.ok
                         ? <CheckCircle size={14} className="text-green-600" />
                         : <XCircle size={14} className="text-red-500" />}
@@ -73,7 +73,7 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
                 <button
                   onClick={() => runSync(tipo)}
                   disabled={!!loading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-colors duration-150 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors duration-150 disabled:opacity-50"
                   style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
                 >
                   <RefreshCw size={13} strokeWidth={2} className={isLoading ? 'animate-spin' : ''} />
@@ -88,7 +88,7 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
       <div className="mt-6 p-4 rounded-lg max-w-xl" style={{ background: 'var(--color-acero-brillo)' }}>
         <div className="flex gap-2">
           <Clock size={14} strokeWidth={1.5} style={{ color: 'var(--color-acero-oscuro)', flexShrink: 0, marginTop: 1 }} />
-          <p className="text-xs" style={{ color: 'var(--color-granito-claro)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-granito-claro)' }}>
             La sincronización automática corre cada hora via Vercel Cron. Usá este panel para forzarla manualmente.
           </p>
         </div>

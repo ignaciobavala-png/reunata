@@ -52,7 +52,7 @@ export default async function PedidosPage({
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Pedidos
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Seguimiento y gestión de todos los pedidos de clientes.
       </p>
 
@@ -60,7 +60,7 @@ export default async function PedidosPage({
       <div className="flex gap-2 mb-6 flex-wrap">
         <a
           href="/dashboard/admin/pedidos"
-          className="px-3 py-1.5 rounded-lg text-xs border transition-colors duration-150"
+          className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
           style={{
             borderColor: !estado ? 'var(--color-granito)' : 'var(--color-acero-claro)',
             background: !estado ? 'var(--color-granito)' : 'white',
@@ -73,7 +73,7 @@ export default async function PedidosPage({
           <a
             key={e}
             href={`/dashboard/admin/pedidos?estado=${e}`}
-            className="px-3 py-1.5 rounded-lg text-xs border transition-colors duration-150"
+            className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
             style={{
               borderColor: estado === e ? COLOR_ESTADO[e].text : 'var(--color-acero-claro)',
               background: estado === e ? COLOR_ESTADO[e].bg : 'white',
@@ -88,7 +88,7 @@ export default async function PedidosPage({
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)' }}>
                 {['Nº Pedido', 'Cliente', 'Estado', 'Medio de pago', 'Total', 'Fecha'].map(h => (

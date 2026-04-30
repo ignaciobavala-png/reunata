@@ -69,7 +69,7 @@ export default async function CatalogoPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Catálogo
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Productos disponibles para tu canal. Precios en USD.
       </p>
 
@@ -79,7 +79,7 @@ export default async function CatalogoPage() {
           <CartDrawer />
         </>
       ) : (
-        <div className="text-sm py-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <div className="text-base py-8" style={{ color: 'var(--color-acero-oscuro)' }}>
           Tu cuenta aún no tiene un canal de venta asignado. Contactá con tu vendedor.
         </div>
       )}

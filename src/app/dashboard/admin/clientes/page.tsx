@@ -25,7 +25,7 @@ export default async function ClientesPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Clientes
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Aprobá el acceso, asigná canal de venta y revisá los datos de cada cliente.
       </p>
       <ClientesClient clientes={clientes ?? []} canales={canales ?? []} />

@@ -25,12 +25,12 @@ export default async function ConfiguracionPage({
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Configuración
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Datos bancarios para cobros y parámetros generales del marketplace.
       </p>
 
       {guardado && (
-        <div className="rounded-lg px-4 py-3 mb-6 text-xs" style={{ background: '#10b98122', color: '#10b981' }}>
+        <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>
           Configuración guardada correctamente.
         </div>
       )}
@@ -58,7 +58,7 @@ export default async function ConfiguracionPage({
           className="rounded-xl border p-6 mb-6"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
-          <h2 className="text-sm font-medium mb-4" style={{ color: 'var(--foreground)' }}>
+          <h2 className="text-base font-medium mb-4" style={{ color: 'var(--foreground)' }}>
             Datos bancarios para transferencias
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,11 +70,11 @@ export default async function ConfiguracionPage({
               { key: 'banco_cuit',         label: 'CUIT' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>
+                <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>
                 <input
                   name={key}
                   defaultValue={cfg[key] ?? ''}
-                  className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                   style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
                 />
               </div>
@@ -87,12 +87,12 @@ export default async function ConfiguracionPage({
           className="rounded-xl border p-6 mb-6"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
-          <h2 className="text-sm font-medium mb-4" style={{ color: 'var(--foreground)' }}>
+          <h2 className="text-base font-medium mb-4" style={{ color: 'var(--foreground)' }}>
             Parámetros de pedidos
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Monto mínimo de pedido (USD)
               </label>
               <input
@@ -101,12 +101,12 @@ export default async function ConfiguracionPage({
                 min="0"
                 step="0.01"
                 defaultValue={cfg['pedido_monto_minimo'] ?? '0'}
-                className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
             </div>
             <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Días para vencimiento del pedido
               </label>
               <input
@@ -114,7 +114,7 @@ export default async function ConfiguracionPage({
                 type="number"
                 min="1"
                 defaultValue={cfg['pedido_dias_vencimiento'] ?? '3'}
-                className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
             </div>
@@ -123,7 +123,7 @@ export default async function ConfiguracionPage({
 
         <button
           type="submit"
-          className="px-6 py-2.5 rounded-lg text-xs transition-colors duration-150"
+          className="px-6 py-2.5 rounded-lg text-sm transition-colors duration-150"
           style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
         >
           Guardar configuración
@@ -132,7 +132,7 @@ export default async function ConfiguracionPage({
 
       {/* Info canales (solo lectura por ahora) */}
       <section className="mt-10">
-        <h2 className="text-sm font-medium mb-4" style={{ color: 'var(--foreground)' }}>
+        <h2 className="text-base font-medium mb-4" style={{ color: 'var(--foreground)' }}>
           Canales de venta
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -142,8 +142,8 @@ export default async function ConfiguracionPage({
               className="rounded-xl border p-4"
               style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
             >
-              <p className="text-xs font-medium mb-1" style={{ color: 'var(--foreground)' }}>{c.nombre}</p>
-              <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>{c.nombre}</p>
+              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Lista: <span className="font-mono">{c.lista_precios}</span>
               </p>
             </div>

@@ -176,6 +176,7 @@ async function syncProductos() {
     }
   } catch (e) {
     error = (e as Error).message
+    console.error('[sync/productos] Error:', error)
   }
 
   // Registrar en sync_log

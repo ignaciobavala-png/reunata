@@ -14,7 +14,7 @@ export default async function PostulacionesPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Postulaciones
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Revisá las postulaciones de &quot;Trabaja con nosotros&quot;. Aprobalas o rechazalas.
       </p>
       <PostulacionesClient postulaciones={(postulaciones ?? []) as Parameters<typeof PostulacionesClient>[0]['postulaciones']} />

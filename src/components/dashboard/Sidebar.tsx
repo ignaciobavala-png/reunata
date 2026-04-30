@@ -92,7 +92,7 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-xs tracking-wide transition-colors duration-150"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm tracking-wide transition-colors duration-150"
               style={{
                 color: active ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
                 background: active ? 'rgba(168,176,187,0.12)' : 'transparent',
@@ -108,17 +108,17 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
       {/* User info + logout */}
       <div className="px-4 py-4 border-t" style={{ borderColor: 'rgba(168,176,187,0.12)' }}>
         <div className="mb-3 px-2">
-          <p className="text-xs font-medium truncate" style={{ color: 'var(--color-acero-brillo)' }}>
+          <p className="text-sm font-medium truncate" style={{ color: 'var(--color-acero-brillo)' }}>
             {nombre}
           </p>
-          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {LABEL_ROL[rol]}
           </p>
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors duration-150"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150"
             style={{ color: 'var(--color-acero-oscuro)' }}
           >
             <LogOut size={14} strokeWidth={1.5} />

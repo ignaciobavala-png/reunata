@@ -94,7 +94,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, email o DNI…"
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border outline-none"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
@@ -102,7 +102,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
         <select
           value={filtroTipo}
           onChange={e => setFiltroTipo(e.target.value as typeof filtroTipo)}
-          className="px-3 py-2 text-xs rounded-lg border outline-none"
+          className="px-3 py-2 text-sm rounded-lg border outline-none"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         >
           <option value="todos">Todos los tipos</option>
@@ -113,7 +113,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
         <select
           value={filtroEstado}
           onChange={e => setFiltroEstado(e.target.value as typeof filtroEstado)}
-          className="px-3 py-2 text-xs rounded-lg border outline-none"
+          className="px-3 py-2 text-sm rounded-lg border outline-none"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         >
           <option value="todos">Todos los estados</option>
@@ -122,14 +122,14 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
           <option value="rechazado">Rechazados</option>
         </select>
 
-        <span className="text-xs ml-auto" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <span className="text-sm ml-auto" style={{ color: 'var(--color-acero-oscuro)' }}>
           {filtradas.length} de {postulaciones.length}
         </span>
       </div>
 
       {/* Tabla */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
               <th className="pb-3 font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Nombre</th>
@@ -158,7 +158,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
                 <td className="py-3" style={{ color: 'var(--color-acero)' }}>{TIPO_LABEL[p.tipo]}</td>
                 <td className="py-3">
                   <span
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm font-medium"
                     style={{ background: `${ESTADO_COLOR[p.estado]}18`, color: ESTADO_COLOR[p.estado] }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_COLOR[p.estado] }} />
@@ -237,7 +237,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
           style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-granito)' }}
         >
           <div className="flex items-start justify-between mb-4">
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
+            <h3 className="text-base font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
               Detalle de postulación
             </h3>
             <button
@@ -248,40 +248,40 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
               ×
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-base">
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Nombre</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Nombre</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.nombre}</p>
             </div>
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Apellido</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Apellido</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.apellido}</p>
             </div>
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Email</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Email</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.email}</p>
             </div>
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>DNI</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>DNI</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.dni}</p>
             </div>
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Dirección</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Dirección</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.direccion}</p>
             </div>
             <div>
-              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Nacionalidad</span>
+              <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Nacionalidad</span>
               <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.nacionalidad}</p>
             </div>
             {detallePostulacion.tipo === 'fulltime' && (
               <div className="sm:col-span-2 lg:col-span-3">
-                <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>CV</span>
+                <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>CV</span>
                 {detallePostulacion.cv_url ? (
                   <a
                     href={detallePostulacion.cv_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 mt-1 text-sm underline underline-offset-2"
+                    className="flex items-center gap-2 mt-1 text-base underline underline-offset-2"
                     style={{ color: 'var(--color-acero-brillo)' }}
                   >
                     <FileText size={14} />
@@ -295,17 +295,17 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
             {detallePostulacion.tipo === 'comisionista' && (
               <>
                 <div>
-                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Movilidad propia</span>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Movilidad propia</span>
                   <p style={{ color: 'var(--color-acero-brillo)' }}>
                     {detallePostulacion.movilidad_propia ? 'Sí' : 'No'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Zonas</span>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Zonas</span>
                   <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.zonas || '—'}</p>
                 </div>
                 <div>
-                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Otras marcas</span>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Otras marcas</span>
                   <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.otras_marcas || '—'}</p>
                 </div>
               </>

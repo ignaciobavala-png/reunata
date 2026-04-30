@@ -40,7 +40,7 @@ export default async function MisPedidosPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Mis pedidos
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         {pedidos?.length ?? 0} pedidos en total
       </p>
 
@@ -59,19 +59,19 @@ export default async function MisPedidosPage() {
                 }}
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
                     #{p.id.slice(-8).toUpperCase()}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
+                  <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
                     {ESTADO_LABEL[p.estado] ?? p.estado}
                   </span>
                   {p.total_usd != null && (
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
                       u$s {Number(p.total_usd).toFixed(2)}
                     </span>
                   )}
@@ -84,12 +84,12 @@ export default async function MisPedidosPage() {
       ) : (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <ShoppingCart size={32} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
-          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
             Todavía no realizaste ningún pedido.
           </p>
           <Link
             href="/dashboard/cliente/catalogo"
-            className="text-xs px-4 py-2 rounded-lg"
+            className="text-sm px-4 py-2 rounded-lg"
             style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
           >
             Ver catálogo

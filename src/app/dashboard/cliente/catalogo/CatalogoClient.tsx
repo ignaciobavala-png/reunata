@@ -58,20 +58,20 @@ export function CatalogoClient({ productos, categorias }: { productos: Producto[
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar producto o código…"
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border outline-none"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
         <select
           value={categoria}
           onChange={e => setCategoria(e.target.value)}
-          className="px-3 py-2 text-xs rounded-lg border outline-none"
+          className="px-3 py-2 text-sm rounded-lg border outline-none"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         >
           <option value="">Todas las categorías</option>
           {categorias.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <span className="text-xs self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <span className="text-sm self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
           {filtrados.length} productos
         </span>
       </div>
@@ -80,14 +80,14 @@ export function CatalogoClient({ productos, categorias }: { productos: Producto[
       {Object.keys(porCategoria).sort().map(cat => (
         <div key={cat} className="mb-8">
           <h2
-            className="text-xs font-medium tracking-widest uppercase mb-3 pb-2 border-b"
+            className="text-sm font-medium tracking-widest uppercase mb-3 pb-2 border-b"
             style={{ color: 'var(--color-granito-claro)', borderColor: 'var(--color-acero-claro)' }}
           >
             {cat} <span style={{ color: 'var(--color-acero)' }}>({porCategoria[cat].length})</span>
           </h2>
 
           <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: 'var(--color-acero-brillo)' }}>
                   <th className="text-left px-4 py-2.5 font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Código</th>
@@ -146,7 +146,7 @@ export function CatalogoClient({ productos, categorias }: { productos: Producto[
       ))}
 
       {filtrados.length === 0 && (
-        <div className="text-center py-16 text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <div className="text-center py-16 text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
           No se encontraron productos.
         </div>
       )}

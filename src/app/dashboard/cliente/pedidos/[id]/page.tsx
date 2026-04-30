@@ -61,18 +61,18 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
           <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             Pedido #{id.slice(-8).toUpperCase()}
           </h1>
-          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {new Date(pedido.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: col.bg, color: col.text }}>
+        <span className="text-sm px-3 py-1.5 rounded-full" style={{ background: col.bg, color: col.text }}>
           {ESTADO_LABEL[pedido.estado] ?? pedido.estado}
         </span>
       </div>
 
       {/* Items */}
       <div className="rounded-xl border overflow-hidden mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
-        <table className="w-full text-xs">
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--color-acero-brillo)' }}>
               <th className="text-left px-4 py-2.5 font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Producto</th>
@@ -109,10 +109,10 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
               )
             })}
             <tr style={{ borderTop: '2px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
-              <td colSpan={3} className="px-4 py-3 text-right font-medium text-xs" style={{ color: 'var(--foreground)' }}>
+              <td colSpan={3} className="px-4 py-3 text-right font-medium text-sm" style={{ color: 'var(--foreground)' }}>
                 Total
               </td>
-              <td className="px-4 py-3 text-right font-medium text-sm" style={{ color: 'var(--foreground)' }}>
+              <td className="px-4 py-3 text-right font-medium text-base" style={{ color: 'var(--foreground)' }}>
                 u$s {Number(pedido.total_usd).toFixed(2)}
               </td>
             </tr>

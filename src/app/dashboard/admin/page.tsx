@@ -33,7 +33,7 @@ export default async function AdminPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Panel de control
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Resumen general del negocio
       </p>
 
@@ -46,7 +46,7 @@ export default async function AdminPage() {
             style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <span className="text-sm tracking-widest uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
                 {label}
               </span>
               <Icon size={16} strokeWidth={1.5} style={{ color: 'var(--color-acero)' }} />
@@ -54,7 +54,7 @@ export default async function AdminPage() {
             <p className="text-3xl font-medium mb-1" style={{ color: 'var(--foreground)' }}>
               {value}
             </p>
-            <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{sub}</p>
+            <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{sub}</p>
           </div>
         ))}
       </div>
@@ -66,10 +66,10 @@ export default async function AdminPage() {
       >
         <RefreshCw size={18} strokeWidth={1.5} style={{ color: 'var(--color-acero-oscuro)' }} />
         <div className="flex-1">
-          <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>
+          <p className="text-sm font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>
             Última sincronización con Gesu
           </p>
-          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {stats.lastSync
               ? `${stats.lastSync.estado === 'ok' ? '✓' : '✗'} ${stats.lastSync.mensaje} — ${new Date(stats.lastSync.created_at).toLocaleString('es-AR')}`
               : 'Sin sincronizaciones registradas'}
@@ -77,7 +77,7 @@ export default async function AdminPage() {
         </div>
         <a
           href="/dashboard/admin/sync"
-          className="text-xs px-4 py-2 rounded-lg transition-colors duration-150"
+          className="text-sm px-4 py-2 rounded-lg font-medium transition-colors duration-150"
           style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
         >
           Ir a sync

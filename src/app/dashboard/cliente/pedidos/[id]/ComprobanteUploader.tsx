@@ -39,8 +39,8 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
       <div className="rounded-xl border p-5 flex items-center gap-3" style={{ background: '#10b98115', borderColor: '#10b98144' }}>
         <Check size={18} style={{ color: '#10b981' }} />
         <div>
-          <p className="text-sm font-medium" style={{ color: '#10b981' }}>Comprobante enviado</p>
-          <p className="text-xs" style={{ color: '#10b981' }}>Lo revisaremos y confirmaremos tu pago en breve.</p>
+          <p className="text-base font-medium" style={{ color: '#10b981' }}>Comprobante enviado</p>
+          <p className="text-sm" style={{ color: '#10b981' }}>Lo revisaremos y confirmaremos tu pago en breve.</p>
         </div>
       </div>
     )
@@ -48,17 +48,17 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
 
   return (
     <div className="rounded-xl border p-5" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
-      <h2 className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+      <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
         Subir comprobante de pago
       </h2>
-      <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
         Opcional pero recomendado. Acelerá la confirmación de tu pedido.
       </p>
 
       <button
         onClick={() => inputRef.current?.click()}
         disabled={subiendo}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs border transition-colors duration-150 disabled:opacity-60"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm border transition-colors duration-150 disabled:opacity-60"
         style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
       >
         {subiendo ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
@@ -73,7 +73,7 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
         onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
       />
 
-      {error && <p className="text-xs mt-2" style={{ color: '#ef4444' }}>{error}</p>}
+      {error && <p className="text-sm mt-2" style={{ color: '#ef4444' }}>{error}</p>}
     </div>
   )
 }

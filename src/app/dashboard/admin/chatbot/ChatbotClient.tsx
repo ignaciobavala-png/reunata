@@ -108,7 +108,7 @@ export function ChatbotClient({ userId, isMaster }: { userId: string | null; isM
               className={`flex ${msg.rol === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-5 py-3 text-sm leading-relaxed`}
+                className={`max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed`}
                 style={{
                   background: msg.rol === 'user'
                     ? 'var(--color-granito)'
@@ -126,7 +126,7 @@ export function ChatbotClient({ userId, isMaster }: { userId: string | null; isM
           {respuestaStream && (
             <div className="flex justify-start">
               <div
-                className="max-w-[85%] rounded-2xl px-5 py-3 text-sm leading-relaxed"
+                className="max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed"
                 style={{ background: 'var(--color-acero-brillo)', color: 'var(--foreground)' }}
                 dangerouslySetInnerHTML={{ __html: formatTexto(respuestaStream) }}
               />
@@ -160,7 +160,7 @@ export function ChatbotClient({ userId, isMaster }: { userId: string | null; isM
               onKeyDown={handleKeyDown}
               placeholder="Preguntale a BotManager…"
               disabled={cargando}
-              className="flex-1 px-4 py-3 text-sm rounded-xl border outline-none disabled:opacity-50"
+              className="flex-1 px-4 py-3 text-base rounded-xl border outline-none disabled:opacity-50"
               style={{
                 borderColor: 'var(--color-acero-claro)',
                 background: 'white',

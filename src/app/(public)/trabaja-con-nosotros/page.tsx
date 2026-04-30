@@ -6,8 +6,8 @@ export default function TrabajaConNosotrosPage() {
       <div className="px-6 md:px-16 max-w-6xl mx-auto">
 
         {/* Hero */}
-        <section className="pt-36 pb-16 border-b border-[var(--color-granito)]">
-          <p className="text-xs tracking-widest uppercase mb-5 text-[var(--color-acero-oscuro)]">
+        <section className="pt-36 pb-16 border-b-2 border-[var(--color-granito-claro)]">
+          <p className="text-sm tracking-widest uppercase mb-5 text-[var(--color-acero-oscuro)]">
             Trabajá con Reunata
           </p>
           <h1

@@ -21,7 +21,7 @@ export default async function ChatbotPage() {
         <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           BotManager
         </h1>
-        <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <p className="text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
           Asistente IA para gestionar Reunata. Consultá métricas, pedí análisis o preguntá cómo funciona cualquier sección.
         </p>
       </div>

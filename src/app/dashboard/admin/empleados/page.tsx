@@ -16,7 +16,7 @@ export default async function EmpleadosPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Equipo interno
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Administradores, empleados y comisionistas con acceso al panel.
       </p>
       <EmpleadosClient empleados={empleados ?? []} />

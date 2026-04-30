@@ -38,7 +38,7 @@ export default async function ClienteDashboardPage() {
           <h2 className="text-xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             Cuenta pendiente de aprobación
           </h2>
-          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
             Tu registro fue recibido. Un administrador revisará tu cuenta y te habilitará el acceso al catálogo mayorista en breve.
           </p>
         </div>
@@ -61,7 +61,7 @@ export default async function ClienteDashboardPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Hola, {profile.nombre ?? 'cliente'}
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Canal: {LABEL_ROL[profile.rol] ?? profile.rol}
       </p>
 
@@ -73,8 +73,8 @@ export default async function ClienteDashboardPage() {
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
           <Store size={20} strokeWidth={1.5} style={{ color: 'var(--color-granito)' }} />
-          <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Ver catálogo</span>
-          <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Productos disponibles para tu canal</span>
+          <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>Ver catálogo</span>
+          <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Productos disponibles para tu canal</span>
         </Link>
         <Link
           href="/dashboard/cliente/pedidos"
@@ -82,40 +82,40 @@ export default async function ClienteDashboardPage() {
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
           <ShoppingCart size={20} strokeWidth={1.5} style={{ color: 'var(--color-granito)' }} />
-          <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Mis pedidos</span>
-          <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{count ?? 0} pedidos en total</span>
+          <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>Mis pedidos</span>
+          <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{count ?? 0} pedidos en total</span>
         </Link>
       </div>
 
       {/* Últimos pedidos */}
       {pedidos && pedidos.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--foreground)' }}>Últimos pedidos</h2>
+          <h2 className="text-base font-medium mb-3" style={{ color: 'var(--foreground)' }}>Últimos pedidos</h2>
           <div className="rounded-xl border overflow-hidden max-w-2xl" style={{ borderColor: 'var(--color-acero-claro)' }}>
             {pedidos.map((p, i) => (
               <Link
                 key={p.id}
                 href={`/dashboard/cliente/pedidos/${p.id}`}
-                className="flex items-center justify-between px-5 py-3.5 text-sm hover:bg-[var(--color-acero-brillo)] transition-colors duration-150"
+                className="flex items-center justify-between px-5 py-3.5 text-base hover:bg-[var(--color-acero-brillo)] transition-colors duration-150"
                 style={{
                   borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
                   background: 'white',
                 }}
               >
                 <div>
-                  <span className="font-mono text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span className="font-mono text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                     #{p.id.slice(-8).toUpperCase()}
                   </span>
-                  <span className="ml-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span className="ml-3 text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {new Date(p.created_at).toLocaleDateString('es-AR')}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
+                  <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
                     {ESTADO_LABEL[p.estado] ?? p.estado}
                   </span>
                   {p.total_usd && (
-                    <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                       u$s {p.total_usd.toFixed(2)}
                     </span>
                   )}

@@ -55,12 +55,12 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
     <div>
       {/* Header con botón invitar */}
       <div className="flex justify-between items-center mb-6">
-        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
           {empleados.length} {empleados.length === 1 ? 'usuario interno' : 'usuarios internos'}
         </span>
         <button
           onClick={() => { setMostrarForm(true); setExito(false); setError(null) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-colors duration-150"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors duration-150"
           style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
         >
           <UserPlus size={13} />
@@ -75,7 +75,7 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
           <div className="flex justify-between items-center mb-4">
-            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+            <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
               Invitar nuevo usuario interno
             </p>
             <button onClick={() => setMostrarForm(false)}>
@@ -84,32 +84,32 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
           </div>
           <form action={handleInvitar} className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Nombre completo</label>
+              <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Nombre completo</label>
               <input
                 name="nombre"
                 required
                 placeholder="Ej: María García"
-                className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
             </div>
             <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Email</label>
+              <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Email</label>
               <input
                 name="email"
                 type="email"
                 required
                 placeholder="empleado@reunata.com"
-                className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
             </div>
             <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Rol</label>
+              <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Rol</label>
               <select
                 name="rol"
                 required
-                className="w-full px-3 py-2 text-xs rounded-lg border outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               >
                 <option value="empleado">Empleado</option>
@@ -120,27 +120,27 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs disabled:opacity-60"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm disabled:opacity-60"
                 style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
               >
                 {isPending && <Loader2 size={12} className="animate-spin" />}
                 Enviar invitación
               </button>
-              {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+              {error && <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>}
             </div>
           </form>
         </div>
       )}
 
       {exito && (
-        <div className="rounded-lg px-4 py-3 mb-4 text-xs" style={{ background: '#10b98122', color: '#10b981' }}>
+        <div className="rounded-lg px-4 py-3 mb-4 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>
           Invitación enviada. El usuario recibirá un email para activar su cuenta.
         </div>
       )}
 
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
-        <table className="w-full text-xs">
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--color-granito-oscuro)' }}>
               {['Usuario', 'Rol', 'Desde', 'Estado', ''].map(h => (
@@ -188,7 +188,7 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
                   {e.activo !== false && e.rol !== 'master' && (
                     <button
                       onClick={() => handleDesactivar(e.id)}
-                      className="text-xs px-2 py-1 rounded border transition-colors duration-150"
+                      className="text-sm px-2 py-1 rounded border transition-colors duration-150"
                       style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
                     >
                       Desactivar
@@ -200,7 +200,7 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
 
             {empleados.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                <td colSpan={5} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                   No hay usuarios internos registrados.
                 </td>
               </tr>

@@ -117,20 +117,20 @@ export function CanalesClient({
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar producto…"
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border outline-none"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
         <select
           value={categoriaFiltro}
           onChange={e => setCategoriaFiltro(e.target.value)}
-          className="px-3 py-2 text-xs rounded-lg border outline-none"
+          className="px-3 py-2 text-sm rounded-lg border outline-none"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         >
           <option value="">Todas las categorías</option>
           {categorias.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <span className="text-xs self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <span className="text-sm self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productosFiltrados.length} productos
         </span>
         {isPending && <Loader2 size={14} className="self-center animate-spin" style={{ color: 'var(--color-acero-oscuro)' }} />}
@@ -139,7 +139,7 @@ export function CanalesClient({
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)' }}>
                 <th className="text-left px-4 py-3 font-medium w-[40%]" style={{ color: 'var(--color-acero-claro)' }}>
@@ -149,7 +149,7 @@ export function CanalesClient({
                   <th key={canal.id} className="px-4 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     <div className="flex flex-col items-center gap-1.5">
                       <span
-                        className="px-2 py-0.5 rounded-full text-xs"
+                        className="px-2 py-0.5 rounded-full text-sm"
                         style={{ background: COLORES_CANAL[canal.slug] + '33', color: COLORES_CANAL[canal.slug] }}
                       >
                         {canal.nombre}
@@ -157,7 +157,7 @@ export function CanalesClient({
                       {/* Toggle todos */}
                       <button
                         onClick={() => toggleTodosEnCanal(canal.id)}
-                        className="text-xs opacity-60 hover:opacity-100 transition-opacity"
+                        className="text-sm opacity-60 hover:opacity-100 transition-opacity"
                         style={{ color: 'var(--color-acero)' }}
                         title="Activar/desactivar todos"
                       >
@@ -176,7 +176,7 @@ export function CanalesClient({
                   <tr style={{ background: 'var(--color-acero-brillo)' }}>
                     <td
                       colSpan={canales.length + 1}
-                      className="px-4 py-2 text-xs font-medium tracking-wide uppercase"
+                      className="px-4 py-2 text-sm font-medium tracking-wide uppercase"
                       style={{ color: 'var(--color-granito-claro)' }}
                     >
                       {cat} ({porCategoria[cat].length})
@@ -193,7 +193,7 @@ export function CanalesClient({
                       }}
                     >
                       <td className="px-4 py-2.5">
-                        <span className="font-mono text-xs mr-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        <span className="font-mono text-sm mr-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                           {p.codigo_interno}
                         </span>
                         <span style={{ color: 'var(--foreground)' }}>{p.titulo}</span>
@@ -215,7 +215,7 @@ export function CanalesClient({
                             >
                               {cargando
                                 ? <Loader2 size={10} className="animate-spin text-white" />
-                                : activo && <span className="text-white text-xs leading-none">✓</span>
+                                : activo && <span className="text-white text-sm leading-none">✓</span>
                               }
                             </button>
                           </td>
@@ -228,7 +228,7 @@ export function CanalesClient({
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={canales.length + 1} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={canales.length + 1} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     No hay productos. Sincronizá primero desde el panel de Sync.
                   </td>
                 </tr>

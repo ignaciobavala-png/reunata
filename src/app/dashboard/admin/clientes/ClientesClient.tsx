@@ -74,7 +74,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, email o CUIT…"
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border outline-none"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
@@ -83,7 +83,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
             <button
               key={f}
               onClick={() => setFiltroEstado(f)}
-              className="px-3 py-2 text-xs rounded-lg border transition-colors duration-150"
+              className="px-3 py-2 text-sm rounded-lg border transition-colors duration-150"
               style={{
                 borderColor: filtroEstado === f ? 'var(--color-granito)' : 'var(--color-acero-claro)',
                 background: filtroEstado === f ? 'var(--color-granito)' : 'white',
@@ -94,7 +94,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
             </button>
           ))}
         </div>
-        <span className="text-xs self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <span className="text-sm self-center" style={{ color: 'var(--color-acero-oscuro)' }}>
           {filtrados.length} clientes
         </span>
         {isPending && <Loader2 size={14} className="self-center animate-spin" style={{ color: 'var(--color-acero-oscuro)' }} />}
@@ -103,7 +103,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)' }}>
                 {['Cliente', 'Tipo', 'Canal', 'CUIT/DNI', 'Registro', 'Estado', 'Acciones'].map(h => (
@@ -141,7 +141,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                     <select
                       value={c.canal_id ?? ''}
                       onChange={e => handleCanal(c.id, e.target.value ? Number(e.target.value) : null)}
-                      className="text-xs rounded border px-2 py-1 outline-none"
+                      className="text-sm rounded border px-2 py-1 outline-none"
                       style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
                     >
                       <option value="">Sin canal</option>
@@ -158,8 +158,8 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                   </td>
                   <td className="px-4 py-3">
                     {c.aprobado
-                      ? <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#10b98122', color: '#10b981' }}>Aprobado</span>
-                      : <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f59e0b22', color: '#f59e0b' }}>Pendiente</span>
+                      ? <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#10b98122', color: '#10b981' }}>Aprobado</span>
+                      : <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#f59e0b22', color: '#f59e0b' }}>Pendiente</span>
                     }
                   </td>
                   <td className="px-4 py-3">
@@ -168,7 +168,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                         <button
                           onClick={() => handleAprobar(c.id, true)}
                           disabled={accionId === c.id}
-                          className="p-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50"
+                          className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
                           style={{ background: '#10b98122', color: '#10b981' }}
                           title="Aprobar"
                         >
@@ -179,7 +179,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                         <button
                           onClick={() => handleAprobar(c.id, false)}
                           disabled={accionId === c.id}
-                          className="p-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50"
+                          className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
                           style={{ background: '#ef444422', color: '#ef4444' }}
                           title="Revocar acceso"
                         >
@@ -193,7 +193,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
 
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={7} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     No hay clientes registrados todavía.
                   </td>
                 </tr>

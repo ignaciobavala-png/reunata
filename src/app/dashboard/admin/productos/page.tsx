@@ -32,7 +32,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             Productos
           </h1>
-          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
             {productos?.length ?? 0} productos sincronizados desde Gesu
           </p>
         </div>
@@ -46,14 +46,14 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             name="q"
             defaultValue={q}
             placeholder="Buscar producto…"
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border outline-none"
+            className="w-full pl-9 pr-4 py-2.5 text-base rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
         <select
           name="categoria"
           defaultValue={categoria}
-          className="px-3 py-2.5 text-sm rounded-lg border outline-none"
+          className="px-3 py-2.5 text-base rounded-lg border outline-none"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         >
           <option value="">Todas las categorías</option>
@@ -63,7 +63,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </select>
         <button
           type="submit"
-          className="px-4 py-2.5 text-xs rounded-lg tracking-wide"
+          className="px-4 py-2.5 text-sm rounded-lg tracking-wide"
           style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
         >
           Filtrar
@@ -73,7 +73,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-acero-brillo)', borderBottom: '1px solid var(--color-acero-claro)' }}>
                 {['Código', 'Producto', 'Categoría', 'Stock', 'Lista 1', 'Lista 2', 'Lista 3', 'Costo', 'Estado'].map(h => (
@@ -112,7 +112,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className="px-2 py-0.5 rounded-full text-xs"
+                      className="px-2 py-0.5 rounded-full text-sm"
                       style={{
                         background: p.activo ? '#dcfce7' : '#fee2e2',
                         color: p.activo ? '#16a34a' : '#dc2626',
@@ -125,7 +125,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               ))}
               {(!productos || productos.length === 0) && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={9} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     No hay productos. Ejecutá una sincronización desde el panel de Sync.
                   </td>
                 </tr>

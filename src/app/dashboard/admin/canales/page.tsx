@@ -33,7 +33,7 @@ export default async function CanalesPage() {
       <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Asignación a canales
       </h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Elegí qué productos de Gesu son visibles para cada tipo de cliente.
       </p>
 

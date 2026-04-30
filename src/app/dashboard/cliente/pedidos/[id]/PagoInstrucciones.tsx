@@ -20,8 +20,8 @@ function Copiable({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
       <div>
-        <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</p>
-        <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>{value || '—'}</p>
+        <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</p>
+        <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>{value || '—'}</p>
       </div>
       {value && (
         <button onClick={copiar} className="p-1.5 rounded transition-colors duration-150" style={{ color: copiado ? '#10b981' : 'var(--color-acero)' }}>
@@ -53,7 +53,7 @@ export function PagoInstrucciones({
 
   return (
     <div className="rounded-xl border p-5 mb-6" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
-      <h2 className="text-sm font-medium mb-4" style={{ color: 'var(--foreground)' }}>
+      <h2 className="text-base font-medium mb-4" style={{ color: 'var(--foreground)' }}>
         {estado === 'comprobante_subido' ? '✓ Comprobante recibido — instrucciones de pago' : 'Instrucciones de pago'}
       </h2>
 
@@ -63,7 +63,7 @@ export function PagoInstrucciones({
           <button
             key={m.key}
             onClick={() => setMetodo(m.key)}
-            className="px-3 py-1.5 rounded-lg text-xs border transition-colors duration-150"
+            className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
             style={{
               borderColor: metodo === m.key ? 'var(--color-granito)' : 'var(--color-acero-claro)',
               background: metodo === m.key ? 'var(--color-granito)' : 'white',
@@ -89,7 +89,7 @@ export function PagoInstrucciones({
       )}
 
       {metodo === 'efectivo' && (
-        <p className="text-xs py-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+        <p className="text-sm py-4" style={{ color: 'var(--color-acero-oscuro)' }}>
           Coordiná la entrega del efectivo con tu vendedor. Monto: <strong>u$s {total.toFixed(2)}</strong>
         </p>
       )}
@@ -99,7 +99,7 @@ export function PagoInstrucciones({
           <Copiable label="A nombre de" value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"        value={cfg['banco_cuit'] ?? ''} />
           <Copiable label="Monto"       value={`u$s ${total.toFixed(2)}`} />
-          <p className="text-xs mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-sm mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
             Emití el e-cheq a nombre de Reunata y coordiná el envío con tu vendedor.
           </p>
         </div>
@@ -110,7 +110,7 @@ export function PagoInstrucciones({
           <Copiable label="A la orden de" value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"          value={cfg['banco_cuit'] ?? ''} />
           <Copiable label="Monto"         value={`u$s ${total.toFixed(2)}`} />
-          <p className="text-xs mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <p className="text-sm mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
             El cheque debe llegar a Reunata antes de que procesemos tu pedido. Coordiná el envío con tu vendedor.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function PagoInstrucciones({
         href={waLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-5 flex items-center gap-2 w-full justify-center py-2.5 rounded-lg text-xs transition-colors duration-150"
+        className="mt-5 flex items-center gap-2 w-full justify-center py-2.5 rounded-lg text-sm transition-colors duration-150"
         style={{ background: '#25D36622', color: '#25D366', border: '1px solid #25D36644' }}
       >
         <MessageCircle size={14} />
