@@ -24,7 +24,7 @@ export default function TrabajaConNosotrosPage() {
 
         {/* Formularios */}
         <section className="py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
             <PostulacionForm
               tipo="fulltime"
               titulo="Full Time"
@@ -34,6 +34,11 @@ export default function TrabajaConNosotrosPage() {
               tipo="comisionista"
               titulo="Comisionista"
               descripcion="Vendé visitando clientes por tu cuenta. Gestioná tu propio recorrido y ganá por comisión."
+            />
+            <PostulacionForm
+              tipo="proveedor"
+              titulo="Sé nuestro proveedor"
+              descripcion="Ofrecé tus productos o servicios a Reunata. Completá el formulario y te contactaremos."
             />
           </div>
         </section>

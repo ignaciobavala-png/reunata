@@ -17,6 +17,12 @@ interface Postulacion {
   movilidad_propia: boolean | null
   zonas: string | null
   otras_marcas: string | null
+  cargo: string | null
+  empresa: string | null
+  cuit: string | null
+  pagina_web: string | null
+  productos_servicios: string | null
+  otras_empresas_provee: string | null
   estado: string
   created_at: string
 }
@@ -24,6 +30,7 @@ interface Postulacion {
 const TIPO_LABEL: Record<string, string> = {
   fulltime: 'Full Time',
   comisionista: 'Comisionista',
+  proveedor: 'Proveedor',
 }
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -42,7 +49,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
   const [postulaciones, setPostulaciones] = useState(inicial)
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'aprobado' | 'rechazado'>('todos')
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'fulltime' | 'comisionista'>('todos')
+  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'fulltime' | 'comisionista' | 'proveedor'>('todos')
   const [detalleId, setDetalleId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [accionId, setAccionId] = useState<string | null>(null)
@@ -108,6 +115,7 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
           <option value="todos">Todos los tipos</option>
           <option value="fulltime">Full Time</option>
           <option value="comisionista">Comisionista</option>
+          <option value="proveedor">Proveedor</option>
         </select>
 
         <select
@@ -307,6 +315,40 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
                 <div>
                   <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Otras marcas</span>
                   <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.otras_marcas || '—'}</p>
+                </div>
+              </>
+            )}
+            {detallePostulacion.tipo === 'proveedor' && (
+              <>
+                <div>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Cargo</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.cargo || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Empresa</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.empresa || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>CUIT</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.cuit || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Página Web</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>
+                    {detallePostulacion.pagina_web ? (
+                      <a href={detallePostulacion.pagina_web} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                        {detallePostulacion.pagina_web}
+                      </a>
+                    ) : '—'}
+                  </p>
+                </div>
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Productos o Servicio que ofrece</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.productos_servicios || '—'}</p>
+                </div>
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Otras empresas a las que provee</span>
+                  <p style={{ color: 'var(--color-acero-brillo)' }}>{detallePostulacion.otras_empresas_provee || '—'}</p>
                 </div>
               </>
             )}

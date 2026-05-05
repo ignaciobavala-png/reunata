@@ -13,6 +13,12 @@ const MAX_LENGTHS: Record<string, number> = {
   nacionalidad: 100,
   zonas: 500,
   otras_marcas: 500,
+  cargo: 100,
+  empresa: 100,
+  cuit: 20,
+  pagina_web: 500,
+  productos_servicios: 1000,
+  otras_empresas_provee: 1000,
 }
 
 const ALLOWED_CV_MIMES = [
@@ -29,7 +35,7 @@ const RATE_LIMIT_MAX = 5                     // max postulaciones por hora globa
 
 export async function crearPostulacion(formData: FormData) {
   const tipo = formData.get('tipo') as string
-  if (tipo !== 'fulltime' && tipo !== 'comisionista') {
+  if (tipo !== 'fulltime' && tipo !== 'comisionista' && tipo !== 'proveedor') {
     return { error: 'Tipo de postulación inválido.' }
   }
 
@@ -38,12 +44,13 @@ export async function crearPostulacion(formData: FormData) {
     nombre: formData.get('nombre') as string,
     apellido: formData.get('apellido') as string,
     email: formData.get('email') as string,
-    dni: formData.get('dni') as string,
+    dni: formData.get('dni') as string || null,
     direccion: formData.get('direccion') as string,
-    nacionalidad: formData.get('nacionalidad') as string,
+    nacionalidad: formData.get('nacionalidad') as string || null,
   }
 
-  const required = ['nombre', 'apellido', 'email', 'dni', 'direccion', 'nacionalidad']
+  const requiredBase = ['nombre', 'apellido', 'email', 'direccion']
+  const required = tipo === 'proveedor' ? requiredBase : [...requiredBase, 'dni', 'nacionalidad']
   for (const key of required) {
     if (!campos[key]) return { error: `El campo ${key} es obligatorio.` }
   }
@@ -98,6 +105,15 @@ export async function crearPostulacion(formData: FormData) {
     campos.movilidad_propia = formData.get('movilidad_propia') === 'true'
     campos.zonas = (formData.get('zonas') as string) || null
     campos.otras_marcas = (formData.get('otras_marcas') as string) || null
+  }
+
+  if (tipo === 'proveedor') {
+    campos.cargo = (formData.get('cargo') as string) || null
+    campos.empresa = (formData.get('empresa') as string) || null
+    campos.cuit = (formData.get('cuit') as string) || null
+    campos.pagina_web = (formData.get('pagina_web') as string) || null
+    campos.productos_servicios = (formData.get('productos_servicios') as string) || null
+    campos.otras_empresas_provee = (formData.get('otras_empresas_provee') as string) || null
   }
 
   const { error } = await supabase.from('postulaciones').insert({

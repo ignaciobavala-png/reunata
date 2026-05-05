@@ -71,7 +71,7 @@ function SubmitButton({ loading }: { loading: boolean }) {
 }
 
 interface Props {
-  tipo: 'fulltime' | 'comisionista'
+  tipo: 'fulltime' | 'comisionista' | 'proveedor'
   titulo: string
   descripcion: string
 }
@@ -170,6 +170,45 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
                 name="otras_marcas"
                 type="text"
                 className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 shadow-inner focus:border-[var(--color-acero-brillo)]"
+                style={{
+                  borderColor: 'var(--color-granito-claro)',
+                  background: 'var(--color-granito)',
+                  color: 'var(--color-acero-brillo)',
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {tipo === 'proveedor' && (
+          <>
+            <Field label="Cargo" name="cargo" />
+            <Field label="Empresa" name="empresa" />
+            <Field label="CUIT" name="cuit" />
+            <Field label="Página Web" name="pagina_web" type="url" />
+            <div>
+              <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
+                Productos o Servicio que ofrece
+              </label>
+              <textarea
+                name="productos_servicios"
+                rows={3}
+                className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 resize-none shadow-inner focus:border-[var(--color-acero-brillo)]"
+                style={{
+                  borderColor: 'var(--color-granito-claro)',
+                  background: 'var(--color-granito)',
+                  color: 'var(--color-acero-brillo)',
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
+                Otras empresas a las que provee
+              </label>
+              <textarea
+                name="otras_empresas_provee"
+                rows={3}
+                className="w-full px-3 py-2 text-base rounded-lg border-2 outline-none transition-colors duration-150 resize-none shadow-inner focus:border-[var(--color-acero-brillo)]"
                 style={{
                   borderColor: 'var(--color-granito-claro)',
                   background: 'var(--color-granito)',
