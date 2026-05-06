@@ -20,7 +20,6 @@ const categorias = [
 
 const nav = [
   { label: 'Nosotros', href: '/nosotros' },
-  { label: 'Trabaja con nosotros', href: '/trabaja-con-nosotros' },
   { label: 'Contacto', href: '/contacto' },
 ]
 

@@ -100,20 +100,21 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
 
   return (
     <div
-      className="flex flex-col p-5 md:p-6 rounded-xl border-2 h-full"
-      style={{ borderColor: 'var(--color-granito-claro)' }}
+      className={`flex flex-col flex-1 ${titulo ? 'p-5 md:p-6 rounded-xl border-2 h-full' : ''}`}
     >
-      <div className="mb-4">
-        <h2
-          className="text-xl md:text-2xl mb-2"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-acero-brillo)' }}
-        >
-          {titulo}
-        </h2>
-        <p className="text-base leading-relaxed" style={{ color: 'var(--color-acero)' }}>
-          {descripcion}
-        </p>
-      </div>
+      {titulo && (
+        <>
+          <h2
+            className="text-xl md:text-2xl mb-2"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-acero-brillo)' }}
+          >
+            {titulo}
+          </h2>
+          <p className="text-base leading-relaxed" style={{ color: 'var(--color-acero)' }}>
+            {descripcion}
+          </p>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -185,7 +186,7 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
             <Field label="Cargo" name="cargo" />
             <Field label="Empresa" name="empresa" />
             <Field label="CUIT" name="cuit" />
-            <Field label="Página Web" name="pagina_web" type="url" />
+            <Field label="Página Web" name="pagina_web" />
             <div>
               <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
                 Productos o Servicio que ofrece

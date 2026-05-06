@@ -16,12 +16,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Feactures implementadas
 
 ### Postulaciones (Trabaja con Nosotros)
-- 2 formularios: fulltime (con CV upload) y comisionista (movilidad/zonas)
+- 3 formularios: fulltime (CV upload), comisionista (movilidad/zonas), proveedor (cargo/empresa/CUIT/web)
 - Tabla `postulaciones` con RLS + bucket `cv` en Storage
 - Server actions: crear, actualizar estado, eliminar
 - Admin panel con tabla de postulaciones, panel de detalle, filtros y búsqueda
 - Rate limit: 5 postulaciones/hora por IP
 - Validación: longitud de campos, MIME type de CV, formato email
+- Página web como texto libre (no URL estricta)
+- Fallback a email en tabla admin si nombre es null
+
+### Accordion de formularios (Trabaja con Nosotros)
+- Layout accordion con 3 secciones (Fulltime, Comisionista, Proveedor)
+- Solo un formulario abierto a la vez (ninguno por defecto)
+- Animación suave con framer-motion (AnimatePresence)
+- Responsive mobile
 
 ### Hero carousel (homepage)
 - Tabla `hero_assets` con RLS (lectura pública, internos todo)
@@ -30,17 +38,41 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Carousel automático con AnimatePresence, flechas, dots y pausa
 - Fallback estático (hero1.jpg) si no hay assets
 
+### CategoryGallery (antes CategoryBento)
+- Grilla regular 4 columnas desktop, 2 columnas mobile
+- Imagen full-bleed, texto superpuesto inferior izquierdo sin overlay oscuro
+- Mini thumbnails de fotos adicionales de productos en cada categoría
+- Estilo editorial/fashion premium con tipografía blanca
+- +X indicador si hay más fotos
+
+### FloatingActions (botones flotantes)
+- 3 botones en esquina inferior derecha: WhatsApp, Ofertas (Reloj), Hot Sale (Fuego)
+- Stack vertical, fixed, hover scale
+- Solo visible en páginas públicas (oculto en /dashboard)
+- Mockdata de ofertas
+
+### PromoTicker (cinta promocional)
+- Ticker horizontal con animación continua derecha → izquierda
+- Ubicado entre CategoryGallery y ProductSlider en homepage
+- Promos: envío gratis, cuotas, descuentos, newsletter, frase de marca
+- Fondo granito con borde grueso (border-y-4), texto blanco semibold
+
+### Páginas /ofertas y /hot-sale
+- Rutas públicas con mockdata de productos en oferta
+- Grid de cards con descuentos, precios, badges
+- Conectadas desde FloatingActions
+
 ### Dashboard — bump de legibilidad
 - `text-xs` → `text-sm` (12px → 14px)
 - `text-sm` → `text-base` (14px → 16px)
 - `font-medium` agregado a labels y botones
 - Aplicado a 28 archivos del dashboard (admin + cliente + sidebar)
 
-### Frontend — secciones oscuras
-- Contacto y Trabaja con Nosotros: bordes 2px visibles, inputs con bg sólido + shadow-inner
-- Labels más grandes (text-sm font-semibold), inputs text-base
-- Placeholder más claro (acero vs granito-claro)
-- Formularios de postulación compactados para entrar más cercano a una screen
+### Frontend — secciones claras
+- Contacto y Trabaja con Nosotros: fondo `acero-claro` (platinado azulado) en lugar de negro
+- Textos en `granito-oscuro` (negro) para legibilidad
+- Inputs con fondo blanco, botones oscuros, placeholder gris
+- Secciones estilo platino/editorial minimalista
 
 ### Bug fixes de auditoría
 - `e.currentTarget` null después de async (capturar form antes del await)
@@ -48,4 +80,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Path de upload con colisión (Date.now() + random suffix)
 - Validación de tamaño en uploads (server-side)
 - Confirmación de eliminación en Multimedia (evita borrados accidentales)
+- Color `--foreground` en lugar de `--color-acero-brillo` en Postulaciones (compatibilidad light/dark)
+
+### Redes y contacto
+- Link Instagram actualizado a https://www.instagram.com/reunata.ar/
+- Todos los links de Instagram abren en nueva ventana (target="_blank")
+- WhatsApp actualizado a +54 9 11 3272-0974
+- WhatsApp en FloatingActions, Footer, Contacto, Pedidos
+- "Trabaja con nosotros" removido del Header, solo en Footer
 <!-- END:feactures -->

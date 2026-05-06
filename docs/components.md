@@ -23,11 +23,14 @@
 
 | Componente | Tipo | Props | Descripción |
 |---|---|---|---|
-| `Hero` | Client | — | Full-screen con imagen bg, animación, CTAs |
-| `CategoryBento` | Server | — | 4 cards desde `categorias_home`, fotos aleatorias, fallback gradiente |
+| `Hero` | Server | — | Full-screen con imagen bg. Busca `hero_assets` en BD; si no hay, renderiza `HeroFallback` (hero1.jpg) |
+| `CategoryGallery` | Client | — | Galería 4 col desktop / 2 col mobile desde `categorias_home`. Imagen full-bleed + mini thumbnails de productos |
 | `ProductSlider` | Client | `fotos: FotoDestacada[]` | Embla carousel de fotos destacadas |
-| `InstagramSlider` | Client | — | Placeholder con link a Instagram |
-| `PostulacionForm` | Client | `tipo, titulo, descripcion` | Formulario reutilizable de postulación (fulltime/comisionista). Upload CV con validación MIME y tamaño |
+| `PromoTicker` | Client | — | Ticker horizontal animado (derecha→izquierda) con promos. Entre categorías y ProductSlider |
+| `InstagramSlider` | Client | — | Placeholder con link a Instagram (target="_blank") |
+| `FloatingActions` | Client | — | Botones flotantes fijos (WhatsApp, Ofertas, Hot Sale). Solo en páginas públicas |
+| `PostulacionForm` | Client | `tipo, titulo, descripcion` | Formulario reutilizable de postulación. Upload CV con validación MIME y tamaño |
+| `PostulacionAccordion` | Client | — | Wrapper accordion con 3 formularios (Fulltime, Comisionista, Proveedor). Solo 1 abierto a la vez |
 
 ### UI
 

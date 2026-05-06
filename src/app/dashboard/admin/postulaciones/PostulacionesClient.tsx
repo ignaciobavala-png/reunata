@@ -156,8 +156,8 @@ export function PostulacionesClient({ postulaciones: inicial }: { postulaciones:
                     onClick={() => setDetalleId(detalleId === p.id ? null : p.id)}
                     className="text-left flex items-center gap-2 group"
                   >
-                    <span style={{ color: 'var(--color-acero-brillo)' }}>
-                      {p.nombre} {p.apellido}
+                    <span style={{ color: 'var(--foreground)' }}>
+                      {p.nombre ? `${p.nombre} ${p.apellido || ''}` : p.email || '—'}
                     </span>
                     <span className="opacity-0 group-hover:opacity-50 transition-opacity">+</span>
                   </button>

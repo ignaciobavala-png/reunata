@@ -16,7 +16,8 @@ const empresa = [
   { label: 'Nosotros',             href: '/nosotros' },
   { label: 'Trabajá con nosotros', href: '/trabaja-con-nosotros' },
   { label: 'Contacto',             href: '/contacto' },
-  { label: 'Instagram',            href: 'https://instagram.com/reunata_ar' },
+  { label: 'Instagram',            href: 'https://www.instagram.com/reunata.ar/', external: true },
+  { label: 'WhatsApp',             href: 'https://wa.me/5491132720974', external: true },
 ]
 
 const cuenta = [
@@ -53,7 +54,13 @@ export function Footer() {
             <ul className="flex flex-col gap-2">
               {empresa.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className={linkClass}>{item.label}</Link>
+                  <Link 
+                    href={item.href} 
+                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    className={linkClass}
+                  >
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>

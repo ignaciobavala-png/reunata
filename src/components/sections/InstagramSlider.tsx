@@ -51,7 +51,7 @@ export function InstagramSlider() {
 
       <FadeIn delay={0.2} className="px-6 md:px-10 mt-6">
         <a
-          href="https://instagram.com/reunata_ar"
+          href="https://www.instagram.com/reunata.ar/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] tracking-widest uppercase text-[var(--color-granito-claro)] hover:text-[var(--foreground)] transition-colors"

@@ -1,9 +1,10 @@
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Hero } from '@/components/sections/Hero'
-import { CategoryBento } from '@/components/sections/CategoryBento'
+import { CategoryGallery } from '@/components/sections/CategoryGallery'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { ProductSlider } from '@/components/sections/ProductSlider'
+import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export default async function Home() {
@@ -47,7 +48,8 @@ export default async function Home() {
       <Header />
       <main className="flex-1">
         <Hero />
-        <CategoryBento />
+        <CategoryGallery />
+        <PromoTicker />
         <ProductSlider fotos={fotos} />
         <InstagramSlider />
       </main>

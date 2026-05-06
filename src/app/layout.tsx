@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { DM_Sans, DM_Serif_Display, DM_Mono } from 'next/font/google'
 import { LenisProvider } from '@/providers/LenisProvider'
+import { FloatingActions } from '@/components/sections/FloatingActions'
 import './globals.css'
 
 const dmSerif = DM_Serif_Display({
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     >
       <body className="min-h-full flex flex-col antialiased">
         <LenisProvider>{children}</LenisProvider>
+        <FloatingActions />
       </body>
     </html>
   )
