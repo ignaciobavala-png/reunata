@@ -5,38 +5,20 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-
-interface OfferItem {
-  id: number
-  titulo: string
-  descuento: number
-  precio: number
-  antes: number
-  img: string
-}
+import { getOfertasPublic, type OfertaPublicItem } from '@/app/actions/ofertas'
 
 type DrawerType = 'ofertas' | 'hotsale' | null
 
-const OFERTAS: OfferItem[] = [
-  { id: 1, titulo: 'Mate Imperial', descuento: 20, precio: 45, antes: 56, img: '/fotos/hero1.jpg' },
-  { id: 2, titulo: 'Matera Classic', descuento: 15, precio: 32, antes: 38, img: '/fotos/hero1.jpg' },
-  { id: 3, titulo: 'Combo Yerba', descuento: 10, precio: 18, antes: 20, img: '/fotos/hero1.jpg' },
-]
-
-const HOTSALE: OfferItem[] = [
-  { id: 1, titulo: 'Mate Steel Pro', descuento: 30, precio: 42, antes: 60, img: '/fotos/hero1.jpg' },
-  { id: 2, titulo: 'Termo Ultra', descuento: 25, precio: 75, antes: 100, img: '/fotos/hero1.jpg' },
-  { id: 3, titulo: 'Kit Mate Premium', descuento: 40, precio: 90, antes: 150, img: '/fotos/hero1.jpg' },
-]
-
 function OfferDrawer({
   type,
+  items,
   onClose,
 }: {
   type: Exclude<DrawerType, null>
+  items: OfertaPublicItem[]
   onClose: () => void
 }) {
-  const items = type === 'ofertas' ? OFERTAS : HOTSALE
+  const filtered = items.filter(i => i.canal === type)
   const title = type === 'ofertas' ? 'Ofertas' : 'Hot Sale'
   const badgeColor = type === 'ofertas' ? 'bg-amber-500' : 'bg-red-500'
 
@@ -58,36 +40,48 @@ function OfferDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {items.map(item => (
-              <div
-                key={item.id}
-                className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <div className="aspect-square bg-gray-100 relative">
-                  <Image
-                    src={item.img}
-                    alt={item.titulo}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, 50vw"
-                  />
-                  <span
-                    className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}
-                  >
-                    -{item.descuento}%
-                  </span>
-                </div>
-                <div className="p-3">
-                  <h3 className="text-sm font-medium mb-1">{item.titulo}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-bold">${item.precio}</span>
-                    <span className="text-xs text-gray-400 line-through">${item.antes}</span>
+          {filtered.length === 0 ? (
+            <p className="text-center text-sm py-12" style={{ color: 'var(--color-acero-oscuro)' }}>
+              No hay productos en {title.toLowerCase()} por el momento.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {filtered.map(item => (
+                <div
+                  key={item.id}
+                  className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square bg-gray-100 relative">
+                    {item.img ? (
+                      <Image
+                        src={item.img}
+                        alt={item.titulo}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: 'var(--color-acero)' }}>
+                        ?
+                      </div>
+                    )}
+                    <span
+                      className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}
+                    >
+                      -{item.descuento}%
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="text-sm font-medium mb-1">{item.titulo}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-bold">${item.precio}</span>
+                      <span className="text-xs text-gray-400 line-through">${item.antes}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
     </>
@@ -97,6 +91,11 @@ function OfferDrawer({
 export function FloatingActions() {
   const pathname = usePathname()
   const [drawer, setDrawer] = useState<DrawerType>(null)
+  const [items, setItems] = useState<OfertaPublicItem[]>([])
+
+  useEffect(() => {
+    getOfertasPublic().then(setItems).catch(console.error)
+  }, [])
 
   if (pathname.startsWith('/dashboard')) return null
 
@@ -135,7 +134,11 @@ export function FloatingActions() {
 
       <AnimatePresence>
         {drawer && (
-          <OfferDrawer type={drawer} onClose={() => setDrawer(null)} />
+          <OfferDrawer
+            type={drawer}
+            items={items}
+            onClose={() => setDrawer(null)}
+          />
         )}
       </AnimatePresence>
     </>

@@ -37,10 +37,8 @@ export function OfertasClient({
   const router = useRouter()
   const [canal, setCanal] = useState<'ofertas' | 'hotsale'>('ofertas')
   const [ofertas, setOfertas] = useState<OfertaItem[]>(ofertasIniciales)
-  const [busqueda, setBusqueda] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [busquedaModal, setBusquedaModal] = useState('')
-  const [guardando, setGuardando] = useState<number | null>(null)
   const [editando, setEditando] = useState<Record<number, { precio_oferta?: string; descuento?: string; orden?: string }>>({})
   const [agregando, setAgregando] = useState(false)
 
