@@ -16,7 +16,13 @@ export default async function OfertasPage() {
     .select('producto_id, url')
     .eq('destacada', true)
 
-  const fotoMap = new Map((fotos ?? []).map(f => [f.producto_id, f.url]))
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const fotoMap = new Map(
+    (fotos ?? []).map(f => [
+      f.producto_id,
+      `${supabaseUrl}/storage/v1/object/public/multimedia/${f.url}`,
+    ])
+  )
 
   const { data: ofertas } = await supabase
     .from('ofertas')

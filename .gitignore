@@ -49,3 +49,6 @@ next-env.d.ts
 .claude/
 .windsurf/
 skills-lock.json
+
+# supabase temp files
+supabase/.temp/
