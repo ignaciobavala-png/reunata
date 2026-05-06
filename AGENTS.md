@@ -73,6 +73,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Confirmación de eliminación en Multimedia (evita borrados accidentales)
 - Color `--foreground` en lugar de `--color-acero-brillo` en Postulaciones (compatibilidad light/dark)
 
+### Ofertas y Hot Sale (panel + drawer)
+- Tabla `ofertas`: id, canal (ofertas|hotsale), producto_id FK, precio_oferta, descuento_porcentaje, orden, activo
+- Panel en `/dashboard/admin/ofertas` con:
+  - Dropdown Ofertas / Hot Sale
+  - Tabla editable: producto, precio lista, precio oferta, % descuento, orden
+  - Precio oferta y % descuento se auto-sincronizan
+  - Modal selector de producto con búsqueda
+- Sidebar: agrupado bajo "Marketing" con Chatbot
+- RLS: lectura pública (drawer FloatingActions), CRUD solo master/empleado
+- FloatingActions aún usa mockdata (pendiente conectar a DB)
+
 ### Redes y contacto
 - Link Instagram actualizado a https://www.instagram.com/reunata.ar/
 - Todos los links de Instagram abren en nueva ventana (target="_blank")
