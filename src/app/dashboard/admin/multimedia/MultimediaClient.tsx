@@ -57,12 +57,6 @@ export function MultimediaClient({
   })
 
   const fotosDelProducto = productoSeleccionado ? (fotosMap[productoSeleccionado.id] ?? []) : []
-  const primeraFotoMap = fotos.reduce<Record<number, Foto>>((acc, f) => {
-    if (!acc[f.producto_id] || f.orden < acc[f.producto_id].orden) {
-      acc[f.producto_id] = f
-    }
-    return acc
-  }, {})
 
   const getPublicUrl = (url: string) => `${supabaseUrl}/storage/v1/object/public/multimedia/${url}`
 
@@ -276,59 +270,111 @@ export function MultimediaClient({
         </div>
       </div>
 
-      {/* Grid de productos */}
+      {/* Tabla de productos */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {productosFiltrados.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-sm" style={{ color: 'var(--color-acero)' }}>
             Sin resultados
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-6">
-            {productosFiltrados.map(p => {
-              const count = fotosMap[p.id]?.length ?? 0
-              const primera = primeraFotoMap[p.id]
-              const isSelected = productoSeleccionado?.id === p.id
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    pendingFiles.forEach(f => URL.revokeObjectURL(f.previewUrl))
-                    setPendingFiles([])
-                    setProductoSeleccionado(p)
-                  }}
-                  className="relative group rounded-lg overflow-hidden aspect-square border transition-all duration-150 text-left"
-                  style={{
-                    borderColor: isSelected ? 'var(--color-granito)' : 'var(--color-acero-claro)',
-                    borderWidth: isSelected ? '2px' : '1px',
-                  }}
-                >
-                  {primera ? (
-                    <Image
-                      src={getPublicUrl(primera.url)}
-                      alt={p.titulo}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-acero-brillo)' }}>
-                      <ImageIcon size={24} style={{ color: 'var(--color-acero-claro)' }} />
-                    </div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 p-2"
-                    style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                    <p className="text-sm text-white truncate leading-tight">{p.titulo}</p>
-                    <p className="text-sm text-white/60 font-mono">{p.codigo_interno}</p>
-                  </div>
-                  <span className="absolute top-2 right-2 text-sm font-medium px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: count > 0 ? '#dcfce7' : '#fee2e2',
-                      color: count > 0 ? '#15803d' : '#b91c1c',
-                    }}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
+          <div className="overflow-x-auto pb-6">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                  <th className="pb-2 font-medium text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>Producto</th>
+                  <th className="pb-2 font-medium text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>Categoría</th>
+                  <th className="pb-2 font-medium text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>Fotos</th>
+                  <th className="pb-2 font-medium text-xs tracking-widest uppercase text-right" style={{ color: 'var(--color-acero-oscuro)' }}>Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                {productosFiltrados.map(p => {
+                  const count = fotosMap[p.id]?.length ?? 0
+                  const isSelected = productoSeleccionado?.id === p.id
+                  return (
+                    <tr
+                      key={p.id}
+                      className="transition-colors duration-100 cursor-pointer"
+                      style={{
+                        background: isSelected ? 'var(--color-acero-brillo)' : 'transparent',
+                      }}
+                    >
+                      <td className="py-2.5 pr-4">
+                        <button
+                          onClick={() => {
+                            pendingFiles.forEach(f => URL.revokeObjectURL(f.previewUrl))
+                            setPendingFiles([])
+                            setProductoSeleccionado(p)
+                          }}
+                          className="text-left"
+                        >
+                          <p className="font-medium truncate max-w-[220px]" style={{ color: 'var(--foreground)' }}>
+                            {p.titulo}
+                          </p>
+                          <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                            {p.codigo_interno}
+                          </p>
+                        </button>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <span style={{ color: 'var(--color-acero)' }}>{p.categoria ?? '—'}</span>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex -space-x-1">
+                            {fotosMap[p.id]?.slice(0, 3).map(foto => (
+                              <div
+                                key={foto.id}
+                                className="w-7 h-7 rounded border border-white overflow-hidden relative"
+                                style={{ background: 'var(--color-acero-brillo)' }}
+                              >
+                                <Image
+                                  src={getPublicUrl(foto.url)}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="28px"
+                                />
+                              </div>
+                            ))}
+                            {count === 0 && (
+                              <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>—</span>
+                            )}
+                          </div>
+                          <span
+                            className="text-xs font-medium px-1.5 py-0.5 rounded-full"
+                            style={{
+                              background: count > 0 ? '#dcfce7' : '#fee2e2',
+                              color: count > 0 ? '#15803d' : '#b91c1c',
+                            }}
+                          >
+                            {count}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex gap-1 justify-end">
+                          <button
+                            onClick={() => {
+                              pendingFiles.forEach(f => URL.revokeObjectURL(f.previewUrl))
+                              setPendingFiles([])
+                              setProductoSeleccionado(p)
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors duration-100"
+                            style={{
+                              background: count > 0 ? 'var(--color-acero-brillo)' : 'var(--color-granito)',
+                              color: count > 0 ? 'var(--color-acero-oscuro)' : 'white',
+                            }}
+                          >
+                            {count > 0 ? 'Ver' : 'Subir'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

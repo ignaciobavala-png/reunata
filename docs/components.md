@@ -32,6 +32,13 @@
 | `PostulacionForm` | Client | `tipo, titulo, descripcion` | Formulario reutilizable de postulación. Upload CV con validación MIME y tamaño |
 | `PostulacionAccordion` | Client | — | Wrapper accordion con 3 formularios (Fulltime, Comisionista, Proveedor). Solo 1 abierto a la vez |
 
+### Providers
+
+| Componente | Tipo | Props | Descripción |
+|---|---|---|---|
+| `LenisProvider` | Client | `children` | Smooth scroll con Lenis |
+| `ThemeProvider` | Client | `children` | Inyecta colores personalizados desde `configuracion` como CSS variables en el root. Colores: acero (4), granito (3), background |
+
 ### UI
 
 | Componente | Tipo | Props | Descripción |
@@ -54,8 +61,9 @@ Ubicados en `src/app/dashboard/` junto a sus páginas.
 | `EmpleadosClient` | `empleados` | Invitar por email + desactivar internos |
 | `MultimediaClient` | `productos, fotosIniciales, supabaseUrl, supabaseKey` | Upload drag-drop con WebP resize, badges, filtros, ⭐ destacadas |
 | `CategoriasClient` | `categoriasIniciales` | CRUD de categorías de portada |
-| `SyncPage` | — | Botones para disparar sync manual |
 | `PostulacionesClient` | `postulaciones` | Tabla con filtros por tipo/estado, búsqueda, detalle expandible, aprobar/rechazar/eliminar con rollback |
+| `DisenoClient` | — | 8 color pickers (acero/granito/background), vista previa en tiempo real, restaurar default |
+| `SyncPage` | — | Botones para disparar sync manual |
 
 ### Cliente
 

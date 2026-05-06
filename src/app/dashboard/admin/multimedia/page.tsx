@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MultimediaClient } from './MultimediaClient'
 import { CategoriasClient } from './CategoriasClient'
 import { HeroClient } from './HeroClient'
+import { DisenoClient } from './DisenoClient'
 
 export default async function MultimediaPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function MultimediaPage({
   searchParams: Promise<{ tab?: string }>
 }) {
   const { tab } = await searchParams
-  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' ? 'hero' : 'fotos'
+  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' ? 'hero' : tab === 'diseno' ? 'diseno' : 'fotos'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,7 +43,7 @@ export default async function MultimediaPage({
         Multimedia
       </h1>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Gestioná fotos de productos, categorías y hero de la página principal.
+        Gestioná fotos de productos, categorías, banner y diseño de la página principal.
       </p>
 
       {/* Tabs */}
@@ -50,7 +51,8 @@ export default async function MultimediaPage({
         {[
           { key: 'fotos', label: 'Fotos de productos' },
           { key: 'categorias', label: 'Categorías home' },
-          { key: 'hero', label: 'Hero' },
+          { key: 'hero', label: 'Banner' },
+          { key: 'diseno', label: 'Diseño' },
         ].map(({ key, label }) => (
           <a
             key={key}
@@ -81,6 +83,8 @@ export default async function MultimediaPage({
           supabaseKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
           isMaster={isMaster}
         />
+      ) : vistaActual === 'diseno' ? (
+        <DisenoClient />
       ) : (
         <CategoriasClient categoriasIniciales={categorias ?? []} isMaster={isMaster} />
       )}

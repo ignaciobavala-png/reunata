@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans, DM_Serif_Display, DM_Mono } from 'next/font/google'
 import { LenisProvider } from '@/providers/LenisProvider'
 import { FloatingActions } from '@/components/sections/FloatingActions'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
 const dmSerif = DM_Serif_Display({
@@ -47,7 +48,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       className={`${dmSerif.variable} ${dmSans.variable} ${dmMono.variable} h-full`}
     >
       <body className="min-h-full flex flex-col antialiased">
-        <LenisProvider>{children}</LenisProvider>
+        <LenisProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </LenisProvider>
         <FloatingActions />
       </body>
     </html>

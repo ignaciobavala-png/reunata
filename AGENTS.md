@@ -88,4 +88,27 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - WhatsApp actualizado a +54 9 11 3272-0974
 - WhatsApp en FloatingActions, Footer, Contacto, Pedidos
 - "Trabaja con nosotros" removido del Header, solo en Footer
+
+### Diseño (panel de control)
+- Nueva sección "Diseño" en Multimedia > Diseño
+- 8 color pickers editables: acero (brillo/claro/medio/oscuro), granito (claro/medio/oscuro), fondo general
+- Vista previa en tiempo real al cambiar colores
+- Guardado en tabla `configuracion`
+- Restaurar colores originales
+- Swatch circular clickable que abre el color picker
+- `ThemeProvider` inyecta CSS variables en todas las páginas públicas
+
+### Multimedia — tabla de fotos
+- Grid visual de productos reemplazado por tabla compacta
+- Columnas: Producto, Categoría, Fotos (miniaturas + badge), Acción
+- Miniaturas superpuestas de hasta 3 fotos por producto
+- Fila seleccionable con highlight, drawer lateral para gestión detallada
+- Filtros por categoría y estado (con/sin foto) se mantienen
+
+### Frontend — secciones claras
+- Contacto, Trabaja con Nosotros y Nosotros: fondo `acero-claro` en lugar de negro
+- Textos en `granito-oscuro` para legibilidad
+- Inputs fondo blanco, botones oscuros, placeholder gris
+- Cards con `border-2` y padding optimizado
+- Secciones estilo platino/editorial minimalista
 <!-- END:feactures -->
