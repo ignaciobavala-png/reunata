@@ -49,18 +49,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - 3 botones en esquina inferior derecha: WhatsApp, Ofertas (Reloj), Hot Sale (Fuego)
 - Stack vertical, fixed, hover scale
 - Solo visible en páginas públicas (oculto en /dashboard)
-- Mockdata de ofertas
-
-### PromoTicker (cinta promocional)
-- Ticker horizontal con animación continua derecha → izquierda
-- Ubicado entre CategoryGallery y ProductSlider en homepage
-- Promos: envío gratis, cuotas, descuentos, newsletter, frase de marca
-- Fondo granito con borde grueso (border-y-4), texto blanco semibold
-
-### Páginas /ofertas y /hot-sale
-- Rutas públicas con mockdata de productos en oferta
-- Grid de cards con descuentos, precios, badges
-- Conectadas desde FloatingActions
+- Ofertas y Hot Sale abren drawer lateral con animación slide-in
+- Drawer claro (max-w-xl) con grid de cards: foto + título + precio + badge descuento
+- Mockdata de ofertas (configurable desde panel a futuro)
 
 ### Dashboard — bump de legibilidad
 - `text-xs` → `text-sm` (12px → 14px)
