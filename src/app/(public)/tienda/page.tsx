@@ -1,42 +1,63 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CATEGORIAS } from '@/lib/categorias'
 
 export default async function TiendaPage() {
   const supabase = createServiceClient()
 
-  const { data: canal } = await supabase
-    .from('canales')
-    .select('id')
-    .eq('slug', 'publico')
-    .single()
+  const { data: categoriasHome } = await supabase
+    .from('categorias_home')
+    .select('*')
+    .eq('activo', true)
+    .order('orden')
 
-  const canalPublicoId = canal?.id
+  if (!categoriasHome?.length) {
+    return (
+      <main className="bg-[var(--color-granito-oscuro)] pb-24">
+        <div className="px-6 md:px-16 max-w-5xl mx-auto">
+          <section className="pt-36 pb-20">
+            <p className="text-xs tracking-widest uppercase mb-5 text-[var(--color-acero-oscuro)]">
+              Catálogo
+            </p>
+            <h1
+              className="text-4xl md:text-5xl leading-tight mb-8 text-[var(--color-acero-brillo)]"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Nuestros productos
+            </h1>
+            <p className="text-lg max-w-xl leading-relaxed text-[var(--color-acero)]">
+              Explorá nuestro catálogo. Registrate para ver precios, stock y hacer pedidos.
+            </p>
+          </section>
+          <section className="py-20 border-t border-[var(--color-granito)]">
+            <p className="text-lg text-center py-12" style={{ color: 'var(--color-acero)' }}>
+              No hay categorías disponibles en este momento.
+            </p>
+          </section>
+        </div>
+      </main>
+    )
+  }
 
-  const { data: asignaciones } = canalPublicoId
-    ? await supabase
-        .from('producto_canales')
-        .select('producto_id')
-        .eq('canal_id', canalPublicoId)
-    : { data: [] }
+  const allKeys = [...new Set(categoriasHome.flatMap(c => (c.categoria_keys ?? []) as string[]))]
 
-  const idsPublicos = (asignaciones ?? []).map(a => a.producto_id)
-
-  const { data: productos } = idsPublicos.length > 0
+  const { data: productos } = allKeys.length > 0
     ? await supabase
         .from('productos')
         .select('categoria')
         .eq('activo', true)
-        .in('id', idsPublicos)
+        .in('categoria', allKeys)
     : { data: [] }
 
-  const categoriasVisibles = [...new Set((productos ?? []).map(p => p.categoria).filter(Boolean))] as string[]
+  const categoriasConProductos = new Set((productos ?? []).map(p => p.categoria).filter(Boolean))
 
-  const categorias = Object.entries(CATEGORIAS)
-    .filter(([slug]) => categoriasVisibles.includes(slug))
-    .map(([slug, label], i) => ({
-      label,
-      href: `/tienda/${slug}`,
+  const categorias = categoriasHome
+    .filter(cat => {
+      const keys = (cat.categoria_keys ?? []) as string[]
+      return keys.some(k => categoriasConProductos.has(k))
+    })
+    .map((cat, i) => ({
+      label: cat.nombre,
+      href: cat.href ?? '/tienda',
       numero: String(i + 1).padStart(2, '0'),
     }))
 

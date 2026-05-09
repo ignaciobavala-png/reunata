@@ -7,7 +7,7 @@ import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Layers, Store, Images,
-  Sparkles, ClipboardList, Megaphone, Tag,
+  Sparkles, ClipboardList, Megaphone, Tag, Building2,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -39,6 +39,7 @@ const navMaster: NavItem[] = [
   },
   { label: 'Configuración',    href: '/dashboard/admin/configuracion',   icon: Settings },
   { label: 'Postulaciones',    href: '/dashboard/admin/postulaciones',    icon: ClipboardList },
+  { label: 'Corporativos',     href: '/dashboard/admin/corporativos',     icon: Building2 },
 ]
 
 const navEmpleado = [
@@ -88,7 +89,7 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
       style={{ background: 'var(--color-granito-oscuro)' }}
     >
       {/* Logo */}
-      <div className="px-6 py-6 border-b" style={{ borderColor: 'rgba(168,176,187,0.12)' }}>
+      <div className="px-6 py-6 border-b flex-shrink-0" style={{ borderColor: 'rgba(168,176,187,0.12)' }}>
         <Link href="/">
           <Image
             src="/logo.png"
@@ -101,7 +102,10 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav
+        className="flex-1 px-3 py-4 overflow-y-auto h-0"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(168,176,187,0.3) transparent' }}
+      >
         {nav.map(item => {
           if ('children' in item) {
             const group = item as NavGroup
@@ -154,7 +158,7 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
       </nav>
 
       {/* User info + logout */}
-      <div className="px-4 py-4 border-t" style={{ borderColor: 'rgba(168,176,187,0.12)' }}>
+      <div className="px-4 py-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(168,176,187,0.12)' }}>
         <div className="mb-3 px-2">
           <p className="text-sm font-medium truncate" style={{ color: 'var(--color-acero-brillo)' }}>
             {nombre}

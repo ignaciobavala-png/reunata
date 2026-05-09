@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { crearCorporativo } from '@/app/actions/corporativos'
 
 const ocasiones = [
   'Tu equipo de trabajo',
@@ -44,14 +45,25 @@ function Field({ label, name, type = 'text', required = true, placeholder }: { l
 export function CorporativosForm() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [personalizar, setPersonalizar] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    // Simular envío — conectar con dashboard próximamente
-    await new Promise(r => setTimeout(r, 1000))
+    setError(null)
+
+    const form = e.currentTarget as HTMLFormElement
+    const formData = new FormData(form)
+
+    const res = await crearCorporativo(formData)
+    if (res.error) {
+      setError(res.error)
+      setLoading(false)
+      return
+    }
+
     setLoading(false)
     setSent(true)
   }
@@ -77,6 +89,12 @@ export function CorporativosForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+      {error && (
+        <div className="px-4 py-3 rounded-lg text-sm font-medium" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}>
+          {error}
+        </div>
+      )}
 
       <Field label="Nombre y Apellido" name="nombre" placeholder="Ej. Juan Pérez" />
 

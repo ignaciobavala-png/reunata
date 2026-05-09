@@ -107,6 +107,34 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Fila seleccionable con highlight, drawer lateral para gestión detallada
 - Filtros por categoría y estado (con/sin foto) se mantienen
 
+### Corporativos (panel + formulario)
+- Tabla `corporativos`: nombre, empresa, email, teléfono, cuit, ubicación, ocasión, cantidades, productos[], personalizar, fecha_limite, estado
+- Bucket `corporativos` en Storage para archivos adjuntos
+- Panel en `/dashboard/admin/corporativos` con tabla, filtros (búsqueda, estado, ocasión), detalle expandible, aprobar/rechazar/eliminar
+- Server actions: crear, actualizar estado, eliminar
+- Formulario público en `/corporativos` con productos multiselect, personalizar sí/no, fecha límite
+- RLS: insert público (service client), CRUD solo master/empleado
+
+### Cinta promocional (PromoTicker)
+- Texto rotativo horizontal infinito en homepage debajo del Hero
+- Items y velocidad configurados desde tabla `configuracion` (claves `promo_items` y `promo_speed`) con fallback a defaults
+- Editor en Multimedia > Cinta promocional: tag input (Enter → chip), drag reordenar, slider velocidad (10-60s)
+- RLS: lectura pública, escritura solo master/empleado
+
+### Banner promocional
+- Banner único (no carrusel) antes del footer con imagen, título opcional, link opcional
+- Tabla `banners`: url, titulo, link_url, activo
+- Editor en Multimedia > Banner promocional: upload imagen, título, link, activar/desactivar, eliminar con confirmación
+- Upload a `multimedia/banners/{timestamp}.webp`
+- RLS: lectura pública, CRUD solo master/empleado
+
+### Tienda pública (catálogo visible)
+- `/tienda` y `/tienda/[slug]` muestran todos los productos activos (sin filtro de canal público)
+- Categorías obtenidas dinámicamente desde `categorias_home` con sus `categoria_keys`
+- Productos visibles sin precios (foto, título, código)
+- CTA al pie: "Registrate para ver precios, stock y hacer pedidos"
+- Registro necesario solo para ver precios y comprar (no para navegar el catálogo)
+
 ### Frontend — secciones claras
 - Contacto, Trabaja con Nosotros y Nosotros: fondo `acero-claro` en lugar de negro
 - Textos en `granito-oscuro` para legibilidad

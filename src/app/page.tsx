@@ -31,6 +31,21 @@ export default async function Home() {
     .in('producto_id', idsPublicos.length > 0 ? idsPublicos : [-1])
     .order('orden')
 
+  const { data: bannerData } = await supabase
+    .from('banners')
+    .select('url, titulo, link_url')
+    .eq('activo', true)
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const banner = bannerData ? {
+    url: bannerData.url,
+    titulo: bannerData.titulo,
+    linkUrl: bannerData.link_url,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  } : null
+
   const fotos = (fotosDestacadas ?? []).map((f) => {
     const productos = f.productos as { titulo: string; codigo_interno: string }[] | null
     const producto = productos?.[0] ?? null
@@ -53,7 +68,7 @@ export default async function Home() {
         <CategoryGallery />
         <ProductSlider fotos={fotos} />
         <InstagramSlider />
-        <PromotionalBanner />
+        <PromotionalBanner banner={banner} />
       </main>
       <Footer />
     </>

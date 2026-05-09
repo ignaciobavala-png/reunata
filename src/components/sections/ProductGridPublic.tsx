@@ -65,7 +65,7 @@ export function ProductGridPublic({
             ¿Querés ver precios y hacer pedidos?
           </p>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Registrate para acceder al catálogo mayorista completo de {nombreCategoria.toLowerCase()}.
+            Registrate para ver precios, stock y hacer pedidos de {nombreCategoria.toLowerCase()}.
           </p>
         </div>
         <div className="flex items-center gap-3">
