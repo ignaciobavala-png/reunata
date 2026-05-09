@@ -213,50 +213,25 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 - ✅ Tienda pública: eliminado filtro de canal público — `/tienda` y `/tienda/[slug]` muestran todos los productos activos usando `categorias_home` con `categoria_keys`
 - ✅ Productos visibles sin precios (foto, título, código), CTA al pie para registro
 - ✅ Sidebar nav: scroll fix (h-0 + scrollbar visible sobre fondo oscuro)
+- ✅ DB hardening: 14 índices en FK + RLS InitPlan (auth.uid() → subquery) + search_path en funciones
+- ✅ Imágenes optimizadas: eliminado `unoptimized` de 6 componentes (Next.js redimensiona + WebP)
 
-### Pendiente — resto de features backend
-- [ ] Comunidad / Instagram — dashboard de fotos
+---
 
-### 4. Comunidad / Instagram — dashboard de fotos
-- [ ] Crear tabla `comunidad_fotos` (id, url, caption, orden, activo, created_at)
-- [ ] Panel en Multimedia > Comunidad (upload, reordenar, activar)
-- [ ] Conectar InstagramSlider a la DB
+## Sesión 3 — Próxima
 
-### 5. Páginas estáticas — contenido desde dashboard
-- [ ] Usar tabla `contenido` (ya existe, clave/valor) para textos de Nosotros, FAQ, Términos, Políticas, etc.
-- [ ] Editor de contenido en Dashboard > Marketing > Páginas o sección dedicada
+### Prioridad alta
+- [ ] **Registro Mayorista**: formulario completo + segmentación + aprobación admin + notificación WhatsApp
+- [ ] **Lupa funcional**: ruta /buscar?q=, búsqueda ILIKE + tsvector, UI de resultados
+- [ ] **Comunidad / Instagram**: tabla `comunidad_fotos`, editor en Multimedia, conectar InstagramSlider
 
-### 6. Newsletter — captura de emails
-- [ ] Crear tabla `suscriptores` (id, email, created_at)
-- [ ] Server action para suscribir
-- [ ] Panel admin para ver/exportar suscriptores
+### Prioridad media
+- [ ] **Newsletter**: tabla `suscriptores`, server action suscribir, panel admin exportable
+- [ ] **Opiniones**: tabla `opiniones`, formulario en /contacto, panel admin
+- [ ] **Páginas estáticas**: editor de contenido vía tabla `contenido` (Nosotros, FAQ, Términos, etc.)
 
-### 7. Opiniones — formulario en Contacto
-- [ ] Crear tabla `opiniones` (id, nombre, whatsapp, email, comentario, created_at)
-- [ ] Panel admin para ver opiniones
-
-### 8. Lupa funcional — búsqueda
-- [ ] Ruta de búsqueda con query params
-- [ ] Búsqueda en PostgreSQL por nombre, código, descripción (ILIKE + tsvector)
-- [ ] UI de resultados
-
-### 9. Carrito — lógica completa
-- [ ] Tabla `carritos` o usar `pedidos` con estado 'borrador'
-- [ ] Lógica de precios según canal (minorista/mayorista)
-- [ ] Checkout pipeline
-
-### 10. Registro Mayorista
-- [ ] Formulario completo con segmentación
-- [ ] Flujo de aprobación (admin aprueba perfil mayorista)
-- [ ] WhatsApp bot notification
-
-### 11. Más Elegidos
-- [ ] Algoritmo basado en pedidos + tabla `mas_elegidos` para intervención manual
-- [ ] Panel admin para editar
-
-### 12. Catálogo descargable
-- [ ] Generación PDF dinámico según perfil del cliente
-- [ ] Precios con/sin según canal
-
-### 13. Seguimiento de envíos
-- [ ] Por número de pedido, integración con correo
+### Prioridad baja (cuando toque pedidos)
+- [ ] **Carrito**: lógica completa (borrador → checkout → pago)
+- [ ] **Más Elegidos**: algoritmo + intervención manual
+- [ ] **Catálogo descargable**: PDF dinámico según perfil
+- [ ] **Seguimiento de envíos**: integración con correo
