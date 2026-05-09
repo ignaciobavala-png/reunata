@@ -157,6 +157,14 @@ export function Footer() {
         </div>
       </FadeIn>
 
+      {/* Logo gigante */}
+      <div className="flex justify-center py-20 md:py-28 border-t border-[var(--color-granito-claro)] bg-white select-none">
+        <span className="text-[clamp(4rem,15vw,12rem)] font-black tracking-[0.15em] leading-none"
+          style={{ color: '#000', fontFamily: "'system-ui', sans-serif" }}>
+          REUNATA
+        </span>
+      </div>
+
       {/* Bottom bar */}
       <div className="px-6 md:px-10 py-4 border-t border-[var(--color-granito-claro)]">
         <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">

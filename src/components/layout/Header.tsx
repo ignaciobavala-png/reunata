@@ -18,6 +18,13 @@ const categorias = [
   { label: 'Gift Card',                    href: '/tienda/gift-card' },
 ]
 
+const tiendaLinks = [
+  { label: 'Novedades',           href: '/tienda/novedades' },
+  { label: 'Más vendidos',        href: '/tienda/mas-vendidos' },
+  { label: 'Favoritos',           href: '/favoritos' },
+  { label: 'Vistos recientemente', href: '/historial' },
+]
+
 const nav = [
   { label: 'Mi Cuenta', href: '/login' },
 ]
@@ -116,24 +123,58 @@ export function Header() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 rounded-xl overflow-hidden"
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-72 rounded-xl overflow-hidden"
                   style={{
                     background: 'var(--color-acero-brillo)',
                     border: '1px solid var(--color-acero-claro)',
                     boxShadow: '0 8px 24px rgba(13,15,17,0.1)',
                   }}
                 >
+                  {/* Explorar */}
+                  <div className="px-5 pt-4 pb-1 text-[9px] tracking-[0.3em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Explorar
+                  </div>
+                  {tiendaLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-5 py-2.5 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                      style={{ color: 'var(--color-granito)' }}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+
+                  <div className="mx-5 my-1 h-px" style={{ background: 'var(--color-acero-claro)' }} />
+
+                  {/* Categorías */}
+                  <div className="px-5 pt-1 pb-1 text-[9px] tracking-[0.3em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Categorías
+                  </div>
                   {categorias.map((cat) => (
                     <Link
                       key={cat.href}
                       href={cat.href}
                       onClick={() => setDropdownOpen(false)}
-                      className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                      className="block px-5 py-2.5 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
                       style={{ color: 'var(--color-granito)' }}
                     >
                       {cat.label}
                     </Link>
                   ))}
+
+                  <div className="mx-5 my-1 h-px" style={{ background: 'var(--color-acero-claro)' }} />
+
+                  {/* Promociones */}
+                  <Link
+                    href="/promociones"
+                    onClick={() => setDropdownOpen(false)}
+                    className="block px-5 py-3 text-xs font-semibold tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                    style={{ color: 'var(--color-granito)', background: 'var(--color-acero-claro)' }}
+                  >
+                    Promociones especiales →
+                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -231,11 +272,23 @@ export function Header() {
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className="fixed inset-x-0 top-[72px] z-40 bg-[var(--background)] border-b border-[var(--border)] px-6 py-8 flex flex-col gap-6 md:hidden overflow-y-auto max-h-[calc(100vh-72px)]"
       >
-        {/* Categorías en mobile */}
+        {/* Tienda en mobile */}
         <div className="flex flex-col gap-1">
           <span className="text-xs tracking-widest uppercase text-[var(--color-acero-oscuro)] mb-2">
             Tienda
           </span>
+          {tiendaLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpen(false)}
+              className="text-lg text-[var(--color-granito)] py-1"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="h-px bg-[var(--border)] my-2" />
           {categorias.map((cat) => (
             <Link
               key={cat.href}
@@ -247,6 +300,15 @@ export function Header() {
               {cat.label}
             </Link>
           ))}
+          <div className="h-px bg-[var(--border)] my-2" />
+          <Link
+            href="/promociones"
+            onClick={() => setOpen(false)}
+            className="text-lg font-semibold text-[var(--color-granito)] py-1"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Promociones especiales →
+          </Link>
         </div>
 
         {/* Corporativos en mobile */}
