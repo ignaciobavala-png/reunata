@@ -22,7 +22,7 @@ const personalizarOptions = ['Sí', 'No']
 function Field({ label, name, type = 'text', required = true, placeholder }: { label: string; name: string; type?: string; required?: boolean; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
+      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-granito-oscuro)' }}>
         {label}
       </label>
       <input
@@ -94,7 +94,7 @@ export function CorporativosForm() {
 
       {/* Ocasión */}
       <div>
-        <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-acero)' }}>
+        <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-granito-oscuro)' }}>
           ¿Para qué ocasión buscás regalos corporativos?
         </label>
         <select
@@ -118,7 +118,7 @@ export function CorporativosForm() {
 
       {/* Productos */}
       <div>
-        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-acero)' }}>
+        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-granito-oscuro)' }}>
           ¿Qué productos te interesan?
         </label>
         <div className="flex flex-wrap gap-3">
@@ -131,7 +131,7 @@ export function CorporativosForm() {
                 style={{
                   borderColor: checked ? 'var(--color-acero-brillo)' : 'var(--color-granito-claro)',
                   background: checked ? 'var(--color-granito)' : 'transparent',
-                  color: checked ? 'var(--color-acero-brillo)' : 'var(--color-acero)',
+                  color: checked ? 'var(--color-acero-brillo)' : 'var(--color-granito-oscuro)',
                 }}
               >
                 <input
@@ -155,7 +155,7 @@ export function CorporativosForm() {
 
       {/* Personalización */}
       <div>
-        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-acero)' }}>
+        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-granito-oscuro)' }}>
           ¿Querés que te lo personalicemos nosotros?
         </label>
         <div className="flex gap-4">
@@ -168,7 +168,7 @@ export function CorporativosForm() {
                 style={{
                   borderColor: checked ? 'var(--color-acero-brillo)' : 'var(--color-granito-claro)',
                   background: checked ? 'var(--color-granito)' : 'transparent',
-                  color: checked ? 'var(--color-acero-brillo)' : 'var(--color-acero)',
+                  color: checked ? 'var(--color-acero-brillo)' : 'var(--color-granito-oscuro)',
                 }}
               >
                 <input
