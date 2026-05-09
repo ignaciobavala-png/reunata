@@ -15,8 +15,8 @@
 
 | Componente | Tipo | Props | Descripción |
 |---|---|---|---|
-| `Header` | Client | — | Fixed transparent/white según scroll. Logo, nav, menú mobile, iconos carrito/usuario |
-| `Footer` | Server | — | 4 columnas: tienda, empresa, cuenta, newsletter |
+| `Header` | Client | — | Fixed transparent/white según scroll. Logo, nav desktop (Tienda ▼ con Explorar+Categorías+Promos, Corporativos ▼, Mi Cuenta), menú mobile, iconos lupa y carrito |
+| `Footer` | Server | — | 4 columnas: Tienda | Empresa | Información/Soporte | Contacto+Newsletter+Redes. Logo REUNATA gigante antes del copyright |
 | `Sidebar` | Client | `rol, nombre` | Nav del dashboard. Varía según rol (master=9 items, empleado=4, comisionista=3, cliente=4) |
 
 ### Sections (Home)
@@ -26,9 +26,11 @@
 | `Hero` | Server | — | Full-screen con imagen bg. Busca `hero_assets` en BD; si no hay, renderiza `HeroFallback` (hero1.jpg) |
 | `CategoryGallery` | Client | — | Galería 4 col desktop / 2 col mobile desde `categorias_home`. Imagen full-bleed + mini thumbnails de productos |
 | `ProductSlider` | Client | `fotos: FotoDestacada[]` | Embla carousel de fotos destacadas |
-| `PromoTicker` | Client | — | Ticker horizontal animado (derecha→izquierda) con promos. Entre categorías y ProductSlider |
+| `PromoTicker` | Client | — | Ticker horizontal animado (derecha→izquierda) con promos. Después del Hero, antes de CategoryGallery. Full-width (w-screen), texto más grande |
 | `InstagramSlider` | Client | — | Placeholder con link a Instagram (target="_blank") |
-| `FloatingActions` | Client | — | Botones flotantes fijos (WhatsApp, Ofertas, Hot Sale). Solo en páginas públicas |
+| `FloatingActions` | Client | — | Botones flotantes fijos (WhatsApp, Ofertas, Hot Sale). Colores opacos (#5D8F72, #B38C44, #AD5F5F). Solo en páginas públicas |
+| `PromotionalBanner` | Server | — | Banner placeholder full-width con border-y entre InstagramSlider y Footer. A reemplazar por contenido desde DB |
+| `CorporativosForm` | Client | — | Formulario completo: nombre, empresa, email, teléfono, CUIT, ubicación, ocasión, cantidades, productos, personalización, fecha límite. En /corporativos |
 | `PostulacionForm` | Client | `tipo, titulo, descripcion` | Formulario reutilizable de postulación. Upload CV con validación MIME y tamaño |
 | `PostulacionAccordion` | Client | — | Wrapper accordion con 3 formularios (Fulltime, Comisionista, Proveedor). Solo 1 abierto a la vez |
 

@@ -26,7 +26,7 @@
 ```
 src/app/
 ├── layout.tsx              Root layout: fuentes, LenisProvider, metadata
-├── page.tsx                Home: Hero + CategoryBento + ProductSlider + InstagramSlider
+├── page.tsx                Home: Hero + PromoTicker + CategoryGallery + ProductSlider + InstagramSlider + PromotionalBanner
 ├── globals.css             Design tokens acero/granito
 │
 ├── (public)/               Grupo público (Header + Footer wrapper)
@@ -34,10 +34,19 @@ src/app/
 │   ├── carrito/page.tsx    Redirige a dashboard o login
 │   ├── colecciones/page.tsx
 │   ├── contacto/page.tsx
+│   ├── corporativos/page.tsx   Página con formulario de productos personalizados
 │   ├── nosotros/page.tsx
 │   ├── tienda/page.tsx
 │   ├── tienda/[slug]/page.tsx
-│   └── trabaja-con-nosotros/page.tsx
+│   ├── trabaja-con-nosotros/page.tsx
+│   ├── eventos/page.tsx        (placeholder)
+│   ├── distribuidores/page.tsx (placeholder)
+│   ├── franquicias/page.tsx    (placeholder)
+│   ├── puntos-de-venta/page.tsx (placeholder)
+│   ├── faq/page.tsx            (placeholder)
+│   ├── terminos/page.tsx       (placeholder)
+│   ├── politicas/page.tsx      (placeholder)
+│   └── arrepentimiento/page.tsx (placeholder)
 │
 ├── login/page.tsx          Formulario de login con server action
 │
@@ -69,15 +78,19 @@ src/app/
 │   ├── clientes.ts
 │   ├── configuracion.ts
 │   ├── cuenta.ts
+│   ├── diseno.ts            Guardar colores personalizados
 │   ├── empleados.ts
-│   └── pedidos.ts
+│   ├── ofertas.ts           CRUD ofertas/hot sale + getOfertasPublic
+│   ├── pedidos.ts
+│   └── postulaciones.ts
 │
 └── api/                    Route handlers
     ├── chatbot/            POST — verifica master, llama a Groq, streaming
     ├── sync/productos/     GET + POST
     ├── sync/clientes/      GET + POST
     ├── multimedia/         PATCH + DELETE
-    └── categorias-home/    PATCH + POST
+    ├── categorias-home/    PATCH + POST
+    └── hero/               PATCH + DELETE (hero_assets)
 ```
 
 ---

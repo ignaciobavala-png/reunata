@@ -138,3 +138,37 @@ Todas en `src/app/actions/`. Usan `'use server'`.
 - **Auth:** verifica user autenticado + `profiles.rol` en (master, empleado, comisionista)
 - **DB:** `postulaciones` (delete)
 - **Consumido por:** `PostulacionesClient.tsx`
+
+---
+
+## `ofertas.ts`
+
+### `getOfertasPublic()` → `Promise<OfertaPublicItem[]>`
+- **Cliente:** `createServiceClient()`
+- **DB:** `ofertas` (select activas, join productos para precio lista y foto)
+- **Consumido por:** `FloatingActions.tsx` (drawer de Ofertas y Hot Sale)
+
+### `guardarOferta(productoId: number, canal: string, precioOferta: number, descuento: number, orden: number)`
+- **Cliente:** `createServiceClient()`
+- **DB:** `ofertas` (upsert por producto_id + canal)
+- **Consumido por:** Panel admin de ofertas
+
+### `eliminarOferta(id: number)`
+- **Cliente:** `createServiceClient()`
+- **DB:** `ofertas` (delete)
+- **Consumido por:** Panel admin de ofertas
+
+---
+
+## `diseno.ts`
+
+### `guardarColores(data: Record<string, string>)`
+- **Cliente:** `createServiceClient()`
+- **Claves que guarda:** `diseno_acero_brillo`, `diseno_acero_claro`, `diseno_acero`, `diseno_acero_oscuro`, `diseno_granito_claro`, `diseno_granito`, `diseno_granito_oscuro`, `diseno_background`
+- **DB:** `configuracion` (upsert por clave)
+- **Consumido por:** `DisenoClient.tsx` (Multimedia > Diseño)
+
+### `restaurarColores()`
+- **Cliente:** `createServiceClient()`
+- **DB:** `configuracion` (delete claves de diseño)
+- **Consumido por:** `DisenoClient.tsx`

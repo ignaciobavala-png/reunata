@@ -1,6 +1,6 @@
 # Base de Datos — Reunata Web
 
-Esquema PostgreSQL en Supabase. 12 tablas, RLS completo.
+Esquema PostgreSQL en Supabase. 16 tablas, RLS completo.
 
 ---
 
@@ -138,7 +138,9 @@ Clave/valor para parámetros del sistema.
 | `clave` | text PK |
 | `valor` | text |
 
-Claves: `banco_cbu`, `banco_alias`, `banco_nombre`, `banco_razon_social`, `banco_cuit`, `pedido_monto_minimo`, `pedido_dias_vencimiento`, `whatsapp_ventas`
+Claves del sistema: `banco_cbu`, `banco_alias`, `banco_nombre`, `banco_razon_social`, `banco_cuit`, `pedido_monto_minimo`, `pedido_dias_vencimiento`, `whatsapp_ventas`
+
+Claves de diseño (gestionadas desde Multimedia > Diseño): `diseno_acero_brillo`, `diseno_acero_claro`, `diseno_acero`, `diseno_acero_oscuro`, `diseno_granito_claro`, `diseno_granito`, `diseno_granito_oscuro`, `diseno_background`
 
 ### `sync_log`
 Historial de sincronizaciones con Gesu.
@@ -152,13 +154,53 @@ Historial de sincronizaciones con Gesu.
 | `mensaje` | text |
 | `created_at` | timestamptz |
 
+### `hero_assets`
+Assets del carrusel Hero en homepage. Se gestionan desde Multimedia > Hero.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `tipo` | text | CHECK: imagen, video |
+| `url` | text | Ruta en Storage |
+| `orden` | integer | |
+| `activo` | boolean | default true |
+| `etiqueta` | text | Texto pequeño superior |
+| `titulo` | text | Título grande |
+| `subtitulo` | text | |
+| `boton_texto` | text | Texto del CTA |
+| `boton_url` | text | Link del CTA |
+| `created_at` | timestamptz | default now() |
+
+### `ofertas`
+Ofertas y Hot Sale, visibles en FloatingActions drawer. FK → productos.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `canal` | text | CHECK: ofertas, hotsale |
+| `producto_id` | integer FK → `productos.id` | |
+| `precio_oferta` | numeric | |
+| `descuento_porcentaje` | integer | |
+| `orden` | integer | default 0 |
+| `activo` | boolean | default true |
+| `created_at` | timestamptz | |
+
+### `contenido`
+Páginas estáticas con contenido editable (Nosotros, FAQ, Términos, etc.).
+
+| Columna | Tipo |
+|---|---|
+| `clave` | text PK |
+| `valor` | text |
+| `updated_at` | timestamptz |
+
 ### `postulaciones`
 Postulaciones de "Trabaja con nosotros". Formulario público, solo internos gestionan.
 
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | default gen_random_uuid() |
-| `tipo` | text | CHECK: fulltime, comisionista |
+| `tipo` | text | CHECK: fulltime, comisionista, proveedor |
 | `nombre` | text | NOT NULL |
 | `apellido` | text | NOT NULL |
 | `email` | text | NOT NULL |
@@ -169,6 +211,12 @@ Postulaciones de "Trabaja con nosotros". Formulario público, solo internos gest
 | `movilidad_propia` | boolean | Solo comisionista |
 | `zonas` | text | Solo comisionista |
 | `otras_marcas` | text | Solo comisionista |
+| `cargo` | text | Solo proveedor |
+| `empresa` | text | Solo proveedor |
+| `cuit` | text | Solo proveedor |
+| `pagina_web` | text | Solo proveedor |
+| `productos_servicios` | text | Solo proveedor |
+| `otras_empresas_provee` | text | Solo proveedor |
 | `estado` | text | CHECK: pendiente, aprobado, rechazado. Default: pendiente |
 | `created_at` | timestamptz | default now() |
 
@@ -190,5 +238,8 @@ Resumen de políticas por tabla:
 | `pedido_items` | Misma lógica que pedidos (hereda visibilidad) |
 | `comprobantes` | master = todos. cliente = propios |
 | `configuracion` | Lectura: autenticados. Escritura: master |
+| `hero_assets` | Lectura: público. Escritura: master |
+| `ofertas` | Lectura: público. Escritura: master, empleado |
+| `contenido` | Lectura: público. Escritura: master |
 | `postulaciones` | INSERT: público. SELECT/UPDATE/DELETE: master, empleado, comisionista |
 | `sync_log` | Lectura: master. Inserción: service_role |
