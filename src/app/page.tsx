@@ -3,6 +3,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Hero } from '@/components/sections/Hero'
 import { CategoryGallery } from '@/components/sections/CategoryGallery'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
+import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -52,6 +53,7 @@ export default async function Home() {
         <CategoryGallery />
         <ProductSlider fotos={fotos} />
         <InstagramSlider />
+        <PromotionalBanner />
       </main>
       <Footer />
     </>
