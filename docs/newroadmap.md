@@ -180,3 +180,90 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 - Vistos recientemente
 
 ### 11. QR ARCA (AFIP)
+
+---
+
+## Sesión 1 — Frontend (9/5/2026)
+
+### Implementado
+- ✅ Navbar: Tienda ▼ (con Explorar + Categorías + Promos) · Corporativos ▼ (Productos Personalizados + Agencia Mercha) · Mi Cuenta · Lupa · Carrito
+- ✅ Colores opacos en botones flotantes (WhatsApp, Ofertas, Hot Sale)
+- ✅ PromoTicker reposicionado debajo del Hero, más ancho
+- ✅ CategoryGallery con menos espacio superior
+- ✅ Banner promocional placeholder (full-width, border-y, antes del footer)
+- ✅ Footer completo: Tienda | Empresa | Información/Soporte | Contacto+Newsletter+Redes
+- ✅ Logo REUNATA gigante en footer (texto negro, fondo blanco)
+- ✅ Página /corporativos con formulario + placeholders de fotos
+- ✅ Fix GoTrueClient singleton (múltiples instancias de Supabase)
+- ✅ docs/newroadmap.md creado
+
+### Por hacer — Frontend puro
+- 🟠 Páginas estáticas del footer: /eventos, /distribuidores, /franquicias, /puntos-de-venta, /faq, /terminos, /politicas, /arrepentimiento
+- 🟠 Formulario de opiniones en /contacto
+- 🟠 Logo SVG real (reemplazar placeholder textual)
+
+---
+
+## Próxima sesión — Backend + Panel de Control
+
+Cada feature de frontend necesita su correlato en Supabase y en el dashboard admin.
+
+### 1. Corporativos — formulario → DB + admin
+- [ ] Crear tabla `corporativos` (id, nombre, empresa, email, telefono, cuit, ubicacion, ocasion, cantidades, productos[], personalizar, fecha_limite, estado, created_at)
+- [ ] Bucket Storage para fotos de trabajos corporativos
+- [ ] Server actions: crear, actualizar estado, eliminar
+- [ ] Panel admin en Dashboard > Corporativos (tabla + detalle + filtros)
+- [ ] RLS: lectura pública para fotos, CRUD solo master/empleado
+
+### 2. PromoTicker — editable desde Multimedia
+- [ ] Usar tabla `configuracion` (clave: `promo_items`, `promo_colores`) o crear tabla propia
+- [ ] Panel en Multimedia > Cinta Promocional (editar textos, colores de fondo/texto/borde)
+
+### 3. Banner promocional — reemplazable
+- [ ] Crear tabla `banners` (id, url, titulo, orden, activo, created_at)
+- [ ] Panel en Multimedia > Banners (upload, orden, activar/desactivar)
+- [ ] RLS similar a hero_assets
+
+### 4. Comunidad / Instagram — dashboard de fotos
+- [ ] Crear tabla `comunidad_fotos` (id, url, caption, orden, activo, created_at)
+- [ ] Panel en Multimedia > Comunidad (upload, reordenar, activar)
+- [ ] Conectar InstagramSlider a la DB
+
+### 5. Páginas estáticas — contenido desde dashboard
+- [ ] Usar tabla `contenido` (ya existe, clave/valor) para textos de Nosotros, FAQ, Términos, Políticas, etc.
+- [ ] Editor de contenido en Dashboard > Marketing > Páginas o sección dedicada
+
+### 6. Newsletter — captura de emails
+- [ ] Crear tabla `suscriptores` (id, email, created_at)
+- [ ] Server action para suscribir
+- [ ] Panel admin para ver/exportar suscriptores
+
+### 7. Opiniones — formulario en Contacto
+- [ ] Crear tabla `opiniones` (id, nombre, whatsapp, email, comentario, created_at)
+- [ ] Panel admin para ver opiniones
+
+### 8. Lupa funcional — búsqueda
+- [ ] Ruta de búsqueda con query params
+- [ ] Búsqueda en PostgreSQL por nombre, código, descripción (ILIKE + tsvector)
+- [ ] UI de resultados
+
+### 9. Carrito — lógica completa
+- [ ] Tabla `carritos` o usar `pedidos` con estado 'borrador'
+- [ ] Lógica de precios según canal (minorista/mayorista)
+- [ ] Checkout pipeline
+
+### 10. Registro Mayorista
+- [ ] Formulario completo con segmentación
+- [ ] Flujo de aprobación (admin aprueba perfil mayorista)
+- [ ] WhatsApp bot notification
+
+### 11. Más Elegidos
+- [ ] Algoritmo basado en pedidos + tabla `mas_elegidos` para intervención manual
+- [ ] Panel admin para editar
+
+### 12. Catálogo descargable
+- [ ] Generación PDF dinámico según perfil del cliente
+- [ ] Precios con/sin según canal
+
+### 13. Seguimiento de envíos
+- [ ] Por número de pedido, integración con correo
