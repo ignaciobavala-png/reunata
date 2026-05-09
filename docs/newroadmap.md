@@ -204,25 +204,18 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 
 ---
 
-## Próxima sesión — Backend + Panel de Control
+## Sesión 2 — Backend + Panel de Control + Tienda Pública (9/5/2026)
 
-Cada feature de frontend necesita su correlato en Supabase y en el dashboard admin.
+### Implementado
+- ✅ Corporativos: tabla + bucket + RLS + server actions + admin panel + formulario público conectado
+- ✅ PromoTicker: lee desde `configuracion` (promo_items, promo_speed), editor en Multimedia con tag input + drag + slider
+- ✅ Banner promocional: tabla `banners` + RLS + editor con upload/título/link/activar/eliminar
+- ✅ Tienda pública: eliminado filtro de canal público — `/tienda` y `/tienda/[slug]` muestran todos los productos activos usando `categorias_home` con `categoria_keys`
+- ✅ Productos visibles sin precios (foto, título, código), CTA al pie para registro
+- ✅ Sidebar nav: scroll fix (h-0 + scrollbar visible sobre fondo oscuro)
 
-### 1. Corporativos — formulario → DB + admin
-- [ ] Crear tabla `corporativos` (id, nombre, empresa, email, telefono, cuit, ubicacion, ocasion, cantidades, productos[], personalizar, fecha_limite, estado, created_at)
-- [ ] Bucket Storage para fotos de trabajos corporativos
-- [ ] Server actions: crear, actualizar estado, eliminar
-- [ ] Panel admin en Dashboard > Corporativos (tabla + detalle + filtros)
-- [ ] RLS: lectura pública para fotos, CRUD solo master/empleado
-
-### 2. PromoTicker — editable desde Multimedia
-- [ ] Usar tabla `configuracion` (clave: `promo_items`, `promo_colores`) o crear tabla propia
-- [ ] Panel en Multimedia > Cinta Promocional (editar textos, colores de fondo/texto/borde)
-
-### 3. Banner promocional — reemplazable
-- [ ] Crear tabla `banners` (id, url, titulo, orden, activo, created_at)
-- [ ] Panel en Multimedia > Banners (upload, orden, activar/desactivar)
-- [ ] RLS similar a hero_assets
+### Pendiente — resto de features backend
+- [ ] Comunidad / Instagram — dashboard de fotos
 
 ### 4. Comunidad / Instagram — dashboard de fotos
 - [ ] Crear tabla `comunidad_fotos` (id, url, caption, orden, activo, created_at)
