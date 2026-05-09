@@ -19,7 +19,6 @@ const categorias = [
 ]
 
 const nav = [
-  { label: 'Corporativos', href: '/corporativos' },
   { label: 'Mi Cuenta', href: '/login' },
 ]
 
@@ -29,9 +28,11 @@ export function Header() {
 
   const [open, setOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [corporativosOpen, setCorporativosOpen] = useState(false)
   const [scrolled, setScrolled] = useState(!isHome)
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const corporativosRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isHome) return
@@ -43,6 +44,9 @@ export function Header() {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false)
+      }
+      if (corporativosRef.current && !corporativosRef.current.contains(e.target as Node)) {
+        setCorporativosOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -94,7 +98,7 @@ export function Header() {
           {/* Tienda con dropdown */}
           <div ref={dropdownRef} className="relative">
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+              onClick={() => { setDropdownOpen(!dropdownOpen); setCorporativosOpen(false) }}
               className={`flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
             >
               Tienda
@@ -130,6 +134,55 @@ export function Header() {
                       {cat.label}
                     </Link>
                   ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Corporativos con dropdown */}
+          <div ref={corporativosRef} className="relative">
+            <button
+              onClick={() => { setCorporativosOpen(!corporativosOpen); setDropdownOpen(false) }}
+              className={`flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
+            >
+              Corporativos
+              <ChevronDown
+                size={12}
+                strokeWidth={2}
+                className={`transition-transform duration-200 ${corporativosOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {corporativosOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 rounded-xl overflow-hidden"
+                  style={{
+                    background: 'var(--color-acero-brillo)',
+                    border: '1px solid var(--color-acero-claro)',
+                    boxShadow: '0 8px 24px rgba(13,15,17,0.1)',
+                  }}
+                >
+                  <Link
+                    href="/corporativos"
+                    onClick={() => setCorporativosOpen(false)}
+                    className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                    style={{ color: 'var(--color-granito)' }}
+                  >
+                    Productos Personalizados
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={() => setCorporativosOpen(false)}
+                    className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                    style={{ color: 'var(--color-granito)' }}
+                  >
+                    Agencia de Merchandising
+                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -194,6 +247,29 @@ export function Header() {
               {cat.label}
             </Link>
           ))}
+        </div>
+
+        {/* Corporativos en mobile */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs tracking-widest uppercase text-[var(--color-acero-oscuro)] mb-2">
+            Corporativos
+          </span>
+          <Link
+            href="/corporativos"
+            onClick={() => setOpen(false)}
+            className="text-lg text-[var(--color-granito)] py-1"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Productos Personalizados
+          </Link>
+          <Link
+            href="/login"
+            onClick={() => setOpen(false)}
+            className="text-lg text-[var(--color-granito)] py-1"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Agencia de Merchandising
+          </Link>
         </div>
 
         <div className="h-px bg-[var(--border)]" />
