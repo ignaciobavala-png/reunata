@@ -1,6 +1,7 @@
 import { ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { supabaseImg } from '@/lib/images'
 
 interface BannerData {
   url: string
@@ -27,7 +28,7 @@ export function PromotionalBanner({ banner }: { banner: BannerData | null }) {
     )
   }
 
-  const imgUrl = `${banner.supabaseUrl}/storage/v1/object/public/multimedia/${banner.url}`
+  const imgUrl = supabaseImg(banner.supabaseUrl, banner.url, 1200)
 
   const img = (
     <Image

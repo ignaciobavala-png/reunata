@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ImageIcon } from 'lucide-react'
+import { supabaseImg } from '@/lib/images'
 
 interface ProductoPublico {
   id: number
@@ -32,12 +33,11 @@ export function ProductGridPublic({
             >
               {p.foto_url ? (
                 <Image
-                  src={`${p.supabaseUrl}/storage/v1/object/public/multimedia/${p.foto_url}`}
+                  src={supabaseImg(p.supabaseUrl, p.foto_url, 400, { height: 533 })}
                   alt={p.titulo}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 768px) 50vw, 25vw"
-                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-acero-claro)' }}>

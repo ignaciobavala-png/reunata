@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "znmqvjxdnslrrvsjquej.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "znmqvjxdnslrrvsjquej.supabase.co",
+        pathname: "/storage/v1/render/image/public/**",
+      },
     ],
   },
 };

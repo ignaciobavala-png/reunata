@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
+import { supabaseImg } from '@/lib/images'
 
 interface HeroAsset {
   id: number
@@ -28,7 +29,7 @@ const FALLBACK = {
 }
 
 export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; supabaseUrl: string }) {
-  const getPublicUrl = (url: string) => `${supabaseUrl}/storage/v1/object/public/multimedia/${url}`
+  const getPublicUrl = (url: string) => supabaseImg(supabaseUrl, url, 1920)
   const [current, setCurrent] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 

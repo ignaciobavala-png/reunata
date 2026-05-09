@@ -4,6 +4,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Link from 'next/link'
 import Image from 'next/image'
+import { supabaseImg } from '@/lib/images'
 
 export interface FotoDestacada {
   id: number
@@ -50,12 +51,11 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                   style={{ border: '1px solid var(--border)' }}
                 >
                   <Image
-                    src={`${foto.supabaseUrl}/storage/v1/object/public/multimedia/${foto.url}`}
+                    src={supabaseImg(foto.supabaseUrl, foto.url, 240, { height: 320 })}
                     alt={foto.titulo}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 200px, 240px"
-                    unoptimized
                   />
                 </div>
                 <p className="text-[10px] tracking-widest uppercase text-[var(--foreground)] mb-1">

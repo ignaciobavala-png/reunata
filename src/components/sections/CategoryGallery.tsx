@@ -5,6 +5,7 @@ import { FadeIn } from '@/components/ui/FadeIn'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { supabaseImg } from '@/lib/images'
 
 const supabase = createClient()
 
@@ -107,12 +108,11 @@ export function CategoryGallery() {
               >
                 {fotoPrincipal ? (
                   <Image
-                    src={`${SUPABASE_URL}/storage/v1/object/public/multimedia/${fotoPrincipal}`}
+                    src={supabaseImg(SUPABASE_URL, fotoPrincipal, 600, { height: 800 })}
                     alt={cat.nombre}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     sizes="(max-width: 768px) 50vw, 25vw"
-                    unoptimized
                   />
                 ) : (
                   <div className={`absolute inset-0 bg-gradient-to-br ${cat.gradient || 'from-[#1A1D21] to-[#2E3135]'}`} />
@@ -125,12 +125,11 @@ export function CategoryGallery() {
                     {fotos.slice(1, 4).map((foto, idx) => (
                       <div key={idx} className="w-8 h-10 relative overflow-hidden rounded-sm">
                         <Image
-                          src={`${SUPABASE_URL}/storage/v1/object/public/multimedia/${foto}`}
+                          src={supabaseImg(SUPABASE_URL, foto, 80, { height: 100 })}
                           alt=""
                           fill
                           className="object-cover"
                           sizes="32px"
-                          unoptimized
                         />
                       </div>
                     ))}

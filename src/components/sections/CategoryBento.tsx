@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Link from 'next/link'
 import Image from 'next/image'
+import { supabaseImg } from '@/lib/images'
 
 const SPANS = [
   'col-span-12 md:col-span-7 md:row-span-2',
@@ -92,12 +93,11 @@ export async function CategoryBento() {
                 {/* Fondo: foto real o gradiente como fallback */}
                 {foto ? (
                   <Image
-                    src={`${SUPABASE_URL}/storage/v1/object/public/multimedia/${foto}`}
+                    src={supabaseImg(SUPABASE_URL, foto, 600)}
                     alt={cat.nombre}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    unoptimized
                   />
                 ) : (
                   <div className={`absolute inset-0 bg-gradient-to-br ${cat.gradient}`} />
