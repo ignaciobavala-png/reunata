@@ -48,8 +48,8 @@ export default async function Home() {
       <Header />
       <main className="flex-1">
         <Hero />
-        <CategoryGallery />
         <PromoTicker />
+        <CategoryGallery />
         <ProductSlider fotos={fotos} />
         <InstagramSlider />
       </main>

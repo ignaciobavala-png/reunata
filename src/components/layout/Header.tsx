@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, User, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react'
 
 const categorias = [
   { label: 'Materas y Mochilas',          href: '/tienda/materas-y-mochilas' },
@@ -19,8 +19,8 @@ const categorias = [
 ]
 
 const nav = [
-  { label: 'Nosotros', href: '/nosotros' },
-  { label: 'Contacto', href: '/contacto' },
+  { label: 'Corporativos', href: '/corporativos' },
+  { label: 'Mi Cuenta', href: '/login' },
 ]
 
 export function Header() {
@@ -148,13 +148,12 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Link href="/login" aria-label="Mi cuenta">
-            <User
+          <button aria-label="Buscar" className={`transition-colors duration-300 ${iconColor}`}>
+            <Search
               size={20}
               strokeWidth={1.5}
-              className={`transition-colors duration-300 ${iconColor}`}
             />
-          </Link>
+          </button>
           <Link href="/carrito" aria-label="Carrito">
             <ShoppingBag
               size={20}

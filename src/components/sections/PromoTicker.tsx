@@ -12,16 +12,16 @@ const items = [
 
 export function PromoTicker() {
   return (
-    <div className="w-full overflow-hidden border-y-4 border-[var(--color-granito-claro)] py-3 bg-[var(--color-granito)]">
+    <div className="w-screen max-w-full overflow-hidden border-y-4 border-[var(--color-granito-claro)] py-4 bg-[var(--color-granito)]">
       <motion.div
-        className="flex gap-16 whitespace-nowrap"
+        className="flex gap-20 whitespace-nowrap"
         animate={{ x: ['0%', '-50%'] }}
         transition={{ repeat: Infinity, duration: 30, ease: 'linear' }}
       >
         {[...items, ...items].map((item, i) => (
           <span
             key={i}
-            className="text-sm font-semibold tracking-widest uppercase text-white/90"
+            className="text-sm md:text-base font-semibold tracking-widest uppercase text-white/90"
           >
             {item}
           </span>

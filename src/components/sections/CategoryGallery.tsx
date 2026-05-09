@@ -80,7 +80,7 @@ export function CategoryGallery() {
   if (categorias.length === 0) return null
 
   return (
-    <section className="px-4 md:px-6 py-16 md:py-24">
+    <section className="px-4 md:px-6 pt-6 md:pt-10 pb-16 md:pb-24">
       <FadeIn className="mb-10 flex items-end justify-between px-2">
         <h2
           className="text-3xl md:text-4xl text-[var(--foreground)]"

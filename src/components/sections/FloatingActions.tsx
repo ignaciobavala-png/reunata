@@ -107,7 +107,7 @@ export function FloatingActions() {
           target="_blank"
           rel="noopener noreferrer"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#25D366' }}
+          style={{ background: '#5D8F72' }}
           title="Escribinos por WhatsApp"
         >
           <MessageCircle size={24} className="text-white" />
@@ -116,7 +116,7 @@ export function FloatingActions() {
         <button
           onClick={() => setDrawer('ofertas')}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#F59E0B' }}
+          style={{ background: '#B38C44' }}
           title="Ofertas"
         >
           <Clock size={22} className="text-white" />
@@ -125,7 +125,7 @@ export function FloatingActions() {
         <button
           onClick={() => setDrawer('hotsale')}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#EF4444' }}
+          style={{ background: '#AD5F5F' }}
           title="Hot Sale"
         >
           <Flame size={22} className="text-white" />
