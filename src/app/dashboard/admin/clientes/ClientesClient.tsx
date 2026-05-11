@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { aprobarCliente, actualizarCanalCliente } from '@/app/actions/clientes'
-import { Check, X, Search, Loader2 } from 'lucide-react'
+import { Check, X, Search, Loader2, ChevronDown, ChevronRight, Store, Building2, MapPin, Globe, Phone, Users, PackageOpen } from 'lucide-react'
 
 interface Canal   { id: number; slug: string; nombre: string }
 interface Cliente {
@@ -14,6 +14,13 @@ interface Cliente {
   canal_id: number | null
   cuit_dni: string | null
   created_at: string
+  razon_social: string | null
+  direccion: string | null
+  localidad: string | null
+  sitio_web: string | null
+  puntos_venta: number | null
+  clientes_activos: number | null
+  telefono: string | null
 }
 
 const LABEL_ROL: Record<string, string> = {
@@ -36,13 +43,15 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendientes' | 'aprobados'>('todos')
   const [isPending, startTransition] = useTransition()
   const [accionId, setAccionId] = useState<string | null>(null)
+  const [expandido, setExpandido] = useState<string | null>(null)
 
   const filtrados = clientes.filter(c => {
     const q = busqueda.toLowerCase()
     const matchBusqueda = !busqueda ||
       c.nombre?.toLowerCase().includes(q) ||
       c.email?.toLowerCase().includes(q) ||
-      c.cuit_dni?.toLowerCase().includes(q)
+      c.cuit_dni?.toLowerCase().includes(q) ||
+      c.razon_social?.toLowerCase().includes(q)
     const matchEstado =
       filtroEstado === 'todos' ? true :
       filtroEstado === 'pendientes' ? !c.aprobado :
@@ -64,6 +73,10 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
     startTransition(() => actualizarCanalCliente(id, canalId))
   }
 
+  function esMayorista(rol: string) {
+    return rol === 'distribuidor' || rol === 'local' || rol === 'mercha'
+  }
+
   return (
     <div>
       {/* Filtros */}
@@ -73,7 +86,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
           <input
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, email o CUIT…"
+            placeholder="Buscar por nombre, email, CUIT o razón social…"
             className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
@@ -106,7 +119,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)' }}>
-                {['Cliente', 'Tipo', 'Canal', 'CUIT/DNI', 'Registro', 'Estado', 'Acciones'].map(h => (
+                {['', 'Cliente', 'Tipo', 'Canal', 'CUIT/DNI', 'Registro', 'Estado', 'Acciones'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     {h}
                   </th>
@@ -115,85 +128,168 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
             </thead>
             <tbody>
               {filtrados.map((c, i) => (
-                <tr
-                  key={c.id}
-                  style={{
-                    background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
-                    borderBottom: '1px solid var(--color-acero-claro)',
-                  }}
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-medium" style={{ color: 'var(--foreground)' }}>{c.nombre || '—'}</p>
-                    <p style={{ color: 'var(--color-acero-oscuro)' }}>{c.email}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="px-2 py-0.5 rounded-full"
-                      style={{
-                        background: (COLOR_ROL[c.rol] ?? '#888') + '22',
-                        color: COLOR_ROL[c.rol] ?? '#888',
-                      }}
-                    >
-                      {LABEL_ROL[c.rol] ?? c.rol}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={c.canal_id ?? ''}
-                      onChange={e => handleCanal(c.id, e.target.value ? Number(e.target.value) : null)}
-                      className="text-sm rounded border px-2 py-1 outline-none"
-                      style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
-                    >
-                      <option value="">Sin canal</option>
-                      {canales.map(ch => (
-                        <option key={ch.id} value={ch.id}>{ch.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {c.cuit_dni || '—'}
-                  </td>
-                  <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {new Date(c.created_at).toLocaleDateString('es-AR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.aprobado
-                      ? <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#10b98122', color: '#10b981' }}>Aprobado</span>
-                      : <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#f59e0b22', color: '#f59e0b' }}>Pendiente</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
-                      {!c.aprobado && (
-                        <button
-                          onClick={() => handleAprobar(c.id, true)}
-                          disabled={accionId === c.id}
-                          className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
-                          style={{ background: '#10b98122', color: '#10b981' }}
-                          title="Aprobar"
-                        >
-                          <Check size={12} />
-                        </button>
+                <>
+                  <tr
+                    key={c.id}
+                    className="cursor-pointer"
+                    onClick={() => setExpandido(expandido === c.id ? null : c.id)}
+                    style={{
+                      background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
+                      borderBottom: '1px solid var(--color-acero-claro)',
+                    }}
+                  >
+                    <td className="px-4 py-3">
+                      {esMayorista(c.rol) && (
+                        expandido === c.id
+                          ? <ChevronDown size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                          : <ChevronRight size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
                       )}
-                      {c.aprobado && (
-                        <button
-                          onClick={() => handleAprobar(c.id, false)}
-                          disabled={accionId === c.id}
-                          className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
-                          style={{ background: '#ef444422', color: '#ef4444' }}
-                          title="Revocar acceso"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium" style={{ color: 'var(--foreground)' }}>{c.nombre || '—'}</p>
+                      <p style={{ color: 'var(--color-acero-oscuro)' }}>{c.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 rounded-full"
+                        style={{
+                          background: (COLOR_ROL[c.rol] ?? '#888') + '22',
+                          color: COLOR_ROL[c.rol] ?? '#888',
+                        }}
+                      >
+                        {LABEL_ROL[c.rol] ?? c.rol}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={c.canal_id ?? ''}
+                        onChange={e => handleCanal(c.id, e.target.value ? Number(e.target.value) : null)}
+                        className="text-sm rounded border px-2 py-1 outline-none"
+                        style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <option value="">Sin canal</option>
+                        {canales.map(ch => (
+                          <option key={ch.id} value={ch.id}>{ch.nombre}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      {c.cuit_dni || '—'}
+                    </td>
+                    <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      {new Date(c.created_at).toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.aprobado
+                        ? <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#10b98122', color: '#10b981' }}>Aprobado</span>
+                        : <span className="px-2 py-0.5 rounded-full text-sm" style={{ background: '#f59e0b22', color: '#f59e0b' }}>Pendiente</span>
+                      }
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5">
+                        {!c.aprobado && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleAprobar(c.id, true) }}
+                            disabled={accionId === c.id}
+                            className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
+                            style={{ background: '#10b98122', color: '#10b981' }}
+                            title="Aprobar"
+                          >
+                            <Check size={12} />
+                          </button>
+                        )}
+                        {c.aprobado && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleAprobar(c.id, false) }}
+                            disabled={accionId === c.id}
+                            className="p-1.5 rounded-lg font-medium transition-colors duration-150 disabled:opacity-50"
+                            style={{ background: '#ef444422', color: '#ef4444' }}
+                            title="Revocar acceso"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {expandido === c.id && esMayorista(c.rol) && (
+                    <tr key={`${c.id}-detail`}>
+                      <td colSpan={8} style={{ background: '#fafafa', borderBottom: '1px solid var(--color-acero-claro)' }}>
+                        <div className="px-8 py-5 grid grid-cols-2 md:grid-cols-3 gap-5 text-sm">
+                          {c.razon_social && (
+                            <div className="flex items-center gap-2">
+                              <Building2 size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Razón Social</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.razon_social}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.telefono && (
+                            <div className="flex items-center gap-2">
+                              <Phone size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>WhatsApp</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.telefono}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.direccion && (
+                            <div className="flex items-center gap-2">
+                              <MapPin size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Dirección</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.direccion}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.localidad && (
+                            <div className="flex items-center gap-2">
+                              <MapPin size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Localidad</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.localidad}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.sitio_web && (
+                            <div className="flex items-center gap-2">
+                              <Globe size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Sitio web</p>
+                                <p style={{ color: 'var(--color-acero-oscuro)' }}>{c.sitio_web}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.puntos_venta != null && (
+                            <div className="flex items-center gap-2">
+                              <Store size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Puntos de venta</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.puntos_venta}</p>
+                              </div>
+                            </div>
+                          )}
+                          {c.clientes_activos != null && (
+                            <div className="flex items-center gap-2">
+                              <Users size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+                              <div>
+                                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-acero-oscuro)' }}>Clientes activos</p>
+                                <p style={{ color: 'var(--foreground)' }}>{c.clientes_activos}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
 
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={8} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     No hay clientes registrados todavía.
                   </td>
                 </tr>

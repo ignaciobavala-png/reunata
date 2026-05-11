@@ -9,7 +9,7 @@ export default async function ClientesPage() {
   const [{ data: clientes }, { data: canales }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, nombre, email, rol, aprobado, canal_id, cuit_dni, created_at')
+      .select('id, nombre, email, rol, aprobado, canal_id, cuit_dni, created_at, razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos, telefono')
       .in('rol', ROLES_CLIENTE)
       .order('created_at', { ascending: false }),
     supabase

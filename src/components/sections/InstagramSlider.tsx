@@ -2,19 +2,18 @@
 
 import useEmblaCarousel from 'embla-carousel-react'
 import { FadeIn } from '@/components/ui/FadeIn'
-import { Camera } from 'lucide-react'
+import Image from 'next/image'
 
-const posts = [
-  { id: 1, gradient: 'from-[#1A1D21] to-[#2E3135]', caption: '@reunata_ar' },
-  { id: 2, gradient: 'from-[#A8B0BB] to-[#D4D9E0]', caption: '@reunata_ar' },
-  { id: 3, gradient: 'from-[#2E3135] to-[#5A5F66]', caption: '@reunata_ar' },
-  { id: 4, gradient: 'from-[#D4D9E0] to-[#ECEEF1]', caption: '@reunata_ar' },
-  { id: 5, gradient: 'from-[#111316] to-[#3A3D42]', caption: '@reunata_ar' },
-  { id: 6, gradient: 'from-[#6E7882] to-[#A8B0BB]', caption: '@reunata_ar' },
-  { id: 7, gradient: 'from-[#3A3D42] to-[#2E3135]', caption: '@reunata_ar' },
-]
+interface Post {
+  id: number
+  thumbnail_url: string | null
+  caption: string | null
+  username: string | null
+  permalink: string | null
+  url_instagram: string
+}
 
-export function InstagramSlider() {
+export function InstagramSlider({ posts }: { posts: Post[] }) {
   const [emblaRef] = useEmblaCarousel({
     loop: false,
     dragFree: true,
@@ -22,28 +21,62 @@ export function InstagramSlider() {
     align: 'start',
   })
 
+  if (posts.length === 0) return null
+
   return (
     <section className="py-16 md:py-24 overflow-hidden">
-      <FadeIn className="px-6 md:px-10 mb-10 flex items-center gap-3">
-        <Camera size={14} strokeWidth={1.5} className="text-[var(--color-acero-oscuro)]" />
-        <span className="text-[10px] tracking-[0.35em] uppercase text-[var(--color-granito-claro)]">
-          Comunidad Reunata
-        </span>
+      <FadeIn className="px-6 md:px-10 mb-10 flex items-center gap-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5" style={{ color: 'var(--color-granito)' }}>
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+          <circle cx="12" cy="12" r="5" />
+          <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+        </svg>
+        <div>
+          <span className="text-sm tracking-[0.2em] uppercase font-semibold" style={{ color: 'var(--color-granito)' }}>
+            Comunidad Reunata
+          </span>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Seguinos en @reunata.ar
+          </p>
+        </div>
       </FadeIn>
 
       <FadeIn delay={0.1}>
         <div ref={emblaRef} className="overflow-hidden cursor-grab active:cursor-grabbing">
           <div className="flex gap-2 pl-6 md:pl-10 pr-6">
             {posts.map((post) => (
-              <div
+              <a
                 key={post.id}
-                className={`flex-none w-[260px] md:w-[300px] aspect-square bg-gradient-to-br ${post.gradient} flex items-end p-4`}
+                href={post.permalink ?? post.url_instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-none w-[260px] md:w-[300px] aspect-square relative overflow-hidden group"
                 style={{ border: '1px solid var(--border)' }}
               >
-                <span className="text-[9px] tracking-widest text-white/50 uppercase">
-                  {post.caption}
-                </span>
-              </div>
+                {post.thumbnail_url ? (
+                  <Image
+                    src={post.thumbnail_url}
+                    alt={post.caption ?? ''}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="300px"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <span className="text-[9px] tracking-widest text-gray-400 uppercase">
+                      {post.username ?? 'Instagram'}
+                    </span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    {post.caption && (
+                      <p className="text-white text-xs leading-relaxed line-clamp-2">{post.caption}</p>
+                    )}
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
         </div>

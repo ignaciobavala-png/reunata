@@ -14,8 +14,14 @@ Extiende `auth.users`. Un registro por usuario.
 | `id` | uuid PK | FK → `auth.users.id` |
 | `nombre` | text | |
 | `email` | text | |
-| `telefono` | text | |
+| `telefono` | text | WhatsApp |
 | `cuit_dni` | text | |
+| `razon_social` | text | Solo mayorista |
+| `direccion` | text | Solo mayorista |
+| `localidad` | text | Solo mayorista |
+| `sitio_web` | text | Solo mayorista |
+| `puntos_venta` | integer | Solo mayorista |
+| `clientes_activos` | integer | Solo mayorista |
 | `condicion_fiscal` | text | |
 | `rol` | text | CHECK: master, empleado, comisionista, consumidor_final, distribuidor, local, mercha |
 | `aprobado` | boolean | null = pendiente, true = aprobado |

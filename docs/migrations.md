@@ -102,3 +102,67 @@
 - Bucket Storage `cv` (público, 5MB max, PDF/DOC/DOCX/JPG/PNG)
 - RLS: INSERT público, SELECT/UPDATE/DELETE solo internos (master, empleado, comisionista)
 - Políticas Storage: lectura pública, inserción pública, eliminación solo internos
+
+---
+
+## `20260509000001_corporativos.sql`
+
+**Propósito:** Agrega formulario de pedidos corporativos con productos personalizados.
+
+**Crea:**
+- Tabla `corporativos` — nombre, empresa, email, teléfono, cuit, ubicación, ocasión, cantidades, productos[], personalizar, fecha_limite, estado
+- Bucket `corporativos` en Storage para archivos adjuntos
+- RLS: INSERT público (service client), CRUD solo internos
+
+---
+
+## `20260509000002_banners.sql`
+
+**Propósito:** Agrega tabla de banners promocionales.
+
+**Crea:**
+- Tabla `banners` — url, titulo, link_url, activo
+- RLS: lectura pública, CRUD solo master/empleado
+
+---
+
+## `20260509181157_fix_fk_indexes_and_rls_initplan.sql`
+
+**Propósito:** Hardening de base de datos.
+
+**Cambios:**
+- 14 índices en foreign keys
+- RLS: migra de `auth.uid()` directo a subqueries para evitar InitPlan
+- `search_path` explícito en funciones
+- Revoca execute de `handle_new_user()` de anon
+
+---
+
+## `20260511000001_comunidad_fotos.sql`
+
+**Propósito:** Agrega sección Comunidad / Instagram en homepage.
+
+**Crea:**
+- Tabla `comunidad_fotos` — id, url_instagram, thumbnail_url, caption, username, permalink, orden
+- RLS: lectura pública, CRUD solo internos
+- Bucket `multimedia` subpath `comunidad/`
+
+---
+
+## `20260511000002_alter_comunidad_fotos.sql`
+
+**Propósito:** Ajusta columnas de comunidad_fotos.
+
+**Cambios:**
+- `url_instagram` nullable (ya no se almacenan URLs de Instagram)
+- `thumbnail_url` pasa a NOT NULL
+
+---
+
+## `20260511000003_registro_mayorista.sql`
+
+**Propósito:** Agrega columnas para registro de mayoristas con segmentación.
+
+**Cambios:**
+- Columnas nuevas en `profiles`: razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos
+- `handle_new_user()` ahora inserta también el `nombre` desde `raw_user_meta_data`

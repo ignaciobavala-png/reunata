@@ -46,6 +46,12 @@ export default async function Home() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
   } : null
 
+  const { data: postsInstagram } = await supabase
+    .from('comunidad_fotos')
+    .select('id, thumbnail_url, caption, username, permalink, url_instagram')
+    .eq('activo', true)
+    .order('orden')
+
   const fotos = (fotosDestacadas ?? []).map((f) => {
     const productos = f.productos as { titulo: string; codigo_interno: string }[] | null
     const producto = productos?.[0] ?? null
@@ -67,7 +73,7 @@ export default async function Home() {
         <PromoTicker />
         <CategoryGallery />
         <ProductSlider fotos={fotos} />
-        <InstagramSlider />
+        <InstagramSlider posts={postsInstagram ?? []} />
         <PromotionalBanner banner={banner} />
       </main>
       <Footer />

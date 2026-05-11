@@ -221,9 +221,9 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 ## Sesión 3 — Próxima
 
 ### Prioridad alta
-- [ ] **Registro Mayorista**: formulario completo + segmentación + aprobación admin + notificación WhatsApp
+- ✅ **Registro Mayorista**: formulario completo + segmentación + aprobación admin (sin notif WhatsApp)
+- ✅ **Comunidad / Instagram**: tabla `comunidad_fotos` + editor en Multimedia + InstagramSlider conectado
 - [ ] **Lupa funcional**: ruta /buscar?q=, búsqueda ILIKE + tsvector, UI de resultados
-- [ ] **Comunidad / Instagram**: tabla `comunidad_fotos`, editor en Multimedia, conectar InstagramSlider
 
 ### Prioridad media
 - [ ] **Newsletter**: tabla `suscriptores`, server action suscribir, panel admin exportable

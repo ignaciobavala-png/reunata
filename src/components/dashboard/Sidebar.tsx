@@ -7,7 +7,7 @@ import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
-  Sparkles, ClipboardList, Megaphone, Tag, Building2,
+  Sparkles, ClipboardList, Megaphone, Tag, Building2, Camera,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -34,6 +34,7 @@ const navMaster: NavItem[] = [
     children: [
       { label: 'Chatbot',  href: '/dashboard/admin/chatbot',    icon: Sparkles },
       { label: 'Ofertas',  href: '/dashboard/admin/ofertas',    icon: Tag },
+      { label: 'Instagram',  href: '/dashboard/admin/instagram', icon: Camera },
     ],
   },
   { label: 'Configuración',    href: '/dashboard/admin/configuracion',   icon: Settings },

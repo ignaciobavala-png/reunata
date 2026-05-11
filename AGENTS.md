@@ -148,4 +148,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Server actions de canales ahora revalida `/dashboard/admin/productos`
 - Redirect 301 de `/dashboard/admin/canales` → `/dashboard/admin/productos?tab=canales`
 - Tipos compartidos creados en `src/types/productos.ts`
+
+### Instagram / Comunidad
+- Tabla `comunidad_fotos` con RLS (lectura pública, internos CRUD)
+- Dashboard en `/dashboard/admin/instagram/` con upload, caption, drag reorder, delete
+- Server actions: agregarPost, eliminarPost, actualizarCaption, reordenarPosts, getPostsPublic
+- InstagramSlider en homepage con embla-carousel, oculto si no hay posts
+- Icono Instagram SVG inline, texto "Comunidad Reunata" destacado
+
+### Registro Mayorista
+- Migration agrega columnas a `profiles`: razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos
+- `handle_new_user()` actualizado para insertar nombre desde metadata
+- Server action `registrarse()` con signUp + update perfil via service client
+- Página `/registro` con tabs Minorista / Mayorista
+- Mayorista: tipo (distri/local/mercha), razón social, CUIT, dirección, localidad, segmentación
+- Admin clientes: fila expandible con datos completos de mayoristas
+- Pendiente de aprobación por defecto (aprobado = false)
 <!-- END:feactures -->

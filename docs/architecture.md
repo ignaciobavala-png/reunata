@@ -49,6 +49,7 @@ src/app/
 │   └── arrepentimiento/page.tsx (placeholder)
 │
 ├── login/page.tsx          Formulario de login con server action
+├── registro/page.tsx       Registro minorista + mayorista con segmentación
 │
 ├── dashboard/
 │   ├── layout.tsx          Auth guard + Sidebar
@@ -80,9 +81,11 @@ src/app/
 │   ├── cuenta.ts
 │   ├── diseno.ts            Guardar colores personalizados
 │   ├── empleados.ts
+│   ├── instagram.ts         CRUD comunidad_fotos + reordenar
 │   ├── ofertas.ts           CRUD ofertas/hot sale + getOfertasPublic
 │   ├── pedidos.ts
-│   └── postulaciones.ts
+│   ├── postulaciones.ts
+│   └── registro.ts          signUp con rol y datos mayorista
 │
 └── api/                    Route handlers
     ├── chatbot/            POST — verifica master, llama a Groq, streaming
