@@ -141,4 +141,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Inputs fondo blanco, botones oscuros, placeholder gris
 - Cards con `border-2` y padding optimizado
 - Secciones estilo platino/editorial minimalista
+
+### Fusión Canales → Productos
+- Sección Canales eliminada del sidebar y fusionada dentro de Productos como segundo tab (`?tab=canales`)
+- `CanalesClient.tsx` movido a `src/app/dashboard/admin/productos/`
+- Server actions de canales ahora revalida `/dashboard/admin/productos`
+- Redirect 301 de `/dashboard/admin/canales` → `/dashboard/admin/productos?tab=canales`
+- Tipos compartidos creados en `src/types/productos.ts`
 <!-- END:feactures -->

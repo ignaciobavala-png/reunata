@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/admin/canales',
+        destination: '/dashboard/admin/productos?tab=canales',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {

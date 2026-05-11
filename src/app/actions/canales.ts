@@ -19,7 +19,7 @@ export async function toggleProductoCanal(productoId: number, canalId: number, a
       .eq('canal_id', canalId)
     if (error) return { ok: false, error: error.message }
   }
-  revalidatePath('/dashboard/admin/canales')
+  revalidatePath('/dashboard/admin/productos')
   return { ok: true }
 }
 
@@ -38,6 +38,6 @@ export async function asignarCanalMasivo(productoIds: number[], canalId: number,
       .eq('canal_id', canalId)
     if (error) return { ok: false, error: error.message }
   }
-  revalidatePath('/dashboard/admin/canales')
+  revalidatePath('/dashboard/admin/productos')
   return { ok: true }
 }

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
-  Users, UserCog, Settings, LogOut, Layers, Store, Images,
+  Users, UserCog, Settings, LogOut, Store, Images,
   Sparkles, ClipboardList, Megaphone, Tag, Building2,
 } from 'lucide-react'
 
@@ -24,7 +24,6 @@ const navMaster: NavItem[] = [
   { label: 'Inicio',        href: '/dashboard/admin',                icon: LayoutDashboard },
   { label: 'Productos',     href: '/dashboard/admin/productos',       icon: Package },
   { label: 'Multimedia',    href: '/dashboard/admin/multimedia',      icon: Images },
-  { label: 'Canales',       href: '/dashboard/admin/canales',         icon: Layers },
   { label: 'Pedidos',       href: '/dashboard/admin/pedidos',         icon: ShoppingCart },
   { label: 'Clientes',      href: '/dashboard/admin/clientes',        icon: Users },
   { label: 'Equipo',        href: '/dashboard/admin/empleados',       icon: UserCog },
