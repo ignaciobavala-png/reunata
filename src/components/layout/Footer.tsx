@@ -1,6 +1,9 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
-import { Camera, Share2, Play, Music } from 'lucide-react'
+import { Camera, Share2, Play, Music, ChevronDown } from 'lucide-react'
 
 const tienda = [
   { label: 'Todos los productos',     href: '/tienda' },
@@ -39,18 +42,43 @@ const redes = [
   { label: 'YouTube',   href: 'https://www.youtube.com/@reunata.ar',   icon: Play },
 ]
 
-const sectionLabel = 'text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-4'
 const linkClass = 'text-sm text-[var(--color-acero)] hover:text-[var(--color-acero-brillo)] transition-colors duration-200'
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="border-b border-[var(--color-granito-claro)] md:border-none">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between py-3.5 md:py-0 md:mb-4 md:cursor-default"
+      >
+        <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)]">
+          {title}
+        </span>
+        <ChevronDown
+          size={14}
+          strokeWidth={1.5}
+          className={`md:hidden transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--color-acero-oscuro)' }}
+        />
+      </button>
+      <div className={`pb-4 md:pb-0 ${open ? 'block' : 'hidden'} md:block`}>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 export function Footer() {
   return (
     <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
-        <div className="px-6 md:px-10 py-10 md:py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-4 md:gap-8">
 
           {/* Tienda */}
-          <div className="col-span-2 md:col-span-1">
-            <p className={sectionLabel}>Tienda</p>
+          <Section title="Tienda">
             <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
               {tienda.map((item) => (
                 <li key={item.href}>
@@ -58,11 +86,10 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Section>
 
           {/* Empresa */}
-          <div>
-            <p className={sectionLabel}>Empresa</p>
+          <Section title="Empresa">
             <ul className="flex flex-col gap-2">
               {empresaLinks.map((item) => (
                 <li key={item.href}>
@@ -70,19 +97,18 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Section>
 
           {/* Información / Soporte */}
-          <div>
-            <p className={sectionLabel}>Información</p>
-            <ul className="flex flex-col gap-2">
+          <Section title="Información y soporte">
+            <ul className="flex flex-col gap-2 mb-4">
               {infoLinks.slice(0, 3).map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className={linkClass}>{item.label}</Link>
                 </li>
               ))}
             </ul>
-            <p className={`${sectionLabel} mt-5`}>Soporte</p>
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-3 hidden md:block">Soporte</p>
             <ul className="flex flex-col gap-2">
               {infoLinks.slice(3).map((item) => (
                 <li key={item.href}>
@@ -90,12 +116,11 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Section>
 
           {/* Contacto + Newsletter + Redes */}
-          <div>
-            <p className={sectionLabel}>Contacto</p>
-            <ul className="flex flex-col gap-2 mb-5">
+          <Section title="Contacto">
+            <ul className="flex flex-col gap-2 mb-4">
               <li>
                 <a
                   href="https://wa.me/5491132720974"
@@ -119,11 +144,11 @@ export function Footer() {
               </li>
             </ul>
 
-            <p className={sectionLabel}>Newsletter</p>
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-2">Newsletter</p>
             <p className="text-xs text-[var(--color-acero-oscuro)] mb-3 leading-relaxed">
               10% OFF en tu próxima compra
             </p>
-            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-5">
+            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-4">
               <input
                 type="email"
                 placeholder="tu@email.com"
@@ -137,7 +162,7 @@ export function Footer() {
               </button>
             </form>
 
-            <p className={sectionLabel}>Seguinos</p>
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-3">Seguinos</p>
             <div className="flex gap-3">
               {redes.map((r) => (
                 <a
@@ -152,15 +177,17 @@ export function Footer() {
                 </a>
               ))}
             </div>
-          </div>
+          </Section>
 
         </div>
       </FadeIn>
 
       {/* Logo gigante */}
-      <div className="flex justify-center py-20 md:py-28 border-t border-[var(--color-granito-claro)] bg-white select-none">
-        <span className="text-[clamp(4rem,15vw,12rem)] font-black tracking-[0.15em] leading-none"
-          style={{ color: '#000', fontFamily: "'system-ui', sans-serif" }}>
+      <div className="flex justify-center py-10 md:py-28 border-t border-[var(--color-granito-claro)] bg-white select-none mt-4 md:mt-0">
+        <span
+          className="text-[clamp(3rem,15vw,12rem)] font-black tracking-[0.15em] leading-none"
+          style={{ color: '#000', fontFamily: "'system-ui', sans-serif" }}
+        >
           REUNATA
         </span>
       </div>
