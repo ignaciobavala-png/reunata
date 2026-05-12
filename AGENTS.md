@@ -164,4 +164,22 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Mayorista: tipo (distri/local/mercha), razón social, CUIT, dirección, localidad, segmentación
 - Admin clientes: fila expandible con datos completos de mayoristas
 - Pendiente de aprobación por defecto (aprobado = false)
+
+### Dashboard cliente diferenciado (mayorista vs minorista)
+- `dashboard/cliente/page.tsx`: home diferenciada según rol
+  - **Minorista** (`consumidor_final`): saludo + texto de bienvenida + 2 CTAs (Catálogo, Mis Pedidos)
+  - **Mayorista** (`distribuidor`, `local`, `mercha`): saludo con razón social + panel de condiciones del canal (nombre, descripción, lista de precios activa) con color por tipo
+  - Badge de rol con color propio: índigo (consumidor_final), cyan (distribuidor), verde (local), ámbar (mercha)
+  - Texto de "Pendiente de aprobación" diferenciado: minorista genérico / mayorista menciona equipo comercial
+- `cuenta/CuentaForm.tsx`: sección "Datos de empresa" condicional solo para mayoristas
+  - Campos: razón social, dirección, localidad, sitio web, puntos de venta, clientes activos
+  - Mismo estilo visual que secciones Contacto y Facturación
+- `cuenta/page.tsx`: SELECT ampliado con todos los campos de empresa
+- `actions/cuenta.ts`: `actualizarPerfil()` actualiza campos mayoristas si vienen en el form (minoristas no se ven afectados)
+
+### Login — botón Google (visual)
+- `GoogleLoginButton.tsx` como componente `'use client'` separado
+- Logo G multicolor SVG oficial, fondo blanco, sombra sutil
+- Posicionado entre el formulario y el link "Crear cuenta" con separadores "o continuá con" / "¿Sos nuevo?"
+- Sin lógica OAuth por ahora — preparado para conectar `signInWithOAuth` cuando se habilite Google en Supabase
 <!-- END:feactures -->

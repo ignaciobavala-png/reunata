@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, Fragment } from 'react'
 import { aprobarCliente, actualizarCanalCliente } from '@/app/actions/clientes'
 import { Check, X, Search, Loader2, ChevronDown, ChevronRight, Store, Building2, MapPin, Globe, Phone, Users, PackageOpen } from 'lucide-react'
 
@@ -128,9 +128,8 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
             </thead>
             <tbody>
               {filtrados.map((c, i) => (
-                <>
+                <Fragment key={c.id}>
                   <tr
-                    key={c.id}
                     className="cursor-pointer"
                     onClick={() => setExpandido(expandido === c.id ? null : c.id)}
                     style={{
@@ -284,7 +283,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
 
               {filtrados.length === 0 && (

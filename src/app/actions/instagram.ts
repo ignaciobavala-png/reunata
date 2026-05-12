@@ -15,7 +15,7 @@ export interface PostInstagram {
   created_at: string
 }
 
-export async function agregarPost(thumbnail_url: string, caption?: string) {
+export async function agregarPost(thumbnail_url: string, caption?: string, url_instagram?: string) {
   const supabase = createServiceClient()
 
   const { data: maxOrden } = await supabase
@@ -30,9 +30,21 @@ export async function agregarPost(thumbnail_url: string, caption?: string) {
   const { error } = await supabase.from('comunidad_fotos').insert({
     thumbnail_url,
     caption: caption ?? null,
+    url_instagram: url_instagram ?? null,
     orden,
   })
 
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/dashboard/admin/instagram')
+  return { ok: true }
+}
+
+export async function actualizarUrlInstagram(id: number, url: string) {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('comunidad_fotos')
+    .update({ url_instagram: url || null })
+    .eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/dashboard/admin/instagram')
   return { ok: true }

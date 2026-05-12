@@ -3,9 +3,9 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { agregarPost, eliminarPost, actualizarCaption, reordenarPosts } from '@/app/actions/instagram'
+import { agregarPost, eliminarPost, actualizarCaption, actualizarUrlInstagram, reordenarPosts } from '@/app/actions/instagram'
 import type { PostInstagram } from '@/app/actions/instagram'
-import { Loader2, CheckCircle, X, Plus, GripVertical, Upload } from 'lucide-react'
+import { Loader2, CheckCircle, X, GripVertical, Upload, Link } from 'lucide-react'
 import Image from 'next/image'
 
 export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagram[] }) {
@@ -13,9 +13,11 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
   const router = useRouter()
   const [posts, setPosts] = useState<PostInstagram[]>(postsIniciales)
   const [caption, setCaption] = useState('')
+  const [urlNuevo, setUrlNuevo] = useState('')
   const [subiendo, setSubiendo] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [editando, setEditando] = useState<Record<number, string>>({})
+  const [editandoUrl, setEditandoUrl] = useState<Record<number, string>>({})
   const dragIdx = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -41,7 +43,7 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
 
       const thumbnail_url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/multimedia/${path}`
 
-      const res = await agregarPost(thumbnail_url, caption || undefined)
+      const res = await agregarPost(thumbnail_url, caption || undefined, urlNuevo || undefined)
       if (!res.ok) throw new Error(res.error)
 
       setPosts(prev => [...prev, {
@@ -49,13 +51,14 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
         thumbnail_url,
         caption: caption || null,
         orden: prev.length,
-        url_instagram: null,
+        url_instagram: urlNuevo || null,
         permalink: null,
         username: null,
         activo: true,
         created_at: new Date().toISOString(),
       }])
       setCaption('')
+      setUrlNuevo('')
       mostrarToast('Imagen agregada correctamente')
       router.refresh()
     } catch (err) {
@@ -91,6 +94,21 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
 
     try {
       const res = await actualizarCaption(id, caption)
+      if (!res.ok) setPosts(anterior)
+      else router.refresh()
+    } catch {
+      setPosts(anterior)
+    }
+  }
+
+  async function handleSaveUrl(id: number) {
+    const url = editandoUrl[id]?.trim() ?? ''
+    const anterior = posts
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, url_instagram: url || null } : p))
+    setEditandoUrl(prev => { const n = { ...prev }; delete n[id]; return n })
+
+    try {
+      const res = await actualizarUrlInstagram(id, url)
       if (!res.ok) setPosts(anterior)
       else router.refresh()
     } catch {
@@ -154,14 +172,25 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <input
             value={caption}
             onChange={e => setCaption(e.target.value)}
             placeholder="Descripción opcional…"
-            className="flex-1 px-3 py-2.5 text-sm rounded-lg border outline-none"
+            className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none"
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
+          <div className="relative">
+            <Link size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-acero-oscuro)' }} />
+            <input
+              value={urlNuevo}
+              onChange={e => setUrlNuevo(e.target.value)}
+              placeholder="URL de la publicación en Instagram (opcional)"
+              type="url"
+              className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border outline-none"
+              style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+            />
+          </div>
         </div>
       </div>
 
@@ -192,7 +221,8 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  {/* Caption */}
                   {editando[post.id] !== undefined ? (
                     <input
                       value={editando[post.id]}
@@ -210,6 +240,30 @@ export function InstagramClient({ posts: postsIniciales }: { posts: PostInstagra
                       style={{ color: post.caption ? 'var(--foreground)' : 'var(--color-acero-oscuro)' }}
                     >
                       {post.caption || 'Agregar descripción'}
+                    </button>
+                  )}
+
+                  {/* URL Instagram */}
+                  {editandoUrl[post.id] !== undefined ? (
+                    <input
+                      value={editandoUrl[post.id]}
+                      onChange={e => setEditandoUrl(prev => ({ ...prev, [post.id]: e.target.value }))}
+                      onBlur={() => handleSaveUrl(post.id)}
+                      onKeyDown={e => e.key === 'Enter' && handleSaveUrl(post.id)}
+                      placeholder="https://instagram.com/p/…"
+                      type="url"
+                      className="w-full px-2 py-1 text-xs border rounded outline-none"
+                      style={{ borderColor: 'var(--color-acero-claro)' }}
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setEditandoUrl(prev => ({ ...prev, [post.id]: post.url_instagram ?? '' }))}
+                      className="flex items-center gap-1 text-xs truncate w-full text-left"
+                      style={{ color: post.url_instagram ? 'var(--color-acero-oscuro)' : 'var(--color-acero-claro)' }}
+                    >
+                      <Link size={10} className="flex-shrink-0" />
+                      {post.url_instagram ? post.url_instagram.replace('https://', '') : 'Agregar URL de Instagram'}
                     </button>
                   )}
                 </div>

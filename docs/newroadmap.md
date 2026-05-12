@@ -218,12 +218,22 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 
 ---
 
-## Sesión 3 — Próxima
+## Sesión 3 — Completada (12/5/2026)
 
-### Prioridad alta
+### Implementado
 - ✅ **Registro Mayorista**: formulario completo + segmentación + aprobación admin (sin notif WhatsApp)
 - ✅ **Comunidad / Instagram**: tabla `comunidad_fotos` + editor en Multimedia + InstagramSlider conectado
+- ✅ **Dashboard cliente diferenciado**: home mayorista vs minorista, cuenta con campos de empresa, botón Google (visual)
+
+---
+
+## Sesión 4 — Próxima
+
+### Prioridad alta
 - [ ] **Lupa funcional**: ruta /buscar?q=, búsqueda ILIKE + tsvector, UI de resultados
+- [ ] **Google OAuth**: conectar `GoogleLoginButton` con `signInWithOAuth`, ruta `/auth/callback`, manejo de perfil incompleto para mayoristas
+  - Habilitar identity linking en Supabase (Settings → Auth → Merge accounts)
+  - Si el perfil no tiene razón social/CUIT → redirigir a formulario de completar datos
 
 ### Prioridad media
 - [ ] **Newsletter**: tabla `suscriptores`, server action suscribir, panel admin exportable

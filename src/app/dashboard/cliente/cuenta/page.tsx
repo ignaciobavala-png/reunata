@@ -10,7 +10,7 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('nombre, email, telefono, cuit_dni, condicion_fiscal, rol, aprobado')
+    .select('nombre, email, telefono, cuit_dni, condicion_fiscal, rol, aprobado, razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos')
     .eq('id', user.id)
     .single()
 

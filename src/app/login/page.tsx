@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { login } from '@/app/actions/auth'
+import { GoogleLoginButton } from './GoogleLoginButton'
 
 export const metadata: Metadata = { title: 'Ingresar' }
 
@@ -66,7 +67,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </button>
           </form>
 
-          <div className="my-8 flex items-center gap-4">
+          {/* Separador OAuth */}
+          <div className="my-6 flex items-center gap-4">
+            <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
+            <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>o continuá con</span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
+          </div>
+
+          <GoogleLoginButton />
+
+          <div className="my-6 flex items-center gap-4">
             <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
             <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>¿Sos nuevo?</span>
             <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />

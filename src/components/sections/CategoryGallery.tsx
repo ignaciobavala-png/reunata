@@ -40,24 +40,12 @@ export function CategoryGallery() {
 
       const allKeys = [...new Set(cats.flatMap(c => c.categoria_keys ?? []))]
 
-      const { data: canalPublico } = await supabase
-        .from('canales')
-        .select('id')
-        .eq('slug', 'publico')
-        .single()
-
-      const { data: publicaAsignaciones } = canalPublico
-        ? await supabase.from('producto_canales').select('producto_id').eq('canal_id', canalPublico.id)
-        : { data: [] }
-
-      const idsPublicos = new Set((publicaAsignaciones ?? []).map(a => a.producto_id))
-
       const { data: productos } = allKeys.length > 0
         ? await supabase
             .from('productos')
             .select('id, categoria, producto_fotos(url)')
+            .eq('activo', true)
             .in('categoria', allKeys)
-            .in('id', [...idsPublicos])
         : { data: [] }
 
       const fotosMap: Record<number, string[]> = {}

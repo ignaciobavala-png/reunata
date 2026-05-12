@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { ShoppingCart, Store } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { ShoppingCart, Store, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 const LABEL_ROL: Record<string, string> = {
@@ -9,23 +10,64 @@ const LABEL_ROL: Record<string, string> = {
   mercha: 'Merchandising',
 }
 
+const CANAL_COLOR: Record<string, string> = {
+  consumidor_final: '#6366f1',
+  distribuidor:     '#0ea5e9',
+  local:            '#10b981',
+  mercha:           '#f59e0b',
+}
+
+const LISTA_LABEL: Record<string, string> = {
+  precio_lista1: 'Lista 1',
+  precio_lista2: 'Lista 2',
+  precio_lista3: 'Lista 3',
+  precio_lista4: 'Lista 4',
+  precio_lista5: 'Lista 5',
+}
+
+const ESTADO_LABEL: Record<string, string> = {
+  pendiente_pago:     'Pendiente de pago',
+  comprobante_subido: 'Comprobante enviado',
+  pago_confirmado:    'Pago confirmado',
+  en_preparacion:     'En preparación',
+  enviado:            'Enviado',
+  entregado:          'Entregado',
+  cancelado:          'Cancelado',
+}
+
 export default async function ClienteDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('nombre, rol, aprobado')
-    .eq('id', user!.id)
+    .select('nombre, rol, aprobado, canal_id, razon_social')
+    .eq('id', user.id)
     .single()
 
-  const { data: pedidos, count } = await supabase
-    .from('pedidos')
-    .select('id, estado, created_at, total_usd', { count: 'exact' })
-    .eq('cliente_id', user!.id)
-    .neq('estado', 'borrador')
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const [pedidosRes, canalRes] = await Promise.all([
+    supabase
+      .from('pedidos')
+      .select('id, estado, created_at, total_usd', { count: 'exact' })
+      .eq('cliente_id', user.id)
+      .neq('estado', 'borrador')
+      .order('created_at', { ascending: false })
+      .limit(5),
+    profile?.canal_id
+      ? supabase.from('canales').select('nombre, descripcion, lista_precios').eq('id', profile.canal_id).single()
+      : Promise.resolve({ data: null }),
+  ])
+
+  const pedidos = pedidosRes.data
+  const count = pedidosRes.count
+  const canal = canalRes.data as { nombre: string; descripcion: string | null; lista_precios: string | null } | null
+
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile?.rol ?? '')
+  const color = CANAL_COLOR[profile?.rol ?? ''] ?? '#6366f1'
+  const nombreMostrado = esMayorista && profile?.razon_social
+    ? profile.razon_social
+    : (profile?.nombre ?? 'cliente')
 
   if (!profile?.aprobado) {
     return (
@@ -39,31 +81,59 @@ export default async function ClienteDashboardPage() {
             Cuenta pendiente de aprobación
           </h2>
           <p className="text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Tu registro fue recibido. Un administrador revisará tu cuenta y te habilitará el acceso al catálogo mayorista en breve.
+            {esMayorista
+              ? 'Tu cuenta está siendo revisada por nuestro equipo comercial. Te contactaremos a la brevedad para coordinar los primeros pasos.'
+              : 'Tu registro fue recibido. En breve habilitaremos tu acceso al catálogo.'
+            }
           </p>
         </div>
       </div>
     )
   }
 
-  const ESTADO_LABEL: Record<string, string> = {
-    pendiente_pago: 'Pendiente de pago',
-    comprobante_subido: 'Comprobante enviado',
-    pago_confirmado: 'Pago confirmado',
-    en_preparacion: 'En preparación',
-    enviado: 'Enviado',
-    entregado: 'Entregado',
-    cancelado: 'Cancelado',
-  }
-
   return (
     <div className="p-8">
-      <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-        Hola, {profile.nombre ?? 'cliente'}
-      </h1>
-      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Canal: {LABEL_ROL[profile.rol] ?? profile.rol}
-      </p>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-1 flex-wrap">
+        <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+          Hola, {nombreMostrado}
+        </h1>
+        <span
+          className="text-xs px-2.5 py-1 rounded-full font-medium"
+          style={{ background: `${color}22`, color }}
+        >
+          {LABEL_ROL[profile?.rol ?? ''] ?? profile?.rol}
+        </span>
+      </div>
+
+      {/* Panel de canal — solo mayoristas */}
+      {esMayorista && canal ? (
+        <div
+          className="mt-4 mb-8 rounded-xl border p-5 flex flex-col gap-1 max-w-lg"
+          style={{ borderColor: `${color}44`, background: `${color}0a` }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Tag size={14} style={{ color }} />
+            <span className="text-xs font-medium uppercase tracking-wider" style={{ color }}>
+              Condiciones del canal
+            </span>
+          </div>
+          <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>{canal.nombre}</p>
+          {canal.descripcion && (
+            <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{canal.descripcion}</p>
+          )}
+          {canal.lista_precios && (
+            <p className="text-sm mt-1" style={{ color: 'var(--color-granito-claro)' }}>
+              Lista de precios activa:{' '}
+              <strong>{LISTA_LABEL[canal.lista_precios] ?? canal.lista_precios}</strong>
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+          Bienvenido a tu espacio de compras.
+        </p>
+      )}
 
       {/* Accesos rápidos */}
       <div className="grid grid-cols-2 gap-4 mb-8 max-w-md">
@@ -74,7 +144,9 @@ export default async function ClienteDashboardPage() {
         >
           <Store size={20} strokeWidth={1.5} style={{ color: 'var(--color-granito)' }} />
           <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>Ver catálogo</span>
-          <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Productos disponibles para tu canal</span>
+          <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {esMayorista ? 'Productos y precios de tu canal' : 'Explorar productos disponibles'}
+          </span>
         </Link>
         <Link
           href="/dashboard/cliente/pedidos"

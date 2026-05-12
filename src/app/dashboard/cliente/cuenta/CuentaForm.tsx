@@ -11,6 +11,13 @@ interface Profile {
   telefono?: string | null
   cuit_dni?: string | null
   condicion_fiscal?: string | null
+  rol?: string | null
+  razon_social?: string | null
+  direccion?: string | null
+  localidad?: string | null
+  sitio_web?: string | null
+  puntos_venta?: number | null
+  clientes_activos?: number | null
 }
 
 const CONDICION_FISCAL = [
@@ -23,6 +30,7 @@ const CONDICION_FISCAL = [
 export function CuentaForm({ profile, userId }: { profile: Profile; userId: string }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile.rol ?? '')
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -69,6 +77,18 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
           </select>
         </div>
       </div>
+
+      {esMayorista && (
+        <div className="rounded-xl border p-6 flex flex-col gap-4" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
+          <h2 className="text-sm tracking-widest uppercase" style={{ color: 'var(--color-granito-claro)' }}>Datos de empresa</h2>
+          {campo('razon_social', 'Razón Social', 'text', profile.razon_social ?? '')}
+          {campo('direccion', 'Dirección', 'text', profile.direccion ?? '')}
+          {campo('localidad', 'Localidad', 'text', profile.localidad ?? '')}
+          {campo('sitio_web', 'Sitio Web / Red Social', 'text', profile.sitio_web ?? '')}
+          {campo('puntos_venta', 'Puntos de Venta', 'number', profile.puntos_venta?.toString() ?? '')}
+          {campo('clientes_activos', 'Clientes Activos', 'number', profile.clientes_activos?.toString() ?? '')}
+        </div>
+      )}
 
       <button
         type="submit"
