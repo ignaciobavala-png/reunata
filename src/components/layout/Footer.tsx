@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
 import { Camera, Share2, Play, Music, ChevronDown } from 'lucide-react'
@@ -20,7 +21,7 @@ const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
   { label: 'Próximos eventos',        href: '/eventos' },
   { label: 'Trabajá con nosotros',    href: '/trabaja-con-nosotros' },
-  { label: 'Quiero ser distribuidor', href: '/distribuidores' },
+  { label: 'Quiero ser distribuidor', href: '/login' },
   { label: 'Franquicias',             href: '/franquicias' },
   { label: 'Puntos de venta',         href: '/puntos-de-venta' },
 ]
@@ -183,13 +184,15 @@ export function Footer() {
       </FadeIn>
 
       {/* Logo gigante */}
-      <div className="flex justify-center py-10 md:py-28 border-t border-[var(--color-granito-claro)] bg-white select-none mt-4 md:mt-0">
-        <span
-          className="text-[clamp(3rem,15vw,12rem)] font-black tracking-[0.15em] leading-none"
-          style={{ color: '#000', fontFamily: "'system-ui', sans-serif" }}
-        >
-          REUNATA
-        </span>
+      <div className="flex justify-center py-10 md:py-20 border-t border-[var(--color-granito-claro)] bg-white mt-4 md:mt-0">
+        <Image
+          src="/logo.png"
+          alt="Reunata"
+          width={1200}
+          height={400}
+          className="w-[clamp(180px,55vw,700px)] h-auto object-contain brightness-0"
+          priority={false}
+        />
       </div>
 
       {/* Bottom bar */}

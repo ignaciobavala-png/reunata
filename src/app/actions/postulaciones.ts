@@ -50,7 +50,7 @@ export async function crearPostulacion(formData: FormData) {
   }
 
   const requiredBase = ['nombre', 'apellido', 'email', 'direccion']
-  const required = tipo === 'proveedor' ? requiredBase : [...requiredBase, 'dni', 'nacionalidad']
+  const required = requiredBase
   for (const key of required) {
     if (!campos[key]) return { error: `El campo ${key} es obligatorio.` }
   }

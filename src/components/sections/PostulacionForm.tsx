@@ -122,9 +122,7 @@ export function PostulacionForm({ tipo, titulo, descripcion }: Props) {
           <Field label="Apellido" name="apellido" />
         </div>
         <Field label="E-mail" name="email" type="email" />
-        <Field label="DNI" name="dni" />
         <Field label="Dirección" name="direccion" />
-        <Field label="Nacionalidad" name="nacionalidad" />
 
         {tipo === 'fulltime' && (
           <CVField />

@@ -224,6 +224,14 @@ export function Header() {
                   >
                     Agencia de Merchandising
                   </Link>
+                  <Link
+                    href="/registro"
+                    onClick={() => setCorporativosOpen(false)}
+                    className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                    style={{ color: 'var(--color-granito)' }}
+                  >
+                    Quiero ser mayorista
+                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -331,6 +339,14 @@ export function Header() {
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Agencia de Merchandising
+          </Link>
+          <Link
+            href="/registro"
+            onClick={() => setOpen(false)}
+            className="text-lg text-[var(--color-granito)] py-1"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Quiero ser mayorista
           </Link>
         </div>
 
