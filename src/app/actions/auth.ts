@@ -30,6 +30,11 @@ export async function login(formData: FormData) {
     redirect('/dashboard/admin')
   }
 
+  const next = formData.get('next') as string | null
+  if (next?.startsWith('/dashboard/')) {
+    redirect(next)
+  }
+
   redirect('/dashboard/cliente')
 }
 

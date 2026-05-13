@@ -1,16 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { useCartStore } from '@/stores/cartStore'
-import { ShoppingCart, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
+import { useCartStore, CartItem } from '@/stores/cartStore'
+import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 
-export function CartDrawer() {
+const WHATSAPP = '5491132720974'
+
+function buildWhatsAppLink(items: CartItem[]) {
+  const lineas = items.map(i => `• ${i.titulo} x${i.cantidad}`)
+  const texto = `Hola! Me gustaría hacer un pedido:\n\n${lineas.join('\n')}\n\nQuedo a la espera, gracias!`
+  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
+}
+
+export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minorista' }) {
   const { items, remove, updateCantidad, total, totalItems, clear } = useCartStore()
   const [open, setOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const router = useRouter()
+
+  const esMayorista = tipoCliente === 'mayorista'
 
   async function handleEnviarPedido() {
     if (items.length === 0) return
@@ -35,7 +45,7 @@ export function CartDrawer() {
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200"
         style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
       >
-        <ShoppingCart size={18} />
+        {esMayorista ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
         {totalItems() > 0 && (
           <span
             className="text-xs font-medium px-1.5 py-0.5 rounded-full"
@@ -70,9 +80,9 @@ export function CartDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
           <div className="flex items-center gap-2">
-            <ShoppingCart size={16} style={{ color: 'var(--color-granito)' }} />
+            {esMayorista ? <ShoppingCart size={16} style={{ color: 'var(--color-granito)' }} /> : <ShoppingBag size={16} style={{ color: 'var(--color-granito)' }} />}
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-              Mi pedido
+              {esMayorista ? 'Mi pedido' : 'Mi carrito'}
             </span>
           </div>
           <button onClick={() => setOpen(false)}>
@@ -84,9 +94,12 @@ export function CartDrawer() {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2">
-              <ShoppingCart size={28} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
+              {esMayorista
+                ? <ShoppingCart size={28} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
+                : <ShoppingBag size={28} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
+              }
               <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Tu pedido está vacío
+                {esMayorista ? 'Tu pedido está vacío' : 'Tu carrito está vacío'}
               </p>
             </div>
           ) : (
@@ -144,20 +157,40 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-sm" style={{ color: 'var(--foreground)' }}>Total</span>
+              <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+                {esMayorista ? 'Total' : 'Total estimado'}
+              </span>
               <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                 u$s {total().toFixed(2)}
               </span>
             </div>
-            <button
-              onClick={handleEnviarPedido}
-              disabled={enviando}
-              className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
-              style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-            >
-              {enviando && <Loader2 size={14} className="animate-spin" />}
-              {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
-            </button>
+
+            {esMayorista ? (
+              <button
+                onClick={handleEnviarPedido}
+                disabled={enviando}
+                className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
+                style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+              >
+                {enviando && <Loader2 size={14} className="animate-spin" />}
+                {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
+              </button>
+            ) : (
+              <>
+                <a
+                  href={buildWhatsAppLink(items)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                  style={{ background: '#25d366', color: 'white' }}
+                >
+                  Pedir por WhatsApp
+                </a>
+                <p className="text-xs text-center mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Los precios se confirman al procesar tu pedido.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

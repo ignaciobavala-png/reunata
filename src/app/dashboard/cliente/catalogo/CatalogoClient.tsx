@@ -13,7 +13,7 @@ interface Producto {
   precio: number
 }
 
-export function CatalogoClient({ productos, categorias }: { productos: Producto[]; categorias: string[] }) {
+export function CatalogoClient({ productos, categorias, tipoCliente }: { productos: Producto[]; categorias: string[]; tipoCliente: 'mayorista' | 'minorista' }) {
   const { add, items } = useCartStore()
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('')
@@ -131,7 +131,7 @@ export function CatalogoClient({ productos, categorias }: { productos: Producto[
                             background: agregado || yaEsta ? '#10b98115' : 'transparent',
                             color: agregado || yaEsta ? '#10b981' : 'var(--color-acero-oscuro)',
                           }}
-                          title={p.stock === 0 ? 'Sin stock' : 'Agregar al pedido'}
+                          title={p.stock === 0 ? 'Sin stock' : tipoCliente === 'mayorista' ? 'Agregar al pedido' : 'Agregar al carrito'}
                         >
                           {agregado ? <Check size={13} /> : <ShoppingCart size={13} />}
                         </button>

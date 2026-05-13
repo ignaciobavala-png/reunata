@@ -6,8 +6,8 @@ import { GoogleLoginButton } from './GoogleLoginButton'
 
 export const metadata: Metadata = { title: 'Ingresar' }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
@@ -31,6 +31,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           )}
 
           <form action={login} className="flex flex-col gap-5">
+            {next && <input type="hidden" name="next" value={next} />}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="email" className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>
                 Email

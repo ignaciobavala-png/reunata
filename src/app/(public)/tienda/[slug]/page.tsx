@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
+import { PublicCartDrawer } from '@/components/cliente/PublicCartDrawer'
 
 export default async function CategoriaProductosPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -77,6 +78,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
         <ProductGridPublic productos={productosPublicos} nombreCategoria={categoriaHome.nombre} />
       </div>
+      <PublicCartDrawer />
     </main>
   )
 }
