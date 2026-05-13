@@ -46,7 +46,8 @@
 | Componente | Tipo | Props | Descripción |
 |---|---|---|---|
 | `FadeIn` | Client | `children, delay?, className?, direction?` | Wrapper de animación scroll con framer-motion |
-| `CartDrawer` | Client | — | Slide-out del carrito. Usa `useCartStore`. Botón enviar pedido |
+| `CartDrawer` | Client | `tipoCliente: 'mayorista' \| 'minorista'` | Slide-out del carrito. Mayorista: "Enviar pedido" → `crearPedidoBorrador`. Minorista: "Pedir por WhatsApp" con link pre-armado |
+| `PublicCartDrawer` | Client | — | Drawer flotante para la tienda pública (sin auth). Muestra items sin precios, CTA "Continuar →" lleva a `/login?next=/dashboard/cliente/catalogo` |
 
 ---
 
@@ -58,7 +59,8 @@ Ubicados en `src/app/dashboard/` junto a sus páginas.
 
 | Archivo | Props | Descripción |
 |---|---|---|
-| `CanalesClient` | `productos, canales, asignacionesIniciales, categorias` | Matriz producto↔canal con toggle individual y bulk |
+| `CanalesClient` | `productos, canales, asignacionesIniciales, categorias` | Vista por categoría colapsable. Fila de categoría con 3 estados por canal: ✓ todos / — parcial / □ ninguno. Expand para editar productos individuales |
+| `ProductosListaClient` | `productos` | Lista de productos por categoría colapsable. Búsqueda client-side. Badge "sin stock" e "inactivos" en cada categoría. Productos inactivos atenuados |
 | `ClientesClient` | `clientes, canales` | Lista de clientes con aprobar/revocar + asignar canal |
 | `EmpleadosClient` | `empleados` | Invitar por email + desactivar internos |
 | `MultimediaClient` | `productos, fotosIniciales, supabaseUrl, supabaseKey` | Upload drag-drop con WebP resize, badges, filtros, ⭐ destacadas |

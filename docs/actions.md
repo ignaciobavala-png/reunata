@@ -13,12 +13,12 @@ Todas en `src/app/actions/`. Usan `'use server'`.
 ## `auth.ts`
 
 ### `login(formData: FormData)`
-- **Lee:** `email`, `password` del FormData
+- **Lee:** `email`, `password`, `next?` del FormData
 - **Auth:** signInWithPassword de Supabase
 - **DB:** `profiles` (select rol)
-- **Redirect:** `/dashboard/admin` (internos) o `/dashboard/cliente` (clientes)
+- **Redirect:** si `next` empieza con `/dashboard/` redirige ahí (ej. carrito guest→login). Sino: `/dashboard/admin` (internos) o `/dashboard/cliente` (clientes)
 - **Error:** redirect a `/login?error=credenciales_invalidas`
-- **Consumido por:** `src/app/login/page.tsx`
+- **Consumido por:** `src/app/login/page.tsx` (pasa `next` como hidden input desde `searchParams`)
 
 ### `logout()`
 - **Auth:** signOut de Supabase
@@ -119,7 +119,7 @@ Todas en `src/app/actions/`. Usan `'use server'`.
 
 ### `crearPostulacion(formData: FormData)`
 - **Cliente:** `createServiceClient()` (formulario público sin auth)
-- **Lee:** `tipo` (fulltime|comisionista), `nombre`, `apellido`, `email`, `dni`, `direccion`, `nacionalidad`
+- **Lee:** `tipo` (fulltime|comisionista), `nombre`, `apellido`, `email`, `direccion`
 - **Opcional fulltime:** `cv` (File → upload a Storage bucket `cv`, máx 5MB, MIME validado)
 - **Opcional comisionista:** `movilidad_propia`, `zonas`, `otras_marcas`
 - **Validación:** campos requeridos, longitudes máximas, tipo MIME y extensión CV, rate limit (máx 5/hora global)

@@ -227,7 +227,34 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 
 ---
 
-## Sesión 4 — Próxima
+## Sesión 4 — Completada (13/5/2026)
+
+### Implementado
+
+#### UI Pública
+- ✅ **Footer**: logo.png reemplaza texto "REUNATA" gigante (filtro `brightness-0` para negro sobre fondo blanco). SVG eliminado (no representaba el logo real)
+- ✅ **Footer**: "Quiero ser distribuidor" apunta a `/login`
+- ✅ **Header dropdown Corporativos**: agregado "Quiero ser mayorista" → `/registro` (desktop y mobile)
+- ✅ **Formulario Trabaja con Nosotros**: eliminados campos DNI y Nacionalidad del formulario fulltime (y de la validación server-side)
+
+#### Carrito (mock)
+- ✅ **Tienda pública** (`/tienda/[slug]`): botón "Agregar al carrito" en cada card de producto. Carrito flotante con `PublicCartDrawer` (sin precios, CTA → login)
+- ✅ **Flujo guest→login**: "Continuar" lleva a `/login?next=/dashboard/cliente/catalogo`. El carrito persiste en localStorage (zustand/persist) a través del login
+- ✅ **Login con redirect**: soporte para `?next=` param — el form pasa el valor como hidden input, el server action redirige post-login
+- ✅ **Dashboard catálogo**: `CartDrawer` diferenciado por `tipoCliente`
+  - Mayorista: "Mi pedido" + "Enviar pedido" → `crearPedidoBorrador`
+  - Minorista: "Mi carrito" + "Pedir por WhatsApp" (link con items pre-armado)
+- ✅ **Mock products**: 8 productos en 3 categorías para usuarios sin `canal_id` asignado. Banner aviso contextualizado por tipo de cliente
+- ✅ **Catálogo sin redirect**: todos los usuarios logueados pueden ver el catálogo (ya no redirige por `aprobado`)
+
+#### Panel Admin — Productos y Canales
+- ✅ **CanalesClient**: rediseño por categoría colapsable. Una fila por categoría, 3 estados visuales por canal (✓ todos / — parcial / □ ninguno). Expand para editar productos individuales
+- ✅ **ProductosListaClient**: lista de productos por categoría colapsable. Búsqueda client-side, badges de sin-stock e inactivos por categoría
+- ✅ **Trigger DB**: `auto_asignar_producto_canales` — productos nuevos o reactivados se asignan automáticamente a todos los canales activos. Backfill de los 5 productos huérfanos aplicado
+
+---
+
+## Sesión 5 — Próxima
 
 ### Prioridad alta
 - [ ] **Lupa funcional**: ruta /buscar?q=, búsqueda ILIKE + tsvector, UI de resultados

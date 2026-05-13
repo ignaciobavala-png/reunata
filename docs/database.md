@@ -74,6 +74,8 @@ Junction: qué productos son visibles en cada canal.
 | `producto_id` | integer FK → `productos.id` |
 | `canal_id` | integer FK → `canales.id` |
 
+**Trigger `trigger_auto_asignar_canales`:** al insertar un producto nuevo con `activo=true`, o al reactivar uno existente, se insertan automáticamente filas en `producto_canales` para todos los canales activos. Evita que productos nuevos del sync queden invisibles para los clientes.
+
 ### `canales`
 Canales de venta con lista de precios.
 
@@ -210,9 +212,7 @@ Postulaciones de "Trabaja con nosotros". Formulario público, solo internos gest
 | `nombre` | text | NOT NULL |
 | `apellido` | text | NOT NULL |
 | `email` | text | NOT NULL |
-| `dni` | text | NOT NULL |
 | `direccion` | text | NOT NULL |
-| `nacionalidad` | text | NOT NULL |
 | `cv_url` | text | Solo fulltime. URL pública del bucket `cv` |
 | `movilidad_propia` | boolean | Solo comisionista |
 | `zonas` | text | Solo comisionista |
