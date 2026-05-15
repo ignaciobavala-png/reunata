@@ -182,4 +182,44 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Logo G multicolor SVG oficial, fondo blanco, sombra sutil
 - Posicionado entre el formulario y el link "Crear cuenta" con separadores "o continuá con" / "¿Sos nuevo?"
 - Sin lógica OAuth por ahora — preparado para conectar `signInWithOAuth` cuando se habilite Google en Supabase
+
+### Navbar — sesión 15/05
+- Ícono carrito: `ShoppingBag` → `ShoppingCart` (lucide-react)
+- "Agencia de Merchandising" lleva a `/registro?tab=mayorista` (antes iba a `/login`)
+- "Mayoristas" es ítem independiente en el navbar al mismo nivel que Corporativos (antes estaba dentro del dropdown)
+- `RegistroForm` acepta prop `defaultTab?: 'minorista' | 'mayorista'` — la página lo lee del searchParam `?tab=`
+
+### Banner Promocional — sesión 15/05
+- Altura fija responsiva: `h-64 / h-72 / h-80` con `object-cover` (antes `h-auto`, se estiraba)
+- El campo `titulo` de la tabla `banners` se renderiza como texto overlay centrado sobre la imagen
+- Componente: `src/components/sections/PromotionalBanner.tsx`
+
+### Categorías Home — foto de portada (sesión 15/05)
+- Migration: columna `foto_url text` en tabla `categorias_home`
+- Panel `Multimedia > Categorías Home`: thumbnail + botones Subir/Cambiar/Quitar por categoría
+- Badge "foto manual" cuando la categoría tiene foto propia
+- Upload al bucket `multimedia/categorias/{id}/`
+- `CategoryGallery`: usa `foto_url` de la categoría como portada; fallback a primera foto de productos asociados
+- Componentes: `CategoriasClient.tsx`, `CategoryGallery.tsx`
+
+### Corporativos — logo upload (sesión 15/05)
+- Migration: columna `logo_url text` en tabla `corporativos`
+- Formulario público `/corporativos`: campo de upload de logo (PNG/JPG/WEBP/SVG, máx 5MB)
+- Validación en cliente: tipo MIME y tamaño
+- Action `crearCorporativo`: sube logo al bucket `corporativos/logos/` y guarda `logo_url`
+- Componentes: `CorporativosForm.tsx`, `src/app/actions/corporativos.ts`
+
+### Footer — rediseño (sesión 15/05)
+- Eliminada la sección "Tienda" del footer
+- 4 columnas extendidas desktop: Empresa — Información — Soporte — Newsletter/Redes
+- Accordions en mobile (siempre visible en desktop)
+- Sin `max-width` restrictivo, padding amplio `px-8/16/24`
+
+### Precios Gesu — limpieza (sesión 15/05)
+- `precio_compra` (costo) eliminado de la vista del panel de productos
+- Sigue en la DB y en el sync de Gesu — nunca se expone al frontend
+- Las 5 listas de Gesu mapean: Lista1→Distribuidor, Lista2→Local, Lista3→Mercha, Lista4→sin asignar, Lista5→Consumidor Final y Público
+
+### Trabaja con Nosotros — sesión 15/05
+- Descripción del formulario Full Time actualizada: "En las oficinas de nuestra empresa (Ciudad de Buenos Aires)"
 <!-- END:feactures -->
