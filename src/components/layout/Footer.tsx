@@ -66,7 +66,7 @@ export function Footer() {
   return (
     <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
-        <div className="px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-3 md:gap-8">
+        <div className="max-w-4xl mx-auto px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-3 md:gap-12">
 
           {/* Empresa */}
           <Section title="Empresa">
@@ -176,9 +176,11 @@ export function Footer() {
 
       {/* Bottom bar */}
       <div className="px-6 md:px-10 py-4 border-t border-[var(--color-granito-claro)]">
-        <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">
-          © {new Date().getFullYear()} Reunata. Todos los derechos reservados.
-        </p>
+        <div className="max-w-4xl mx-auto">
+          <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">
+            © {new Date().getFullYear()} Reunata. Todos los derechos reservados.
+          </p>
+        </div>
       </div>
     </footer>
   )
