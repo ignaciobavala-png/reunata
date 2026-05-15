@@ -31,7 +31,7 @@ export function PromotionalBanner({ banner }: { banner: BannerData | null }) {
   const imgUrl = supabaseImg(banner.supabaseUrl, banner.url, 1200)
 
   const content = (
-    <div className="relative h-36 sm:h-44 md:h-52 w-full overflow-hidden">
+    <div className="relative h-48 sm:h-56 md:h-64 w-full overflow-hidden">
       <Image
         src={imgUrl}
         alt={banner.titulo ?? 'Banner promocional'}
