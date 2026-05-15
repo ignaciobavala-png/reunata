@@ -12,7 +12,6 @@ interface Producto {
   precio_lista1: number | null
   precio_lista2: number | null
   precio_lista3: number | null
-  precio_compra: number | null
   activo: boolean
 }
 
@@ -93,7 +92,6 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 1</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Costo</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
               </tr>
             </thead>
@@ -166,7 +164,6 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista1)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista2)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista3)}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>{fmt(p.precio_compra)}</td>
                         <td className="px-4 py-2.5 text-center">
                           <span
                             className="px-2 py-0.5 rounded-full text-xs"

@@ -48,7 +48,7 @@ async function ListaContent() {
 
   const { data: productos } = await supabase
     .from('productos')
-    .select('id, codigo_interno, titulo, categoria, stock, precio_lista1, precio_lista2, precio_lista3, precio_compra, activo')
+    .select('id, codigo_interno, titulo, categoria, stock, precio_lista1, precio_lista2, precio_lista3, activo')
     .order('categoria')
     .order('titulo')
 

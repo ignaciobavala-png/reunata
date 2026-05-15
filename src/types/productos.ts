@@ -9,7 +9,6 @@ export interface ProductoFull {
   precio_lista3: number | null
   precio_lista4: number | null
   precio_lista5: number | null
-  precio_compra: number | null
   activo: boolean
   ultima_sync: string | null
 }
