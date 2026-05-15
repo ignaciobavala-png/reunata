@@ -166,3 +166,23 @@
 **Cambios:**
 - Columnas nuevas en `profiles`: razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos
 - `handle_new_user()` ahora inserta también el `nombre` desde `raw_user_meta_data`
+
+---
+
+## `20260515000001_add_logo_url_to_corporativos` (MCP)
+
+**Propósito:** Agrega campo para subir logo de empresa en formulario de corporativos.
+
+**Cambios:**
+- Columna `logo_url text` en tabla `corporativos`
+- El logo se sube al bucket `corporativos/logos/` vía el formulario público
+
+---
+
+## `20260515000002_add_foto_url_to_categorias_home` (MCP)
+
+**Propósito:** Permite definir una foto de portada manual por categoría en el panel multimedia.
+
+**Cambios:**
+- Columna `foto_url text` en tabla `categorias_home`
+- Si está seteada, el `CategoryGallery` la usa como portada; sino usa la primera foto de los productos asociados

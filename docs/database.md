@@ -99,6 +99,7 @@ Macrocategorías para el bento de portada.
 | `activo` | boolean | default true |
 | `orden` | integer | |
 | `categoria_keys` | text[] | Categorías Gesu agrupadas |
+| `foto_url` | text | Foto de portada manual (opcional); fallback a productos |
 
 ### `pedidos`
 
@@ -225,6 +226,28 @@ Postulaciones de "Trabaja con nosotros". Formulario público, solo internos gest
 | `otras_empresas_provee` | text | Solo proveedor |
 | `estado` | text | CHECK: pendiente, aprobado, rechazado. Default: pendiente |
 | `created_at` | timestamptz | default now() |
+
+### `corporativos`
+Solicitudes de productos personalizados / regalos corporativos desde el formulario público `/corporativos`.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `nombre` | text | |
+| `empresa` | text | |
+| `email` | text | |
+| `telefono` | text | |
+| `cuit` | text | |
+| `ubicacion` | text | |
+| `ocasion` | text | |
+| `cantidades` | integer | |
+| `productos` | text[] | Multi-select |
+| `personalizar` | text | Sí / No |
+| `fecha_limite` | date | |
+| `logo_url` | text | Ruta en bucket `corporativos/logos/` (opcional) |
+| `estado` | text | CHECK: pendiente, aprobado, rechazado. Default: pendiente |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
 
 ---
 
