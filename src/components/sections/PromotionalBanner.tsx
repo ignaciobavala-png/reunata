@@ -30,23 +30,19 @@ export function PromotionalBanner({ banner }: { banner: BannerData | null }) {
 
   const imgUrl = supabaseImg(banner.supabaseUrl, banner.url, 1200)
 
-  const img = (
-    <Image
-      src={imgUrl}
-      alt={banner.titulo ?? 'Banner promocional'}
-      width={1200}
-      height={400}
-      className="w-full h-auto object-cover"
-    />
-  )
-
   const content = (
-    <div className="relative">
-      {img}
+    <div className="relative h-36 sm:h-44 md:h-52 w-full overflow-hidden">
+      <Image
+        src={imgUrl}
+        alt={banner.titulo ?? 'Banner promocional'}
+        fill
+        className="object-cover object-center"
+        sizes="100vw"
+      />
       {banner.titulo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span
-            className="text-2xl md:text-4xl lg:text-5xl font-semibold text-white drop-shadow-lg text-center px-6"
+            className="text-xl md:text-3xl lg:text-4xl font-semibold text-white drop-shadow-lg text-center px-6"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {banner.titulo}
