@@ -18,6 +18,7 @@ interface CategoriaHome {
   href: string
   gradient: string
   categoria_keys: string[]
+  foto_url: string | null
 }
 
 type Foto = { url: string }
@@ -30,7 +31,7 @@ export function CategoryGallery() {
     async function loadData() {
       const { data: cats } = await supabase
         .from('categorias_home')
-        .select('id, nombre, descripcion, href, gradient, categoria_keys')
+        .select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url')
         .eq('activo', true)
         .order('orden')
 
@@ -86,7 +87,8 @@ export function CategoryGallery() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
           {categorias.map((cat) => {
             const fotos = fotosPorCat[cat.id] ?? []
-            const fotoPrincipal = fotos[0]
+            const fotoPrincipal = cat.foto_url ?? fotos[0]
+            const fotosSecundarias = cat.foto_url ? fotos.slice(0, 3) : fotos.slice(1, 4)
 
             return (
               <Link
@@ -108,9 +110,9 @@ export function CategoryGallery() {
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-                {fotos.length > 1 && (
+                {fotosSecundarias.length > 0 && (
                   <div className="absolute bottom-16 left-4 right-4 flex gap-1">
-                    {fotos.slice(1, 4).map((foto, idx) => (
+                    {fotosSecundarias.map((foto, idx) => (
                       <div key={idx} className="w-8 h-10 relative overflow-hidden rounded-sm">
                         <Image
                           src={supabaseImg(SUPABASE_URL, foto, 80, { height: 100 })}
@@ -123,7 +125,7 @@ export function CategoryGallery() {
                     ))}
                     {fotos.length > 4 && (
                       <div className="w-8 h-10 flex items-center justify-center bg-black/50 rounded-sm">
-                        <span className="text-[10px] text-white">+{fotos.length - 4}</span>
+                        <span className="text-[10px] text-white">+{fotos.length - 3}</span>
                       </div>
                     )}
                   </div>
