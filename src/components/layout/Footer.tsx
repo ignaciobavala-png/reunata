@@ -6,16 +6,6 @@ import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
 import { Camera, Share2, Play, Music, ChevronDown } from 'lucide-react'
 
-const tienda = [
-  { label: 'Todos los productos',     href: '/tienda' },
-  { label: 'Mates',                   href: '/tienda/mates' },
-  { label: 'Térmicos de acero',       href: '/tienda/termicos-de-acero' },
-  { label: 'Bombillas y sorbetes',    href: '/tienda/bombillas-y-sorbetes' },
-  { label: 'Materas y mochilas',      href: '/tienda/materas-y-mochilas' },
-  { label: 'Accesorios para el mate', href: '/tienda/accesorios' },
-  { label: 'Merchandising',           href: '/tienda/merchandising' },
-  { label: 'Gift Card',               href: '/tienda/gift-card' },
-]
 
 const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
@@ -76,18 +66,7 @@ export function Footer() {
   return (
     <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
-        <div className="px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-4 md:gap-8">
-
-          {/* Tienda */}
-          <Section title="Tienda">
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
-              {tienda.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className={linkClass}>{item.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </Section>
+        <div className="px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-3 md:gap-8">
 
           {/* Empresa */}
           <Section title="Empresa">
