@@ -70,6 +70,19 @@ export async function crearCorporativo(formData: FormData) {
 
   const supabase = createServiceClient()
 
+  // Upload logo if provided
+  let logoUrl: string | null = null
+  const logoFile = formData.get('logo') as File | null
+  if (logoFile && logoFile.size > 0) {
+    const ext = logoFile.name.split('.').pop() ?? 'png'
+    const path = `logos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const buffer = Buffer.from(await logoFile.arrayBuffer())
+    const { error: uploadError } = await supabase.storage
+      .from('corporativos')
+      .upload(path, buffer, { contentType: logoFile.type, upsert: false })
+    if (!uploadError) logoUrl = path
+  }
+
   const { count } = await supabase
     .from('corporativos')
     .select('*', { count: 'exact', head: true })
@@ -101,6 +114,7 @@ export async function crearCorporativo(formData: FormData) {
     productos: productosValidos,
     personalizar: personalizar || null,
     fecha_limite: fechaLimiteDate,
+    logo_url: logoUrl,
   })
 
   if (error) return { error: `Error al guardar: ${error.message}` }

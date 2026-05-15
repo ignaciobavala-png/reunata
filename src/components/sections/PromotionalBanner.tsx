@@ -40,13 +40,29 @@ export function PromotionalBanner({ banner }: { banner: BannerData | null }) {
     />
   )
 
+  const content = (
+    <div className="relative">
+      {img}
+      {banner.titulo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span
+            className="text-2xl md:text-4xl lg:text-5xl font-semibold text-white drop-shadow-lg text-center px-6"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {banner.titulo}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <section className="border-y-2" style={{ borderColor: 'var(--color-granito-claro)' }}>
       {banner.linkUrl ? (
         <Link href={banner.linkUrl} target={banner.linkUrl.startsWith('http') ? '_blank' : undefined}>
-          {img}
+          {content}
         </Link>
-      ) : img}
+      ) : content}
     </section>
   )
 }

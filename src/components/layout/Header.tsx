@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, ChevronDown } from 'lucide-react'
 
 const categorias = [
   { label: 'Materas y Mochilas',          href: '/tienda/materas-y-mochilas' },
@@ -217,7 +217,7 @@ export function Header() {
                     Productos Personalizados
                   </Link>
                   <Link
-                    href="/login"
+                    href="/registro?tab=mayorista"
                     onClick={() => setCorporativosOpen(false)}
                     className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
                     style={{ color: 'var(--color-granito)' }}
@@ -257,7 +257,7 @@ export function Header() {
             />
           </button>
           <Link href="/carrito" aria-label="Carrito">
-            <ShoppingBag
+            <ShoppingCart
               size={20}
               strokeWidth={1.5}
               className={`transition-colors duration-300 ${iconColor}`}
@@ -333,7 +333,7 @@ export function Header() {
             Productos Personalizados
           </Link>
           <Link
-            href="/login"
+            href="/registro?tab=mayorista"
             onClick={() => setOpen(false)}
             className="text-lg text-[var(--color-granito)] py-1"
             style={{ fontFamily: 'var(--font-display)' }}
