@@ -8,7 +8,7 @@ const forms = [
   {
     tipo: 'fulltime' as const,
     titulo: 'Full Time',
-    descripcion: 'Trabajá en nuestra empresa con un equipo dinámico. Horarios fijos en relación de dependencia.',
+    descripcion: 'Trabajá en nuestra empresa con un equipo dinámico. En las oficinas de nuestra empresa (Ciudad de Buenos Aires).',
   },
   {
     tipo: 'comisionista' as const,
