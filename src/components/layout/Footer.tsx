@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
 import { Camera, Share2, Play, Music, ChevronDown } from 'lucide-react'
 
-
 const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
   { label: 'Próximos eventos',        href: '/eventos' },
@@ -35,7 +34,7 @@ const redes = [
 
 const linkClass = 'text-sm text-[var(--color-acero)] hover:text-[var(--color-acero-brillo)] transition-colors duration-200'
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Accordion({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -43,7 +42,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between py-3.5 md:py-0 md:mb-4 md:cursor-default"
+        className="w-full flex items-center justify-between py-3.5 md:cursor-default md:mb-4 md:py-0"
       >
         <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)]">
           {title}
@@ -66,10 +65,10 @@ export function Footer() {
   return (
     <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
-        <div className="max-w-4xl mx-auto px-6 md:px-10 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-3 md:gap-12">
+        <div className="px-8 md:px-16 lg:px-24 pt-2 md:pt-12 pb-0 md:pb-12 grid grid-cols-1 md:grid-cols-4 md:gap-10">
 
           {/* Empresa */}
-          <Section title="Empresa">
+          <Accordion title="Empresa">
             <ul className="flex flex-col gap-2">
               {empresaLinks.map((item) => (
                 <li key={item.href}>
@@ -77,45 +76,31 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </Section>
+          </Accordion>
 
-          {/* Información / Soporte */}
-          <Section title="Información y soporte">
-            <ul className="flex flex-col gap-2 mb-4">
-              {infoLinks.slice(0, 3).map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className={linkClass}>{item.label}</Link>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-3 hidden md:block">Soporte</p>
+          {/* Información */}
+          <Accordion title="Información">
             <ul className="flex flex-col gap-2">
-              {infoLinks.slice(3).map((item) => (
+              {infoLinks.slice(0, 4).map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className={linkClass}>{item.label}</Link>
                 </li>
               ))}
             </ul>
-          </Section>
+          </Accordion>
 
-          {/* Contacto + Newsletter + Redes */}
-          <Section title="Contacto">
-            <ul className="flex flex-col gap-2 mb-4">
+          {/* Soporte */}
+          <Accordion title="Soporte">
+            <ul className="flex flex-col gap-2">
+              {infoLinks.slice(4).map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={linkClass}>{item.label}</Link>
+                </li>
+              ))}
               <li>
-                <a
-                  href="https://wa.me/5491132720974"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClass}
-                >
+                <a href="https://wa.me/5491132720974" target="_blank" rel="noopener noreferrer" className={linkClass}>
                   WhatsApp
                 </a>
-              </li>
-              <li>
-                <p className="text-xs text-[var(--color-acero-oscuro)] leading-relaxed">
-                  Donde estamos<br />
-                  contacto@reunata.com.ar
-                </p>
               </li>
               <li>
                 <Link href="/contacto#opiniones" className={linkClass}>
@@ -123,16 +108,19 @@ export function Footer() {
                 </Link>
               </li>
             </ul>
+          </Accordion>
 
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-2">Newsletter</p>
-            <p className="text-xs text-[var(--color-acero-oscuro)] mb-3 leading-relaxed">
-              10% OFF en tu próxima compra
+          {/* Newsletter + Redes */}
+          <div>
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] py-3.5 md:py-0 md:mb-4">
+              Newsletter
             </p>
-            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-4">
+            <p className="text-xs text-[var(--color-acero-oscuro)] mb-3">10% OFF en tu próxima compra</p>
+            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-6">
               <input
                 type="email"
                 placeholder="tu@email.com"
-                className="flex-1 px-3 py-2.5 bg-transparent text-xs outline-none text-[var(--color-acero-brillo)] placeholder:text-[var(--color-granito-claro)]"
+                className="flex-1 px-3 py-2.5 bg-transparent text-xs outline-none text-[var(--color-acero-brillo)] placeholder:text-[var(--color-granito-claro)] min-w-0"
               />
               <button
                 type="submit"
@@ -143,7 +131,7 @@ export function Footer() {
             </form>
 
             <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-3">Seguinos</p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pb-4 md:pb-0">
               {redes.map((r) => (
                 <a
                   key={r.label}
@@ -157,12 +145,12 @@ export function Footer() {
                 </a>
               ))}
             </div>
-          </Section>
+          </div>
 
         </div>
       </FadeIn>
 
-      {/* Logo gigante */}
+      {/* Logo */}
       <div className="flex justify-center py-10 md:py-20 border-t border-[var(--color-granito-claro)] bg-white mt-4 md:mt-0">
         <Image
           src="/logo.png"
@@ -175,12 +163,10 @@ export function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="px-6 md:px-10 py-4 border-t border-[var(--color-granito-claro)]">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">
-            © {new Date().getFullYear()} Reunata. Todos los derechos reservados.
-          </p>
-        </div>
+      <div className="px-8 md:px-16 lg:px-24 py-4 border-t border-[var(--color-granito-claro)]">
+        <p className="text-[10px] text-[var(--color-acero-oscuro)] tracking-wider">
+          © {new Date().getFullYear()} Reunata. Todos los derechos reservados.
+        </p>
       </div>
     </footer>
   )
