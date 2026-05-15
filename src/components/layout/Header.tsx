@@ -224,18 +224,17 @@ export function Header() {
                   >
                     Agencia de Merchandising
                   </Link>
-                  <Link
-                    href="/registro"
-                    onClick={() => setCorporativosOpen(false)}
-                    className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                    style={{ color: 'var(--color-granito)' }}
-                  >
-                    Quiero ser mayorista
-                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
+          <Link
+            href="/registro"
+            className={`text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
+          >
+            Mayoristas
+          </Link>
 
           {nav.map((item) => (
             <Link
@@ -340,15 +339,19 @@ export function Header() {
           >
             Agencia de Merchandising
           </Link>
-          <Link
-            href="/registro"
-            onClick={() => setOpen(false)}
-            className="text-lg text-[var(--color-granito)] py-1"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Quiero ser mayorista
-          </Link>
         </div>
+
+        <div className="h-px bg-[var(--border)]" />
+
+        {/* Mayoristas en mobile */}
+        <Link
+          href="/registro"
+          onClick={() => setOpen(false)}
+          className="text-lg text-[var(--color-granito)] py-1"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Quiero ser mayorista
+        </Link>
 
         <div className="h-px bg-[var(--border)]" />
 
