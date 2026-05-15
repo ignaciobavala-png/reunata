@@ -1,7 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Check, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Plus, Check, X, ToggleLeft, ToggleRight, ImagePlus, Trash2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
+import { supabaseImg } from '@/lib/images'
+
+const supabase = createClient()
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
 interface CategoriaHome {
   id: number
@@ -10,6 +16,7 @@ interface CategoriaHome {
   href: string | null
   activo: boolean
   categoria_keys: string[]
+  foto_url: string | null
 }
 
 export function CategoriasClient({
@@ -25,14 +32,13 @@ export function CategoriasClient({
   const [creando, setCreando] = useState(false)
   const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', categoria_keys: '' })
   const [saving, setSaving] = useState(false)
+  const [uploadingId, setUploadingId] = useState<number | null>(null)
+  const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   async function toggleActivo(cat: CategoriaHome) {
     await fetch('/api/categorias-home', {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Is-Master': isMaster ? 'true' : 'false',
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
       body: JSON.stringify({ id: cat.id, activo: !cat.activo }),
     })
     setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, activo: !c.activo } : c))
@@ -46,10 +52,7 @@ export function CategoriasClient({
 
     await fetch('/api/categorias-home', {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Is-Master': isMaster ? 'true' : 'false',
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
       body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href, categoria_keys: keys }),
     })
     setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form, categoria_keys: keys } : c))
@@ -62,10 +65,7 @@ export function CategoriasClient({
     const keys = nuevoForm.categoria_keys.split('\n').map(s => s.trim()).filter(Boolean)
     const res = await fetch('/api/categorias-home', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Is-Master': isMaster ? 'true' : 'false',
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
       body: JSON.stringify({ ...nuevoForm, categoria_keys: keys }),
     })
     const { data } = await res.json()
@@ -75,10 +75,43 @@ export function CategoriasClient({
     setSaving(false)
   }
 
+  async function subirFoto(cat: CategoriaHome, file: File) {
+    setUploadingId(cat.id)
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const path = `categorias/${cat.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+    const { error } = await supabase.storage.from('multimedia').upload(path, file, { upsert: true })
+    if (error) { setUploadingId(null); return }
+
+    // Eliminar foto anterior si existe
+    if (cat.foto_url) {
+      await supabase.storage.from('multimedia').remove([cat.foto_url])
+    }
+
+    await fetch('/api/categorias-home', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+      body: JSON.stringify({ id: cat.id, foto_url: path }),
+    })
+    setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url: path } : c))
+    setUploadingId(null)
+  }
+
+  async function quitarFoto(cat: CategoriaHome) {
+    if (!cat.foto_url) return
+    await supabase.storage.from('multimedia').remove([cat.foto_url])
+    await fetch('/api/categorias-home', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+      body: JSON.stringify({ id: cat.id, foto_url: null }),
+    })
+    setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url: null } : c))
+  }
+
   return (
     <div className="max-w-2xl">
       <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Estas categorías aparecen en el bento de la página principal. Las fotos se eligen automáticamente de los productos asociados.
+        Estas categorías aparecen en el bento de la página principal. Podés definir una foto de portada o se elegirá automáticamente de los productos asociados.
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
@@ -139,11 +172,72 @@ export function CategoriasClient({
                     ? <ToggleRight size={20} style={{ color: 'var(--color-granito)' }} />
                     : <ToggleLeft size={20} style={{ color: 'var(--color-acero)' }} />}
                 </button>
+
+                {/* Foto de portada */}
+                <div className="flex-shrink-0 relative">
+                  <div
+                    className="w-16 h-20 rounded-lg overflow-hidden border-2 flex items-center justify-center"
+                    style={{ borderColor: cat.foto_url ? 'var(--color-granito)' : 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}
+                  >
+                    {cat.foto_url ? (
+                      <Image
+                        src={supabaseImg(SUPABASE_URL, cat.foto_url, 128, { height: 160 })}
+                        alt={cat.nombre}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <ImagePlus size={18} style={{ color: 'var(--color-acero-oscuro)' }} />
+                    )}
+                    {uploadingId === cat.id && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-white text-[10px]">...</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-1 mt-1">
+                    <button
+                      onClick={() => fileRefs.current[cat.id]?.click()}
+                      disabled={uploadingId === cat.id}
+                      className="flex-1 text-[10px] px-1 py-0.5 rounded text-center transition-colors"
+                      style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}
+                      title="Subir foto de portada"
+                    >
+                      {cat.foto_url ? 'Cambiar' : 'Subir'}
+                    </button>
+                    {cat.foto_url && (
+                      <button
+                        onClick={() => quitarFoto(cat)}
+                        className="p-0.5 rounded transition-colors"
+                        style={{ color: '#ef4444' }}
+                        title="Quitar foto de portada"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={el => { fileRefs.current[cat.id] = el }}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) subirFoto(cat, file)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>{cat.nombre}</p>
                     {!cat.activo && (
                       <span className="text-sm px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>inactiva</span>
+                    )}
+                    {cat.foto_url && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#dcfce7', color: '#166534' }}>foto manual</span>
                     )}
                   </div>
                   <p className="text-sm mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{cat.descripcion}</p>

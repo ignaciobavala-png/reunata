@@ -48,6 +48,26 @@ export function CorporativosForm() {
   const [error, setError] = useState<string | null>(null)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [personalizar, setPersonalizar] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setLogoError(null)
+    if (!file) { setLogoFile(null); return }
+    const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+    if (!allowed.includes(file.type)) {
+      setLogoError('Formato no permitido. Usá PNG, JPG, WEBP o SVG.')
+      setLogoFile(null)
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoError('El logo no puede superar los 5 MB.')
+      setLogoFile(null)
+      return
+    }
+    setLogoFile(file)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -56,6 +76,7 @@ export function CorporativosForm() {
 
     const form = e.currentTarget as HTMLFormElement
     const formData = new FormData(form)
+    if (logoFile) formData.set('logo', logoFile)
 
     const res = await crearCorporativo(formData)
     if (res.error) {
@@ -205,6 +226,38 @@ export function CorporativosForm() {
       </div>
 
       <Field label="Fecha límite de entrega" name="fecha_limite" type="date" />
+
+      {/* Logo */}
+      <div>
+        <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-granito-oscuro)' }}>
+          Logo de tu empresa <span className="font-normal opacity-60">(opcional)</span>
+        </label>
+        <p className="text-xs mb-2 opacity-60" style={{ color: 'var(--color-granito-oscuro)' }}>
+          Si tenés tu logo podés subirlo aquí para agilizar el proceso y que te sugiramos opciones de personalización.
+        </p>
+        <label
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors duration-150"
+          style={{
+            borderColor: logoFile ? 'var(--color-acero-brillo)' : 'var(--color-granito-claro)',
+            background: 'var(--color-granito)',
+            color: logoFile ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span className="text-sm">
+            {logoFile ? logoFile.name : 'Subir logo (PNG, JPG, WEBP, SVG — máx. 5 MB)'}
+          </span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleLogoChange}
+          />
+        </label>
+        {logoError && (
+          <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{logoError}</p>
+        )}
+      </div>
 
       {/* Submit */}
       <button

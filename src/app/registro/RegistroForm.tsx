@@ -12,8 +12,8 @@ const TIPOS_MAYORISTA = [
   { value: 'mercha', label: 'Merchandising' },
 ]
 
-export function RegistroForm() {
-  const [tab, setTab] = useState<Tab>('minorista')
+export function RegistroForm({ defaultTab = 'minorista' }: { defaultTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(defaultTab)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
