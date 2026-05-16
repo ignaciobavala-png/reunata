@@ -76,6 +76,15 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                       className="object-cover"
                       sizes="(max-width: 768px) 200px, 240px"
                     />
+                    {/* Cinta diagonal */}
+                    <div
+                      className="absolute top-[28px] left-[-42px] w-[160px] flex items-center justify-center py-1.5 rotate-[-45deg]"
+                      style={{ background: 'var(--color-granito-oscuro)' }}
+                    >
+                      <span className="text-[10px] tracking-widest uppercase font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
+                        Más vendido
+                      </span>
+                    </div>
                   </div>
                   <p className="text-[10px] tracking-widest uppercase text-[var(--foreground)] mb-1">
                     {foto.titulo}

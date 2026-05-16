@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -18,6 +18,13 @@ export function PromoTicker() {
   const [items, setItems] = useState(DEFAULT_ITEMS)
   const [speed, setSpeed] = useState(DEFAULT_SPEED)
   const [ready, setReady] = useState(false)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [halfWidth, setHalfWidth] = useState(0)
+
+  useEffect(() => {
+    if (!trackRef.current) return
+    setHalfWidth(trackRef.current.scrollWidth / 2)
+  }, [items, ready])
 
   useEffect(() => {
     async function load() {
@@ -47,14 +54,15 @@ export function PromoTicker() {
   return (
     <div className="w-screen max-w-full overflow-hidden border-y-4 border-[var(--color-granito-claro)] py-4 bg-[var(--color-granito)]">
       <motion.div
+        ref={trackRef}
         className="flex gap-20 whitespace-nowrap"
-        animate={{ x: ['0%', '-50%'] }}
+        animate={halfWidth ? { x: [0, -halfWidth] } : false}
         transition={{ repeat: Infinity, duration: speed, ease: 'linear' }}
       >
         {[...items, ...items].map((item, i) => (
           <span
             key={i}
-            className="text-sm md:text-base font-semibold tracking-widest uppercase text-white/90"
+            className="text-sm font-semibold tracking-widest uppercase text-white/90"
           >
             {item}
           </span>

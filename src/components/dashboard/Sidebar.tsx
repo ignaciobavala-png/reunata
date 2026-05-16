@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
-  Sparkles, ClipboardList, Megaphone, Tag, Building2, Camera,
+  Sparkles, ClipboardList, Megaphone, Building2, Camera,
+  ChevronDown, TrendingUp, FileText,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -21,41 +23,65 @@ type NavGroup = {
 type NavItem = NavLink | NavGroup
 
 const navMaster: NavItem[] = [
-  { label: 'Inicio',        href: '/dashboard/admin',                icon: LayoutDashboard },
-  { label: 'Productos',     href: '/dashboard/admin/productos',       icon: Package },
-  { label: 'Multimedia',    href: '/dashboard/admin/multimedia',      icon: Images },
-  { label: 'Pedidos',       href: '/dashboard/admin/pedidos',         icon: ShoppingCart },
-  { label: 'Clientes',      href: '/dashboard/admin/clientes',        icon: Users },
-  { label: 'Equipo',        href: '/dashboard/admin/empleados',       icon: UserCog },
-  { label: 'Sincronizar',   href: '/dashboard/admin/sync',            icon: RefreshCw },
+  { label: 'Inicio', href: '/dashboard/admin', icon: LayoutDashboard },
+  {
+    label: 'Catálogo',
+    icon: Package,
+    children: [
+      { label: 'Productos',   href: '/dashboard/admin/productos', icon: Package },
+      { label: 'Sincronizar', href: '/dashboard/admin/sync',      icon: RefreshCw },
+    ],
+  },
+  {
+    label: 'Ventas',
+    icon: TrendingUp,
+    children: [
+      { label: 'Pedidos',      href: '/dashboard/admin/pedidos',      icon: ShoppingCart },
+      { label: 'Clientes',     href: '/dashboard/admin/clientes',     icon: Users },
+      { label: 'Corporativos', href: '/dashboard/admin/corporativos', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Contenido',
+    icon: Images,
+    children: [
+      { label: 'Multimedia',  href: '/dashboard/admin/multimedia', icon: Images },
+      { label: 'Instagram',   href: '/dashboard/admin/instagram',  icon: Camera },
+      { label: 'Catálogos',   href: '/dashboard/admin/catalogos',  icon: FileText },
+    ],
+  },
   {
     label: 'Marketing',
     icon: Megaphone,
     children: [
-      { label: 'Chatbot',  href: '/dashboard/admin/chatbot',    icon: Sparkles },
-      { label: 'Ofertas',  href: '/dashboard/admin/ofertas',    icon: Tag },
-      { label: 'Instagram',  href: '/dashboard/admin/instagram', icon: Camera },
+      { label: 'Chatbot', href: '/dashboard/admin/chatbot', icon: Sparkles },
     ],
   },
-  { label: 'Configuración',    href: '/dashboard/admin/configuracion',   icon: Settings },
-  { label: 'Postulaciones',    href: '/dashboard/admin/postulaciones',    icon: ClipboardList },
-  { label: 'Corporativos',     href: '/dashboard/admin/corporativos',     icon: Building2 },
+  {
+    label: 'Equipo',
+    icon: Users,
+    children: [
+      { label: 'Empleados',     href: '/dashboard/admin/empleados',     icon: UserCog },
+      { label: 'Postulaciones', href: '/dashboard/admin/postulaciones', icon: ClipboardList },
+    ],
+  },
+  { label: 'Configuración', href: '/dashboard/admin/configuracion', icon: Settings },
 ]
 
-const navEmpleado = [
+const navEmpleado: NavItem[] = [
   { label: 'Inicio',    href: '/dashboard/admin',          icon: LayoutDashboard },
   { label: 'Pedidos',   href: '/dashboard/admin/pedidos',  icon: ShoppingCart },
   { label: 'Clientes',  href: '/dashboard/admin/clientes', icon: Users },
   { label: 'Catálogo',  href: '/dashboard/admin/productos',icon: Package },
 ]
 
-const navComisionista = [
+const navComisionista: NavItem[] = [
   { label: 'Inicio',      href: '/dashboard/admin',          icon: LayoutDashboard },
   { label: 'Mis pedidos', href: '/dashboard/admin/pedidos',  icon: ShoppingCart },
   { label: 'Clientes',    href: '/dashboard/admin/clientes', icon: Users },
 ]
 
-const navCliente = [
+const navCliente: NavItem[] = [
   { label: 'Inicio',      href: '/dashboard/cliente',          icon: LayoutDashboard },
   { label: 'Catálogo',    href: '/dashboard/cliente/catalogo', icon: Store },
   { label: 'Mis pedidos', href: '/dashboard/cliente/pedidos',  icon: ShoppingCart },
@@ -67,6 +93,18 @@ function getNav(rol: Rol) {
   if (rol === 'empleado') return navEmpleado
   if (rol === 'comisionista') return navComisionista
   return navCliente
+}
+
+function getActiveGroup(nav: NavItem[], pathname: string): string | null {
+  for (const item of nav) {
+    if ('children' in item) {
+      const group = item as NavGroup
+      if (group.children.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))) {
+        return group.label
+      }
+    }
+  }
+  return null
 }
 
 const LABEL_ROL: Record<Rol, string> = {
@@ -82,6 +120,14 @@ const LABEL_ROL: Record<Rol, string> = {
 export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
   const pathname = usePathname()
   const nav = getNav(rol)
+
+  const [openGroup, setOpenGroup] = useState<string | null>(
+    () => getActiveGroup(nav, pathname)
+  )
+
+  function toggleGroup(label: string) {
+    setOpenGroup(prev => prev === label ? null : label)
+  }
 
   return (
     <aside
@@ -109,35 +155,56 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
         {nav.map(item => {
           if ('children' in item) {
             const group = item as NavGroup
+            const isOpen = openGroup === group.label
+            const hasActive = group.children.some(
+              c => pathname === c.href || pathname.startsWith(c.href + '/')
+            )
+
             return (
-              <div key={group.label} className="mb-2">
-                <div
-                  className="flex items-center gap-3 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest"
-                  style={{ color: 'var(--color-acero)' }}
+              <div key={group.label} className="mb-0.5">
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm tracking-wide transition-colors duration-150"
+                  style={{
+                    color: hasActive ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+                    background: hasActive && !isOpen ? 'rgba(168,176,187,0.08)' : 'transparent',
+                  }}
                 >
-                  <group.icon size={12} strokeWidth={2} />
-                  {group.label}
-                </div>
-                {group.children.map(child => {
-                  const active = pathname === child.href || pathname.startsWith(child.href + '/')
-                  return (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      className="flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg mb-0.5 text-sm tracking-wide transition-colors duration-150"
-                      style={{
-                        color: active ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
-                        background: active ? 'rgba(168,176,187,0.12)' : 'transparent',
-                      }}
-                    >
-                      <child.icon size={14} strokeWidth={1.5} />
-                      {child.label}
-                    </Link>
-                  )
-                })}
+                  <group.icon size={16} strokeWidth={1.5} />
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <ChevronDown
+                    size={13}
+                    strokeWidth={2}
+                    className="flex-shrink-0 transition-transform duration-200"
+                    style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="mt-0.5 mb-1">
+                    {group.children.map(child => {
+                      const active = pathname === child.href || pathname.startsWith(child.href + '/')
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className="flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg mb-0.5 text-sm tracking-wide transition-colors duration-150"
+                          style={{
+                            color: active ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+                            background: active ? 'rgba(168,176,187,0.12)' : 'transparent',
+                          }}
+                        >
+                          <child.icon size={14} strokeWidth={1.5} />
+                          {child.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           }
+
           const link = item as NavLink
           const active = pathname === link.href || pathname.startsWith(link.href + '/')
           return (

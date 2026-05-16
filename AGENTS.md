@@ -222,4 +222,54 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ### Trabaja con Nosotros — sesión 15/05
 - Descripción del formulario Full Time actualizada: "En las oficinas de nuestra empresa (Ciudad de Buenos Aires)"
+
+### Páginas provisorias — sesión 16/05
+- 12 rutas que daban 404 ahora tienen página con mensaje adecuado a cada sección
+- Rutas cubiertas: `/eventos`, `/franquicias`, `/puntos-de-venta`, `/catalogo`, `/banco-imagenes`, `/seguimiento`, `/faq`, `/terminos`, `/politicas`, `/arrepentimiento`, `/promociones`, `/recuperar-contrasena`
+- Todas en el grupo `(public)` salvo `/recuperar-contrasena` (misma estructura que `/login`)
+- Cada página tiene CTAs relevantes (WhatsApp, contacto, tienda, registro mayorista)
+- `/arrepentimiento` incluye texto legal completo (art. 34, Ley 24.240)
+
+### Tag "Más elegidos" en grilla de productos — sesión 16/05
+- Tercer tag (violeta `#8b5cf6`) en `ProductosListaClient` junto a Oferta y Hot Sale
+- `toggleDestacada(productoId, activo)` en `actions/ofertas.ts`: activa `destacada=true` en la primera foto del producto (o desactiva en todas)
+- `productos/page.tsx` carga `destacadasIniciales` desde `producto_fotos` y lo pasa al cliente
+- La estrella en Multimedia sigue funcionando — ambos tocan el mismo campo
+
+### ProductSlider "Más elegidos" — mejoras UX — sesión 16/05
+- Cada card es un `<button>` con `cursor-pointer`: al hacer clic agrega al carrito y abre `PublicCartDrawer`
+- Cinta diagonal "Más vendido" en esquina superior izquierda de cada card (fondo `granito-oscuro`, texto `acero-brillo`)
+- Eliminado `cursor-grab` — sin manito en ningún punto del slider
+
+### PublicCartDrawer — sesión 16/05
+- Conectado a `cartStore.cartOpen` / `setCartOpen` en lugar de `useState` local: cualquier componente puede abrirlo
+- Movido al layout `(public)/layout.tsx` — disponible en homepage, tienda, colecciones, etc.
+- Eliminado de `/tienda/[slug]/page.tsx` (ya está en el layout)
+
+### InstagramSlider — sesión 16/05
+- Reemplazado `embla-carousel` por scroll horizontal nativo (`overflow-x-auto`, `scrollbarWidth: none`)
+- Componente pasó a Server Component (sin `'use client'`, sin hooks)
+- Sin manito en ningún estado
+
+### PromoTicker — velocidad uniforme — sesión 16/05
+- La animación pasó de `x: ['0%', '-50%']` a píxeles absolutos: mide `scrollWidth` real con `useRef` y anima exactamente esa distancia
+- Eliminado `md:text-base` (ahora siempre `text-sm`): el elemento tiene el mismo ancho en todos los breakpoints
+- Resultado: velocidad idéntica en mobile y desktop
+
+### Sidebar admin — reorganización con acordeón — sesión 16/05
+- `navMaster` reorganizado en 5 grupos colapsables: Catálogo, Ventas, Contenido, Marketing, Equipo
+- Inicio y Configuración son ítems standalone fuera de grupos
+- Acordeón: solo un grupo abierto a la vez; al hacer clic en otro se cierra el anterior
+- Auto-expand: al cargar, se abre automáticamente el grupo que contiene la ruta activa
+- Si el grupo está cerrado pero contiene la ruta activa, el botón del grupo se ilumina
+- Chevron animado (−90° cerrado → 0° abierto) con transición CSS
+
+### Catálogos — sesión 16/05
+- Tabla `catalogos`: id, titulo, url, activo, orden, created_at — RLS habilitado
+- Acceso de lectura: master, empleado, comisionista, distribuidor, local, mercha (NO consumidor_final, NO anónimo)
+- Escritura: solo master y empleado
+- Bucket `catalogos` en Storage: privado, 20 MB máx, solo `application/pdf`
+- Panel en `/dashboard/admin/catalogos`: subir PDF con nombre, listar, toggle activo/inactivo, descargar (signed URL 1h), eliminar con confirmación
+- Server actions en `src/app/actions/catalogos.ts`: `subirCatalogo`, `eliminarCatalogo`, `toggleCatalogoActivo`
+- "Catálogos" agregado al sidebar bajo el grupo Contenido
 <!-- END:feactures -->
