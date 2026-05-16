@@ -72,6 +72,60 @@ export async function eliminarOferta(id: number) {
   if (error) throw new Error(error.message)
 }
 
+export async function toggleOferta(
+  canal: 'ofertas' | 'hotsale',
+  productoId: number,
+  precioLista: number | null,
+  activo: boolean
+) {
+  const supabase = createServiceClient()
+  if (activo) {
+    const precio = precioLista ?? 0
+    const { error } = await supabase.from('ofertas').insert({
+      canal,
+      producto_id: productoId,
+      precio_oferta: precio,
+      descuento_porcentaje: 0,
+      orden: 0,
+      activo: true,
+    })
+    if (error) return { ok: false, error: error.message }
+  } else {
+    const { error } = await supabase
+      .from('ofertas')
+      .delete()
+      .eq('canal', canal)
+      .eq('producto_id', productoId)
+    if (error) return { ok: false, error: error.message }
+  }
+  return { ok: true }
+}
+
+export async function toggleDestacada(productoId: number, activo: boolean) {
+  const supabase = createServiceClient()
+  if (activo) {
+    const { data: fotos } = await supabase
+      .from('producto_fotos')
+      .select('id')
+      .eq('producto_id', productoId)
+      .order('orden')
+      .limit(1)
+    if (!fotos?.length) return { ok: false, error: 'Sin fotos' }
+    const { error } = await supabase
+      .from('producto_fotos')
+      .update({ destacada: true })
+      .eq('id', fotos[0].id)
+    if (error) return { ok: false, error: error.message }
+  } else {
+    const { error } = await supabase
+      .from('producto_fotos')
+      .update({ destacada: false })
+      .eq('producto_id', productoId)
+    if (error) return { ok: false, error: error.message }
+  }
+  return { ok: true }
+}
+
 export async function actualizarOferta(
   id: number,
   data: {

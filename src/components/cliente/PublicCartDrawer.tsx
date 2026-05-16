@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { ShoppingBag, X, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 export function PublicCartDrawer() {
-  const { items, remove, totalItems } = useCartStore()
-  const [open, setOpen] = useState(false)
+  const { items, remove, totalItems, cartOpen, setCartOpen } = useCartStore()
+  const open = cartOpen
+  const setOpen = setCartOpen
 
   if (totalItems() === 0 && !open) {
     return (

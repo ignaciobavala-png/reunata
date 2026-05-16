@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { PublicCartDrawer } from '@/components/cliente/PublicCartDrawer'
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
       <Footer />
+      <PublicCartDrawer />
     </div>
   )
 }

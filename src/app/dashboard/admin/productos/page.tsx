@@ -17,7 +17,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* Tabs */}
       <div className="flex gap-1 mt-6 mb-6 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
         {[
-          { key: 'lista', label: 'Lista de productos' },
+          { key: 'lista',   label: 'Lista de productos' },
           { key: 'canales', label: 'Canales de venta' },
         ].map(({ key, label }) => (
           <a
@@ -34,30 +34,42 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         ))}
       </div>
 
-      {vistaActual === 'canales' ? (
-        <CanalesContent />
-      ) : (
-        <ListaContent />
-      )}
+      {vistaActual === 'canales' ? <CanalesContent /> : <ListaContent />}
     </div>
   )
 }
 
 async function ListaContent() {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
-  const { data: productos } = await supabase
-    .from('productos')
-    .select('id, codigo_interno, titulo, categoria, stock, precio_lista1, precio_lista2, precio_lista3, activo')
-    .order('categoria')
-    .order('titulo')
+  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }] = await Promise.all([
+    supabase
+      .from('productos')
+      .select('id, codigo_interno, titulo, categoria, stock, precio_lista1, precio_lista2, precio_lista3, activo')
+      .order('categoria')
+      .order('titulo'),
+    supabase
+      .from('ofertas')
+      .select('canal, producto_id'),
+    supabase
+      .from('producto_fotos')
+      .select('producto_id')
+      .eq('destacada', true),
+  ])
+
+  const ofertasSet = new Set(
+    (ofertasActivas ?? []).map(o => `${o.canal}-${o.producto_id}`)
+  )
+  const destacadasSet = new Set(
+    (fotosDestacadas ?? []).map(f => f.producto_id)
+  )
 
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
         {productos?.length ?? 0} productos sincronizados desde Gesu
       </p>
-      <ProductosListaClient productos={productos ?? []} />
+      <ProductosListaClient productos={productos ?? []} ofertasIniciales={ofertasSet} destacadasIniciales={destacadasSet} />
     </div>
   )
 }

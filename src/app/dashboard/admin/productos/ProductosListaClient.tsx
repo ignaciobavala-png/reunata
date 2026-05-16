@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useMemo, Fragment } from 'react'
-import { Search, ChevronRight, ChevronDown, AlertTriangle } from 'lucide-react'
+import { useState, useMemo, Fragment, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2 } from 'lucide-react'
+import { toggleOferta, toggleDestacada } from '@/app/actions/ofertas'
 
 interface Producto {
   id: number
@@ -15,13 +17,33 @@ interface Producto {
   activo: boolean
 }
 
+const TAGS = [
+  { key: 'ofertas' as const, label: 'Oferta',        color: '#f59e0b' },
+  { key: 'hotsale' as const, label: 'Hot Sale',       color: '#ef4444' },
+  { key: 'elegidos' as const, label: 'Más elegidos',  color: '#8b5cf6' },
+]
+
 function fmt(v: number | null) {
   return v ? `u$s ${v.toFixed(2)}` : '—'
 }
 
-export function ProductosListaClient({ productos }: { productos: Producto[] }) {
+export function ProductosListaClient({
+  productos,
+  ofertasIniciales,
+  destacadasIniciales,
+}: {
+  productos: Producto[]
+  ofertasIniciales: Set<string>   // `${canal}-${producto_id}`
+  destacadasIniciales: Set<number>
+}) {
+  const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
+  const [ofertas, setOfertas] = useState<Set<string>>(new Set(ofertasIniciales))
+  const [destacadas, setDestacadas] = useState<Set<number>>(new Set(destacadasIniciales))
+  const [guardando, setGuardando] = useState<string | null>(null)
+  const [guardandoDestacada, setGuardandoDestacada] = useState<number | null>(null)
+  const [, startTransition] = useTransition()
 
   const filtrados = useMemo(() => {
     if (!busqueda) return productos
@@ -44,8 +66,6 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
   }, [filtrados])
 
   const categoriasList = Object.keys(porCategoria).sort()
-
-  // Al buscar, todas las categorías se expanden automáticamente
   const catExpandidas = busqueda ? new Set(categoriasList) : expandidas
 
   function toggleExpand(cat: string) {
@@ -57,7 +77,40 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
     })
   }
 
-  const totalFiltrados = filtrados.length
+  function handleToggleDestacada(p: Producto) {
+    const nuevoValor = !destacadas.has(p.id)
+    setGuardandoDestacada(p.id)
+    const anterior = new Set(destacadas)
+    const nuevo = new Set(destacadas)
+    nuevoValor ? nuevo.add(p.id) : nuevo.delete(p.id)
+    setDestacadas(nuevo)
+    startTransition(async () => {
+      try {
+        const res = await toggleDestacada(p.id, nuevoValor)
+        if (!res.ok) setDestacadas(anterior)
+        else router.refresh()
+      } catch { setDestacadas(anterior) }
+      finally { setGuardandoDestacada(null) }
+    })
+  }
+
+  function handleToggleOferta(canal: 'ofertas' | 'hotsale', p: Producto) {
+    const key = `${canal}-${p.id}`
+    const nuevoValor = !ofertas.has(key)
+    setGuardando(key)
+    const anterior = new Set(ofertas)
+    const nuevo = new Set(ofertas)
+    nuevoValor ? nuevo.add(key) : nuevo.delete(key)
+    setOfertas(nuevo)
+    startTransition(async () => {
+      try {
+        const res = await toggleOferta(canal, p.id, p.precio_lista1, nuevoValor)
+        if (!res.ok) setOfertas(anterior)
+        else router.refresh()
+      } catch { setOfertas(anterior) }
+      finally { setGuardando(null) }
+    })
+  }
 
   return (
     <div>
@@ -74,7 +127,7 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
           />
         </div>
         <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {totalFiltrados} productos · {categoriasList.length} categorías
+          {filtrados.length} productos · {categoriasList.length} categorías
         </span>
       </div>
 
@@ -84,7 +137,7 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)', borderBottom: '1px solid var(--color-acero-claro)' }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)', width: '40%' }}>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)', width: '35%' }}>
                   Categoría / Producto
                 </th>
                 <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Código</th>
@@ -93,6 +146,13 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
+                {TAGS.map(t => (
+                  <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
+                    <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: t.color + '33', color: t.color }}>
+                      {t.label}
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -107,10 +167,7 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                     {/* Fila de categoría */}
                     <tr
                       className="cursor-pointer transition-colors"
-                      style={{
-                        background: 'var(--color-acero-brillo)',
-                        borderTop: '2px solid var(--color-acero-claro)',
-                      }}
+                      style={{ background: 'var(--color-acero-brillo)', borderTop: '2px solid var(--color-acero-claro)' }}
                       onClick={() => toggleExpand(cat)}
                     >
                       <td className="px-4 py-3" colSpan={2}>
@@ -119,16 +176,11 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                             ? <ChevronDown size={14} style={{ color: 'var(--color-acero-oscuro)', flexShrink: 0 }} />
                             : <ChevronRight size={14} style={{ color: 'var(--color-acero-oscuro)', flexShrink: 0 }} />
                           }
-                          <span className="font-medium text-sm" style={{ color: 'var(--color-granito-claro)' }}>
-                            {cat}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                            ({prods.length} productos)
-                          </span>
+                          <span className="font-medium text-sm" style={{ color: 'var(--color-granito-claro)' }}>{cat}</span>
+                          <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>({prods.length} productos)</span>
                           {sinStock > 0 && (
                             <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full" style={{ background: '#fee2e2', color: '#dc2626' }}>
-                              <AlertTriangle size={10} />
-                              {sinStock} sin stock
+                              <AlertTriangle size={10} />{sinStock} sin stock
                             </span>
                           )}
                           {inactivos > 0 && (
@@ -138,8 +190,7 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                           )}
                         </div>
                       </td>
-                      {/* Celdas vacías para mantener la estructura */}
-                      <td /><td /><td /><td /><td /><td />
+                      <td /><td /><td /><td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -175,6 +226,53 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
                             {p.activo ? 'Activo' : 'Inactivo'}
                           </span>
                         </td>
+                        {TAGS.map(t => {
+                          if (t.key === 'elegidos') {
+                            const activo = destacadas.has(p.id)
+                            const cargando = guardandoDestacada === p.id
+                            return (
+                              <td key={t.key} className="px-3 py-2.5 text-center">
+                                <button
+                                  onClick={() => handleToggleDestacada(p)}
+                                  disabled={cargando || !p.activo}
+                                  title={activo ? 'Quitar de Más elegidos' : 'Agregar a Más elegidos'}
+                                  className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
+                                  style={{
+                                    borderColor: activo ? t.color : 'var(--color-acero-claro)',
+                                    background: activo ? t.color : 'transparent',
+                                  }}
+                                >
+                                  {cargando
+                                    ? <Loader2 size={9} className="animate-spin" style={{ color: activo ? 'white' : t.color }} />
+                                    : activo && <span className="text-white text-[10px] leading-none">✓</span>
+                                  }
+                                </button>
+                              </td>
+                            )
+                          }
+                          const key = `${t.key}-${p.id}`
+                          const activo = ofertas.has(key)
+                          const cargando = guardando === key
+                          return (
+                            <td key={t.key} className="px-3 py-2.5 text-center">
+                              <button
+                                onClick={() => handleToggleOferta(t.key, p)}
+                                disabled={cargando || !p.activo}
+                                title={activo ? `Quitar de ${t.label}` : `Agregar a ${t.label}`}
+                                className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
+                                style={{
+                                  borderColor: activo ? t.color : 'var(--color-acero-claro)',
+                                  background: activo ? t.color : 'transparent',
+                                }}
+                              >
+                                {cargando
+                                  ? <Loader2 size={9} className="animate-spin" style={{ color: activo ? 'white' : t.color }} />
+                                  : activo && <span className="text-white text-[10px] leading-none">✓</span>
+                                }
+                              </button>
+                            </td>
+                          )
+                        })}
                       </tr>
                     ))}
                   </Fragment>
@@ -183,7 +281,7 @@ export function ProductosListaClient({ productos }: { productos: Producto[] }) {
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={10} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos. Ejecutá una sincronización desde el panel de Sync.'}
                   </td>
                 </tr>

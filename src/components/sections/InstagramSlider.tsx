@@ -1,6 +1,3 @@
-'use client'
-
-import useEmblaCarousel from 'embla-carousel-react'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Image from 'next/image'
 
@@ -14,13 +11,6 @@ interface Post {
 }
 
 export function InstagramSlider({ posts }: { posts: Post[] }) {
-  const [emblaRef] = useEmblaCarousel({
-    loop: false,
-    dragFree: true,
-    containScroll: 'trimSnaps',
-    align: 'start',
-  })
-
   if (posts.length === 0) return null
 
   return (
@@ -49,8 +39,11 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
       </FadeIn>
 
       <FadeIn delay={0.1}>
-        <div ref={emblaRef} className="overflow-hidden cursor-grab active:cursor-grabbing">
-          <div className="flex gap-2 pl-6 md:pl-10 pr-6">
+        <div
+          className="overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          <div className="flex gap-2 pl-6 md:pl-10 pr-6 w-max">
             {posts.map((post) => (
               <a
                 key={post.id}
