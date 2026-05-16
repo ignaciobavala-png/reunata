@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
-import { Camera, Share2, Play, Music, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
@@ -26,10 +26,9 @@ const infoLinks = [
 ]
 
 const redes = [
-  { label: 'Instagram', href: 'https://www.instagram.com/reunata.ar/', icon: Camera },
-  { label: 'Facebook',  href: 'https://www.facebook.com/reunata.ar/',  icon: Share2 },
-  { label: 'TikTok',    href: 'https://www.tiktok.com/@reunata.ar',    icon: Music },
-  { label: 'YouTube',   href: 'https://www.youtube.com/@reunata.ar',   icon: Play },
+  { label: 'Instagram', href: 'https://www.instagram.com/reunata.ar/', imageSrc: '/icons/social/instagram.png' },
+  { label: 'Facebook',  href: 'https://www.facebook.com/reunata.ar/',  imageSrc: '/icons/social/facebook.png' },
+  { label: 'YouTube',   href: 'https://www.youtube.com/@reunata.ar',   imageSrc: '/icons/social/youtube.png' },
 ]
 
 const linkClass = 'text-sm text-[var(--color-acero)] hover:text-[var(--color-acero-brillo)] transition-colors duration-200'
@@ -139,9 +138,15 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={r.label}
-                  className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors duration-200 border-[var(--color-acero-oscuro)] text-[var(--color-acero)] hover:border-[var(--color-acero-brillo)] hover:text-[var(--color-acero-brillo)]"
+                  className="w-12 h-12 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity duration-200"
                 >
-                  <r.icon size={14} strokeWidth={1.5} />
+                  <Image
+                    src={r.imageSrc}
+                    alt={r.label}
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 object-contain invert"
+                  />
                 </a>
               ))}
             </div>

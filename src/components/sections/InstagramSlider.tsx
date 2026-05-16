@@ -25,20 +25,27 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
 
   return (
     <section className="py-16 md:py-24 overflow-hidden">
-      <FadeIn className="px-6 md:px-10 mb-10 flex items-center gap-4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5" style={{ color: 'var(--color-granito)' }}>
-          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-          <circle cx="12" cy="12" r="5" />
-          <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
-        </svg>
-        <div>
-          <span className="text-sm tracking-[0.2em] uppercase font-semibold" style={{ color: 'var(--color-granito)' }}>
-            Comunidad Reunata
-          </span>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Seguinos en @reunata.ar
-          </p>
-        </div>
+      <FadeIn className="px-6 md:px-10 mb-10">
+        <a
+          href="https://www.instagram.com/reunata.ar/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-4 group w-fit"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 transition-opacity group-hover:opacity-70" style={{ color: 'var(--color-granito)' }}>
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+          </svg>
+          <div>
+            <span className="text-sm tracking-[0.2em] uppercase font-semibold transition-opacity group-hover:opacity-70" style={{ color: 'var(--color-granito)' }}>
+              Comunidad Reunata
+            </span>
+            <p className="text-xs mt-0.5 transition-opacity group-hover:opacity-70" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Seguinos en @reunata.ar
+            </p>
+          </div>
+        </a>
       </FadeIn>
 
       <FadeIn delay={0.1}>
@@ -82,16 +89,6 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
         </div>
       </FadeIn>
 
-      <FadeIn delay={0.2} className="px-6 md:px-10 mt-6">
-        <a
-          href="https://www.instagram.com/reunata.ar/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] tracking-widest uppercase text-[var(--color-granito-claro)] hover:text-[var(--foreground)] transition-colors"
-        >
-          Seguinos en Instagram →
-        </a>
-      </FadeIn>
     </section>
   )
 }

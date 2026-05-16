@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Search, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, ChevronDown, ShoppingBag, Trash2 } from 'lucide-react'
+import { useCartStore } from '@/stores/cartStore'
 
 const categorias = [
   { label: 'Materas y Mochilas',          href: '/tienda/materas-y-mochilas' },
@@ -37,6 +38,8 @@ export function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [corporativosOpen, setCorporativosOpen] = useState(false)
   const [scrolled, setScrolled] = useState(!isHome)
+
+  const { items, remove, updateCantidad, totalItems, cartOpen, setCartOpen } = useCartStore()
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const corporativosRef = useRef<HTMLDivElement>(null)
@@ -255,13 +258,22 @@ export function Header() {
               strokeWidth={1.5}
             />
           </button>
-          <Link href="/carrito" aria-label="Carrito">
+          <button
+            onClick={() => setCartOpen(true)}
+            aria-label="Carrito"
+            className="relative"
+          >
             <ShoppingCart
               size={20}
               strokeWidth={1.5}
               className={`transition-colors duration-300 ${iconColor}`}
             />
-          </Link>
+            {totalItems() > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-medium flex items-center justify-center bg-[var(--color-granito-oscuro)] text-[var(--color-acero-brillo)]">
+                {totalItems()}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setOpen(!open)}
             aria-label="Menú"
@@ -367,6 +379,160 @@ export function Header() {
           </Link>
         ))}
       </motion.div>
+
+      {/* Cart drawer */}
+      <AnimatePresence>
+        {cartOpen && (
+          <>
+            <motion.div
+              key="cart-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/30"
+              onClick={() => setCartOpen(false)}
+            />
+            <motion.div
+              key="cart-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed top-0 right-0 h-full z-50 flex flex-col w-[360px] max-w-full bg-white"
+              style={{ boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                <div className="flex items-center gap-2">
+                  <ShoppingBag size={16} style={{ color: 'var(--color-granito)' }} />
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    Mi carrito
+                  </span>
+                </div>
+                <button onClick={() => setCartOpen(false)}>
+                  <X size={16} style={{ color: 'var(--color-acero-oscuro)' }} />
+                </button>
+              </div>
+
+              {/* Items */}
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                {items.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 gap-2">
+                    <ShoppingBag size={28} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
+                    <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Tu carrito está vacío
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {items.map(item => (
+                      <div
+                        key={item.productoId}
+                        className="flex gap-3 p-3 rounded-xl"
+                        style={{ background: 'var(--color-acero-claro)' }}
+                      >
+                        {/* Foto */}
+                        <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden" style={{ background: 'var(--color-acero)' }}>
+                          {item.foto_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.foto_url}
+                              alt={item.titulo}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ShoppingBag size={18} style={{ color: 'var(--color-acero-oscuro)' }} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info + controles */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <p className="text-[10px] font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                              {item.codigo_interno}
+                            </p>
+                            <p className="text-xs font-medium leading-snug mt-0.5 line-clamp-2" style={{ color: 'var(--foreground)' }}>
+                              {item.titulo}
+                            </p>
+                          </div>
+
+                          {/* Cantidad + tachito */}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center rounded-lg overflow-hidden" style={{ background: 'white', border: '1px solid var(--border)' }}>
+                              <button
+                                onClick={() => updateCantidad(item.productoId, Math.max(1, item.cantidad - 1))}
+                                disabled={item.cantidad <= 1}
+                                className="w-8 h-8 flex items-center justify-center text-base font-light transition-colors hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                                style={{ color: 'var(--color-granito)' }}
+                                aria-label="Reducir cantidad"
+                              >
+                                −
+                              </button>
+                              <span className="w-8 text-center text-sm font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
+                                {item.cantidad}
+                              </span>
+                              <button
+                                onClick={() => updateCantidad(item.productoId, item.cantidad + 1)}
+                                className="w-8 h-8 flex items-center justify-center text-base font-light transition-colors hover:bg-gray-50"
+                                style={{ color: 'var(--color-granito)' }}
+                                aria-label="Aumentar cantidad"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => remove(item.productoId)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-red-50"
+                              style={{ color: 'var(--color-acero-oscuro)' }}
+                              aria-label="Eliminar"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                {items.length > 0 ? (
+                  <>
+                    <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Los precios se muestran al iniciar sesión.
+                    </p>
+                    <Link
+                      href="/login?next=/dashboard/cliente/catalogo"
+                      onClick={() => setCartOpen(false)}
+                      className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
+                      style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                    >
+                      Continuar →
+                    </Link>
+                    <Link
+                      href="/registro"
+                      onClick={() => setCartOpen(false)}
+                      className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
+                      style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                    >
+                      ¿No tenés cuenta? Registrate
+                    </Link>
+                  </>
+                ) : (
+                  <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Agregá productos para continuar.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { ImageIcon, ShoppingBag, Check } from 'lucide-react'
+import { ImageIcon, Check } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
 import { useCartStore } from '@/stores/cartStore'
 import { useState } from 'react'
@@ -21,15 +21,28 @@ export function ProductGridPublic({
   productos: ProductoPublico[]
   nombreCategoria: string
 }) {
-  const { add, items } = useCartStore()
+  const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
 
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
-    add({ productoId: p.id, codigo_interno: p.codigo_interno, titulo: p.titulo, precio: 0 })
+    if (enCarrito(p.id)) {
+      setCartOpen(true)
+      return
+    }
+    add({
+      productoId: p.id,
+      codigo_interno: p.codigo_interno,
+      titulo: p.titulo,
+      precio: 0,
+      foto_url: p.foto_url ? supabaseImg(p.supabaseUrl, p.foto_url, 200) : null,
+    })
     setAgregados(prev => new Set(prev).add(p.id))
-    setTimeout(() => setAgregados(prev => { const s = new Set(prev); s.delete(p.id); return s }), 1500)
+    setTimeout(() => {
+      setCartOpen(true)
+      setAgregados(prev => { const s = new Set(prev); s.delete(p.id); return s })
+    }, 600)
   }
 
   const enCarrito = (id: number) => items.some(i => i.productoId === id)
@@ -42,10 +55,16 @@ export function ProductGridPublic({
           const yaEsta = enCarrito(p.id)
           return (
             <div key={p.id} className="group">
-              <div
-                className="w-full aspect-[3/4] mb-3 relative overflow-hidden"
-                style={{ border: '1px solid var(--border)' }}
+              <button
+                onClick={() => handleAgregar(p)}
+                className="w-full aspect-[3/4] mb-3 relative overflow-hidden block"
+                style={{
+                  border: yaEsta ? '2px solid #10b981' : '1px solid var(--border)',
+                  transition: 'border-color 0.3s',
+                }}
+                aria-label={yaEsta ? 'Ver carrito' : `Agregar ${p.titulo}`}
               >
+                {/* Foto */}
                 {p.foto_url ? (
                   <Image
                     src={supabaseImg(p.supabaseUrl, p.foto_url, 400, { height: 533 })}
@@ -60,20 +79,33 @@ export function ProductGridPublic({
                   </div>
                 )}
 
-                {/* Botón agregar superpuesto */}
-                <button
-                  onClick={() => handleAgregar(p)}
-                  className="absolute bottom-2 right-2 p-2 rounded-lg transition-all duration-150"
-                  style={{
-                    background: agregado || yaEsta ? '#10b981' : 'var(--color-granito-oscuro)',
-                    color: 'white',
-                    opacity: agregado || yaEsta ? 1 : undefined,
-                  }}
-                  title={yaEsta ? 'En el carrito' : 'Agregar al carrito'}
-                >
-                  {agregado || yaEsta ? <Check size={14} /> : <ShoppingBag size={14} />}
-                </button>
-              </div>
+                {/* Overlay de feedback "Agregado ✓" */}
+                {agregado && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <span className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center">
+                      <Check size={20} className="text-white" strokeWidth={2.5} />
+                    </span>
+                  </div>
+                )}
+
+                {/* Barra hover slide-up */}
+                {!agregado && (
+                  <div
+                    className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-[10px] tracking-[0.2em] uppercase"
+                    style={{ background: yaEsta ? '#10b981' : 'var(--color-granito-oscuro)', color: 'white' }}
+                  >
+                    {yaEsta ? '✓ Ver carrito' : '+ Agregar'}
+                  </div>
+                )}
+
+                {/* Badge "en carrito" esquina superior derecha */}
+                {yaEsta && !agregado && (
+                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
+                    <Check size={11} className="text-white" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+
               <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>
                 {p.titulo}
               </p>
