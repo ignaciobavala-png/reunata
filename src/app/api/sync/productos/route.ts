@@ -183,6 +183,21 @@ async function syncProductos() {
       totalUpserted += Math.min(BATCH, rows.length - i)
     }
 
+    // Auto-crear categorias_home para categorías Gesu que no tienen fila todavía
+    const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
+    const { data: filasExistentes } = await supabase.from('categorias_home').select('categoria_keys')
+    const keysAsignadas = new Set(
+      (filasExistentes ?? []).flatMap(f => (f.categoria_keys ?? []) as string[])
+    )
+    for (const cat of categoriasGesu.filter(cat => !keysAsignadas.has(cat))) {
+      await supabase.from('categorias_home').insert({
+        nombre: cat,
+        categoria_keys: [cat],
+        activo: false,
+        orden: 999,
+      })
+    }
+
   } catch (e) {
     error = (e as Error).message
     console.error('[sync/productos] Error:', error)
