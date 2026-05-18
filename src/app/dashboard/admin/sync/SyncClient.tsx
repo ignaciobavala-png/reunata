@@ -9,14 +9,14 @@ type Tipo = 'productos' | 'clientes'
 export function SyncClient({ isMaster }: { isMaster: boolean }) {
   const [loading, setLoading] = useState<Tipo | null>(null)
   const [results, setResults] = useState<Record<Tipo, SyncResult | null>>({ productos: null, clientes: null })
+  const [desactivarNoReunata, setDesactivarNoReunata] = useState(false)
 
   async function runSync(tipo: Tipo) {
     setLoading(tipo)
     try {
-      const res = await fetch(`/api/sync/${tipo}`, {
-        method: 'POST',
-        headers: { 'X-Is-Master': isMaster ? 'true' : 'false' },
-      })
+      const headers: Record<string, string> = { 'X-Is-Master': isMaster ? 'true' : 'false' }
+      if (tipo === 'productos' && desactivarNoReunata) headers['X-Desactivar-No-Reunata'] = 'true'
+      const res = await fetch(`/api/sync/${tipo}`, { method: 'POST', headers })
       const data = await res.json()
       setResults(prev => ({ ...prev, [tipo]: data }))
     } catch {
@@ -55,6 +55,24 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
                 <div className="flex-1">
                   <p className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>{label}</p>
                   <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{desc}</p>
+
+                  {tipo === 'productos' && (
+                    <label className="flex items-center gap-2.5 mt-3 cursor-pointer w-fit">
+                      <div
+                        onClick={() => setDesactivarNoReunata(v => !v)}
+                        className="relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0"
+                        style={{ background: desactivarNoReunata ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}
+                      >
+                        <span
+                          className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+                          style={{ transform: desactivarNoReunata ? 'translateX(18px)' : 'translateX(2px)' }}
+                        />
+                      </div>
+                      <span className="text-sm" style={{ color: 'var(--color-granito-claro)' }}>
+                        Desactivar productos que no son de Reunata
+                      </span>
+                    </label>
+                  )}
 
                   {result && (
                     <div className="mt-3 flex items-center gap-2 text-sm">

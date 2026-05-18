@@ -86,15 +86,15 @@ async function verificarAuth(request: Request): Promise<boolean> {
 
 export async function GET(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos()
+  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
 }
 
 export async function POST(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos()
+  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
 }
 
-async function syncProductos() {
+async function syncProductos(desactivarNoReunata = false) {
 
   if (!GESU_TOKEN) {
     return NextResponse.json(
@@ -181,6 +181,17 @@ async function syncProductos() {
 
       if (upsertError) throw new Error(upsertError.message)
       totalUpserted += Math.min(BATCH, rows.length - i)
+    }
+
+    // Desactivar productos que ya no son de Reunata (opcional, controlado desde el panel)
+    if (desactivarNoReunata) {
+      const codigosReunata = soloReunata.map(item => item.codigoInterno).filter(Boolean) as string[]
+      if (codigosReunata.length > 0) {
+        await supabase
+          .from('productos')
+          .update({ activo: false })
+          .not('codigo_interno', 'in', `(${codigosReunata.map(c => `"${c}"`).join(',')})`)
+      }
     }
 
     // Auto-crear categorias_home para categorías Gesu que no tienen fila todavía
