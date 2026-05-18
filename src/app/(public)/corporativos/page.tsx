@@ -1,25 +1,56 @@
 import { ImageIcon } from 'lucide-react'
+import Image from 'next/image'
 import { CorporativosForm } from '@/components/sections/CorporativosForm'
+import { createServiceClient } from '@/lib/supabase/server'
 
-function PhotoPlaceholder({ side }: { side: 'left' | 'right' }) {
-  return (
-    <div className="hidden lg:flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed min-h-[400px] px-6 py-12 text-center"
-      style={{
-        borderColor: 'var(--color-granito-claro)',
-        background: 'var(--color-acero-brillo)',
-        color: 'var(--color-acero-oscuro)',
-      }}
-    >
-      <ImageIcon size={48} strokeWidth={1} />
-      <div>
-        <p className="text-sm font-semibold">Trabajos realizados</p>
-        <p className="text-xs mt-1 opacity-70">Próximamente</p>
+async function getFotos(): Promise<{ izquierda: string | null; derecha: string | null }> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('configuracion')
+    .select('clave, valor')
+    .in('clave', ['corporativos_foto_izquierda', 'corporativos_foto_derecha'])
+
+  const map: Record<string, string> = {}
+  for (const row of data ?? []) map[row.clave] = row.valor
+
+  return {
+    izquierda: map['corporativos_foto_izquierda'] || null,
+    derecha: map['corporativos_foto_derecha'] || null,
+  }
+}
+
+function FotoLateral({ path, supabaseUrl }: { path: string | null; supabaseUrl: string }) {
+  if (!path) {
+    return (
+      <div className="hidden lg:flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed min-h-[400px] px-6 py-12 text-center"
+        style={{ borderColor: 'var(--color-granito-claro)', background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)' }}
+      >
+        <ImageIcon size={48} strokeWidth={1} />
+        <div>
+          <p className="text-sm font-semibold">Trabajos realizados</p>
+          <p className="text-xs mt-1 opacity-70">Próximamente</p>
+        </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="hidden lg:block relative rounded-2xl overflow-hidden min-h-[400px]">
+      <Image
+        src={`${supabaseUrl}/storage/v1/object/public/multimedia/${path}`}
+        alt="Trabajos realizados"
+        fill
+        className="object-cover"
+        sizes="300px"
+      />
     </div>
   )
 }
 
-export default function CorporativosPage() {
+export default async function CorporativosPage() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const fotos = await getFotos()
+
   return (
     <main className="bg-[var(--color-acero-claro)] pb-24">
       <div className="px-6 md:px-16 max-w-7xl mx-auto">
@@ -43,9 +74,9 @@ export default function CorporativosPage() {
         {/* Contenido */}
         <section className="py-20">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-8 lg:gap-12 items-start">
-            <PhotoPlaceholder side="left" />
+            <FotoLateral path={fotos.izquierda} supabaseUrl={supabaseUrl} />
             <CorporativosForm />
-            <PhotoPlaceholder side="right" />
+            <FotoLateral path={fotos.derecha} supabaseUrl={supabaseUrl} />
           </div>
         </section>
 

@@ -233,7 +233,7 @@ export function Header() {
           </div>
 
           <Link
-            href="/registro"
+            href="/registro?tab=mayorista"
             className={`text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
           >
             Mayoristas
@@ -357,7 +357,7 @@ export function Header() {
 
         {/* Mayoristas en mobile */}
         <Link
-          href="/registro"
+          href="/registro?tab=mayorista"
           onClick={() => setOpen(false)}
           className="text-lg text-[var(--color-granito)] py-1"
           style={{ fontFamily: 'var(--font-display)' }}

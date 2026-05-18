@@ -1,0 +1,302 @@
+================================================================================
+AUDITORÍA GESU API — REUNATA WEB
+Fecha: 2026-05-18
+================================================================================
+
+OBJETIVO DE ESTE DOCUMENTO
+--------------------------------------------------------------------------------
+Describir el estado actual de los datos que ingresa la API de Gesu al sync de
+productos, identificar la "basura" (ítems no comerciales que no deberían estar
+en el catálogo), y definir el plan para:
+  1. Filtrar el sync para que solo entren productos Reunata vendibles.
+  2. Conectar automáticamente las categorías Gesu con las categorías del home
+     (tabla categorias_home / CategoryGallery).
+
+
+================================================================================
+1. ESTRUCTURA DEL SYNC ACTUAL
+================================================================================
+
+Endpoint Gesu consumido:
+  GET {GESU_API_BASE_URL}/api_items.php?pag=N&token={GESU_API_TOKEN}
+
+Frecuencia:
+  - Automático: cada 4 horas via Vercel Cron (vercel.json)
+  - Manual: botón en /dashboard/admin/sync
+
+Comportamiento:
+  - Pagina hasta traer todos los ítems (header.data_fin >= header.data_tot)
+  - Deduplica por codigoInterno
+  - Hace upsert completo a la tabla `productos` sin ningún filtro
+  → PROBLEMA: entra TODO lo que tiene Gesu, incluyendo ítems contables internos.
+
+Campos que llegan de Gesu (interfaz GesuItem):
+  tipo, titulo, codigoInterno, codigoBarras, categoria, subCategoria,
+  marca, proveedor, stock, stockMinimo, monedaPrecioCompra,
+  precioFinalCompra, precioFinalLista1..5, iva, descripcion, palabrasClave
+
+
+================================================================================
+2. INVENTARIO DE CATEGORÍAS ACTUALES EN BASE DE DATOS
+================================================================================
+
+Total de productos en tabla `productos`: 250
+Total de categorías distintas: 19
+
+--- CATEGORÍAS DE PRODUCTOS COMERCIALES (REUNATA) ---
+
+Categoría                           | Total | Marcas principales
+------------------------------------|-------|-----------------------------------
+Bombillas Sorbetes Cepillos         |  38   | Reunata (36), null (2)
+Combos                              |  13   | Combo Reunata (12), Reunata (1)
+Materas y Mochilas                  |   9   | Reunata (5), Discontinuos (4)
+Mates Imperiales                    |   9   | Reunata (8), Discontinuos (1)
+Mates Linea Acero 304               |   8   | Reunata (8)
+Mates Linea Pro                     |  11   | Reunata (10), null (1)
+Mates Linea Paint                   |   3   | Reunata (3)
+Mates Linea Vidrio                  |   4   | Reunata (4)
+Mates y Yerberas Linea ECO          |   4   | Reunata (4)
+Mates y Yerberas Linea Premium      |  10   | Reunata (4), null (6)
+Merchandising / Promocionales       |  40   | Mercha Reunata (25), Reunata (8), null (7)
+Productos Importados                |  16   | Reunata (10), Mercha Reunata (6)
+
+Total productos comerciales: ~165
+
+--- CATEGORÍAS DUDOSAS (REQUIEREN DECISIÓN) ---
+
+Categoría                | Total | Detalle
+-------------------------|-------|--------------------------------------------------
+Preventa C3              |  25   | Son productos Reunata reales (botellas térmicas,
+                         |       | vasos, termos, mate autocebante). Marca "VW" es
+                         |       | un código de proveedor en Gesu, NO Volkswagen.
+                         |       | Títulos incluyen "REUNATA" explícitamente.
+                         |       | Ejemplos:
+                         |       |   - Botella Térmica Deportiva 710cc Negra REUNATA
+                         |       |   - Mate Autocebante 500cc blanco Sublimable REUNATA
+                         |       |   - Vaso Térmico 380cc Acero Inox Termometro Negro
+                         |       |   - Termo MEDIA MANIJA 1L Blanco Sublimable
+                         |       | → Son productos de preventa / próximo lanzamiento.
+                         |       | → RECOMENDACIÓN: importar pero con activo=false
+                         |       |   hasta que el admin los habilite manualmente.
+                         |       |
+Productos en Desarrollo  |   9   | Sin marca (null). Productos no finalizados.
+                         |       | → RECOMENDACIÓN: excluir del sync completamente
+                         |       |   o importar con activo=false.
+
+--- CATEGORÍAS BASURA — DEBEN EXCLUIRSE DEL SYNC ---
+
+Son ítems contables/internos de Gesu que nunca deberían aparecer como productos:
+
+Categoría                                          | Total | Por qué excluir
+---------------------------------------------------|-------|---------------------------
+M) Costo Insumos 3. TERMINADOS                    |  24   | Partes de ensamblado:
+                                                   |       | "Pata PP", "Tapa YERBERA",
+                                                   |       | "Exterior PP PARY",
+                                                   |       | "Packaging Conito", etc.
+M) Costo Insumos 2. BASICOS                       |   5   | Insumos básicos
+M) Costo Insumos 1. MATERIAS PRIMAS               |   5   | Materias primas
+M) COSTO Produccion (Servicio)                    |   6   | Servicios de producción
+O) BIENES DE USO / ACTIVOS / PATRIMONIO           |  11   | Activos contables
+  (GEN, Suma Stock)                                |       |
+
+Total basura: ~51 productos
+
+
+================================================================================
+3. ANÁLISIS DE MARCAS
+================================================================================
+
+Marca            | Total | Estado
+-----------------|-------|--------------------------------------------------
+Reunata          |  106  | ✅ Principal — siempre incluir
+Mercha Reunata   |   31  | ✅ Línea de merchandising Reunata
+Combo Reunata    |   12  | ✅ Combos Reunata
+VW               |   21  | ✅ Proveedor de productos Reunata (no Volkswagen)
+                 |       |    Todos los títulos contienen "REUNATA"
+Discontinuos     |    5  | ⚠️ Productos discontinuados. Incluir pero inactivos.
+null (sin marca) |   75  | ⚠️ Mixto: puede ser basura interna (M)/O) categorías)
+                 |       |    o productos de categorías Reunata sin marca cargada
+
+
+================================================================================
+4. CATEGORIAS HOME — ESTADO ACTUAL Y PROBLEMAS
+================================================================================
+
+La tabla `categorias_home` tiene 4 filas que alimentan la galería del home.
+Cada una tiene un campo `categoria_keys` (array de strings) que mapea
+las categorías de Gesu a cada tile del home.
+
+ID | Nombre    | categoria_keys actuales
+---|-----------|------------------------------------------------------------------
+1  | Mates     | ["Mates Imperiales", "Mates Linea Acero 304", "Mates Linea Paint",
+   |           |  "Mates Linea Pro", "Mates Linea Vidrio",
+   |           |  "Mates y Yerberas Linea ECO", "Mates y Yerberas Linea Premium"]
+   |           | → ✅ CORRECTO y completo
+   |           |
+2  | Materas   | ["Materas y Mochilas"]
+   |           | → ✅ CORRECTO
+   |           |
+3  | Bombillas | ["Bombillas Sorbetes Cepillos"]
+   |           | → ✅ CORRECTO
+   |           |
+4  | Combos    | ["Combos", "Merchandising / Promocionales", "Productos Importados"]
+   |           | → ⚠️ PROBLEMÁTICO:
+   |           |   - "Merchandising / Promocionales" (40 items) no son combos
+   |           |   - "Productos Importados" (16 items) tampoco son combos
+   |           |   - Mezcla categorías muy distintas bajo un mismo tile
+
+Categorías Gesu SIN tile asignado actualmente:
+  - Preventa C3         → productos que son Termos / Botellas Térmicas
+  - (nada más si se aplican los filtros de basura)
+
+
+================================================================================
+5. PLAN DE IMPLEMENTACIÓN RECOMENDADO
+================================================================================
+
+--- FASE 1: FILTRAR EL SYNC (route.ts) ---
+
+En /src/app/api/sync/productos/route.ts, ANTES del upsert, filtrar así:
+
+  const CATEGORIAS_EXCLUIDAS = new Set([
+    'M) Costo Insumos 3. TERMINADOS',
+    'M) Costo Insumos 2. BASICOS',
+    'M) Costo Insumos 1. MATERIAS PRIMAS',
+    'M) COSTO Produccion (Servicio)',
+    'O) BIENES DE USO / ACTIVOS / PATRIMONIO (GEN, Suma Stock)',
+    'Productos en Desarrollo',
+  ])
+
+  const soloReunata = sinDuplicados.filter(item =>
+    !CATEGORIAS_EXCLUIDAS.has(item.categoria ?? '')
+  )
+
+Para "Preventa C3": importar con activo = false hasta que el admin lo habilite:
+  activo: item.categoria === 'Preventa C3' ? false : (existente.activo ?? true)
+  → No desactivar si ya estaba activo (respetar decisión manual del admin)
+
+Para productos ya importados con categorías basura:
+  UPDATE productos SET activo = false
+  WHERE categoria IN (lista de categorías excluidas)
+
+--- FASE 2: CONECTAR categorias_home CON GESU ---
+
+OPCIÓN A — Manual mejorado (mínimo cambio, máximo control):
+  Mantener el campo categoria_keys como está, pero mejorar el editor en
+  Multimedia > Categorías Home para que muestre las categorías disponibles
+  de Gesu como un dropdown/checklist en lugar de texto libre.
+  → El admin tilda qué categorías Gesu van en cada tile del home.
+  → Ventaja: control total. Desventaja: hay que actualizar manualmente
+    si Gesu agrega nuevas subcategorías.
+
+OPCIÓN B — Semi-automático (recomendado):
+  En el sync, después de insertar productos, hacer esto:
+  1. Obtener categorías únicas de los productos que se acaban de sincronizar.
+  2. Para cada categoría nueva (que no esté en ningún categoria_keys),
+     insertarla en una tabla auxiliar `gesu_categorias_nuevas` o en
+     configuracion con clave `gesu_categorias_sin_asignar`.
+  3. En el panel de Sync o en Multimedia > Categorías Home, mostrar un
+     badge "X categorías nuevas de Gesu sin asignar" para que el admin
+     las asigne al tile correcto.
+  → El sistema nunca agrega automáticamente (evita sorpresas), pero sí
+    avisa cuando hay categorías nuevas para asignar.
+
+OPCIÓN C — Automático por keywords (frágil, no recomendado):
+  Detectar categorías Gesu por palabras clave:
+    si contiene "Mate" → tile Mates
+    si contiene "Matera" → tile Materas
+    si contiene "Bombilla" → tile Bombillas
+    etc.
+  → Frágil: depende de que Gesu mantenga naming consistente.
+
+RECOMENDACIÓN FINAL: OPCIÓN B (semi-automático)
+
+--- FASE 3: REESTRUCTURAR categorias_home (opcional) ---
+
+Revisar si el tile "Combos" tiene sentido mezclando:
+  - Combos (OK)
+  - Merchandising / Promocionales (40 items — deberían ser su propio tile)
+  - Productos Importados (16 items — deberían ir con Mates o Combos)
+
+Propuesta de tiles sugerida post-limpieza:
+  1. Mates           → todas las Lineas de Mates
+  2. Materas         → Materas y Mochilas
+  3. Bombillas       → Bombillas Sorbetes Cepillos
+  4. Combos          → Combos únicamente
+  5. Merchandising   → Merchandising / Promocionales + Productos Importados
+  (6. Termos)        → Preventa C3, si se decide mostrarlos
+
+
+================================================================================
+6. IMPACTO EN TABLAS
+================================================================================
+
+Tabla `productos`:
+  - ~51 productos marcados como activo=false (categorías basura M) y O))
+  - ~25 productos de Preventa C3 importados con activo=false
+  - Sync futuro no insertará las categorías excluidas
+
+Tabla `producto_canales`:
+  - Los productos inactivados ya no aparecerán en tienda ni dashboards
+  - No hay borrado físico: datos contables de Gesu se conservan en DB
+
+Tabla `categorias_home`:
+  - Sin cambios en Fase 1 y 2 (Opción B no toca esta tabla directamente)
+  - Cambios opcionales en Fase 3
+
+Tabla `sync_log`:
+  - Agregar campo `filtrados` al log: "X productos filtrados por categoría"
+
+
+================================================================================
+7. ARCHIVOS A MODIFICAR
+================================================================================
+
+/src/app/api/sync/productos/route.ts
+  → Agregar CATEGORIAS_EXCLUIDAS y filtro
+  → Agregar lógica de activo=false para Preventa C3
+  → Agregar log de cuántos productos fueron filtrados
+  → (Opción B) Registrar categorías nuevas sin asignar
+
+/src/app/dashboard/admin/multimedia/CategoriasClient.tsx
+  → Reemplazar textarea de texto libre por checklist de categorías Gesu
+  → Mostrar badge de categorías sin asignar (Opción B)
+
+/src/app/dashboard/admin/sync/SyncClient.tsx
+  → Mostrar en el resultado: "X sincronizados, Y filtrados"
+
+Migración SQL a ejecutar una vez:
+  UPDATE productos SET activo = false
+  WHERE categoria IN (
+    'M) Costo Insumos 3. TERMINADOS',
+    'M) Costo Insumos 2. BASICOS',
+    'M) Costo Insumos 1. MATERIAS PRIMAS',
+    'M) COSTO Produccion (Servicio)',
+    'O) BIENES DE USO / ACTIVOS / PATRIMONIO (GEN, Suma Stock)',
+    'Productos en Desarrollo'
+  );
+
+
+================================================================================
+8. PREGUNTAS PENDIENTES PARA EL CLIENTE
+================================================================================
+
+P1. Preventa C3 (25 productos: termos, botellas, vasos térmicos):
+    ¿Importar pero ocultos hasta activar manualmente?
+    ¿O directamente no importar?
+
+P2. Productos en Desarrollo (9 sin marca):
+    ¿Excluir completamente o importar como inactivos?
+
+P3. Tile "Combos" en el home:
+    ¿Separar Merchandising / Promocionales en un tile propio?
+    ¿Cómo nombrarías ese tile? (Merch, Regalos Corporativos, Personalización)
+
+P4. Preventa C3 si se incluye:
+    ¿A qué tile del home asignarla?
+    (Sugerencia: nuevo tile "Termos y Botellas" o dentro de "Combos")
+
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

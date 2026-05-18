@@ -122,7 +122,7 @@ export function CorporativosForm() {
       <Field label="Empresa" name="empresa" placeholder="Nombre de tu empresa" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Correo" name="correo" type="email" placeholder="correo@empresa.com" />
+        <Field label="Correo" name="email" type="email" placeholder="correo@empresa.com" />
         <Field label="Teléfono" name="telefono" type="tel" placeholder="Ej. 11 1234-5678" />
       </div>
 

@@ -8,11 +8,8 @@ export default function PromocionesPage() {
     <div style={{ background: 'var(--color-granito-oscuro)' }}>
       <div className="px-6 md:px-16 max-w-5xl mx-auto">
         <section className="pt-36 pb-24">
-          <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Promociones
-          </p>
           <h1 className="text-4xl md:text-6xl leading-tight mb-6" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-acero-brillo)' }}>
-            Ofertas especiales.
+            Promociones especiales.
           </h1>
           <p className="text-base md:text-lg max-w-xl leading-relaxed mb-4" style={{ color: 'var(--color-acero)' }}>
             Próximamente vas a encontrar aquí todas las promociones, descuentos por volumen y ofertas de temporada de Reunata.
