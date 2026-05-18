@@ -59,20 +59,18 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
   const { data: categoriaHome } = await supabase
     .from('categorias_home')
-    .select('nombre, categoria_keys')
+    .select('nombre, gesu_categoria')
     .eq('href', `/tienda/${slug}`)
     .eq('activo', true)
     .single()
 
   if (!categoriaHome) notFound()
 
-  const categoriaKeys = (categoriaHome.categoria_keys ?? []) as string[]
-
   const { data: productos } = await supabase
     .from('productos')
     .select('id, titulo, codigo_interno, producto_fotos(url, orden)')
     .eq('activo', true)
-    .in('categoria', categoriaKeys)
+    .eq('categoria', categoriaHome.gesu_categoria)
     .order('titulo')
 
   const productosPublicos = (productos ?? []).map(p => {

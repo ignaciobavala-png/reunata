@@ -15,7 +15,7 @@ interface CategoriaHome {
   descripcion: string | null
   href: string | null
   activo: boolean
-  categoria_keys: string[]
+  gesu_categoria: string | null
   foto_url: string | null
 }
 
@@ -30,7 +30,7 @@ export function CategoriasClient({
   const [editando, setEditando] = useState<number | null>(null)
   const [form, setForm] = useState<Partial<CategoriaHome>>({})
   const [creando, setCreando] = useState(false)
-  const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', categoria_keys: '' })
+  const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', gesu_categoria: '' })
   const [saving, setSaving] = useState(false)
   const [uploadingId, setUploadingId] = useState<number | null>(null)
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
@@ -46,32 +46,27 @@ export function CategoriasClient({
 
   async function guardarEdicion(id: number) {
     setSaving(true)
-    const keys = typeof form.categoria_keys === 'string'
-      ? (form.categoria_keys as unknown as string).split('\n').map(s => s.trim()).filter(Boolean)
-      : form.categoria_keys ?? []
-
     await fetch('/api/categorias-home', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href, categoria_keys: keys }),
+      body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href }),
     })
-    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form, categoria_keys: keys } : c))
+    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form } : c))
     setEditando(null)
     setSaving(false)
   }
 
   async function crearCategoria() {
     setSaving(true)
-    const keys = nuevoForm.categoria_keys.split('\n').map(s => s.trim()).filter(Boolean)
     const res = await fetch('/api/categorias-home', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ ...nuevoForm, categoria_keys: keys }),
+      body: JSON.stringify(nuevoForm),
     })
     const { data } = await res.json()
     if (data) setCategorias(prev => [...prev, data])
     setCreando(false)
-    setNuevoForm({ nombre: '', descripcion: '', href: '', categoria_keys: '' })
+    setNuevoForm({ nombre: '', descripcion: '', href: '', gesu_categoria: '' })
     setSaving(false)
   }
 
@@ -144,14 +139,11 @@ export function CategoriasClient({
                   className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full font-mono"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
-                <textarea
-                  value={(form.categoria_keys as unknown as string) ?? cat.categoria_keys.join('\n')}
-                  onChange={e => setForm(f => ({ ...f, categoria_keys: e.target.value as unknown as string[] }))}
-                  placeholder="Categorías Gesu (una por línea)"
-                  rows={4}
-                  className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full font-mono resize-none"
-                  style={{ borderColor: 'var(--color-acero-claro)' }}
-                />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-mono"
+                  style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+                  <span className="text-xs opacity-60">Gesu:</span>
+                  {cat.gesu_categoria ?? <span className="opacity-40 italic">sin asignar — sincronizá desde Gesu</span>}
+                </div>
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setEditando(null)}
                     className="text-sm px-3 py-1.5 rounded-lg border"
@@ -242,19 +234,17 @@ export function CategoriasClient({
                   </div>
                   <p className="text-sm mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{cat.descripcion}</p>
                   <p className="text-sm font-mono mb-2" style={{ color: 'var(--color-acero)' }}>{cat.href}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {cat.categoria_keys.map(k => (
-                      <span key={k} className="text-sm px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
-                        {k}
-                      </span>
-                    ))}
-                  </div>
+                  {cat.gesu_categoria && (
+                    <span className="text-sm px-2 py-0.5 rounded-full font-mono"
+                      style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
+                      {cat.gesu_categoria}
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={() => {
                     setEditando(cat.id)
-                    setForm({ ...cat, categoria_keys: cat.categoria_keys.join('\n') as unknown as string[] })
+                    setForm({ ...cat })
                   }}
                   className="text-sm px-2.5 py-1 rounded-lg border flex-shrink-0"
                   style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
@@ -281,10 +271,10 @@ export function CategoriasClient({
             <input value={nuevoForm.href} onChange={e => setNuevoForm(f => ({ ...f, href: e.target.value }))}
               placeholder="Link (ej: /tienda/termos)" className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
-            <textarea value={nuevoForm.categoria_keys}
-              onChange={e => setNuevoForm(f => ({ ...f, categoria_keys: e.target.value }))}
-              placeholder="Categorías Gesu (una por línea)" rows={3}
-              className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono resize-none"
+            <input value={nuevoForm.gesu_categoria}
+              onChange={e => setNuevoForm(f => ({ ...f, gesu_categoria: e.target.value }))}
+              placeholder="Categoría Gesu exacta (ej: Mates)"
+              className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setCreando(false)}

@@ -32,7 +32,7 @@ export default async function MultimediaPage({
       .order('orden'),
     supabase
       .from('categorias_home')
-      .select('id, nombre, descripcion, href, activo, categoria_keys, foto_url')
+      .select('id, nombre, descripcion, href, activo, gesu_categoria, foto_url')
       .order('orden'),
     supabase
       .from('hero_assets')

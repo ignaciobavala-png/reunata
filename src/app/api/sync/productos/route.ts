@@ -137,11 +137,16 @@ async function syncProductos() {
       return true
     })
 
+    // Filtrar solo productos de Reunata
+    const soloReunata = sinDuplicados.filter(item =>
+      item.marca?.toLowerCase().includes('reunata')
+    )
+
     // Transformar y hacer upsert por lotes de 100
     const num = (v: unknown) => { const n = Number(v); return isNaN(n) || v === '' ? null : n }
     const int = (v: unknown) => { const n = parseInt(String(v)); return isNaN(n) ? null : n }
 
-    const rows = sinDuplicados.map((item) => ({
+    const rows = soloReunata.map((item) => ({
       codigo_interno:  item.codigoInterno || null,
       codigo_barras:   item.codigoBarras || null,
       tipo:            item.tipo || null,
@@ -173,6 +178,15 @@ async function syncProductos() {
 
       if (upsertError) throw new Error(upsertError.message)
       totalUpserted += Math.min(BATCH, rows.length - i)
+    }
+
+    // Auto-poblar categorias_home con las categorías nuevas de Reunata
+    const categoriasUnicas = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))]
+    for (const cat of categoriasUnicas) {
+      await supabase.from('categorias_home').upsert(
+        { gesu_categoria: cat, nombre: cat, activo: false, orden: 999 },
+        { onConflict: 'gesu_categoria', ignoreDuplicates: true }
+      )
     }
   } catch (e) {
     error = (e as Error).message
