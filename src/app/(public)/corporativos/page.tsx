@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import { CorporativosForm } from '@/components/sections/CorporativosForm'
