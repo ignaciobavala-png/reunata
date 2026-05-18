@@ -15,22 +15,72 @@ interface CategoriaHome {
   descripcion: string | null
   href: string | null
   activo: boolean
-  gesu_categoria: string | null
+  categoria_keys: string[]
   foto_url: string | null
+}
+
+function GesuSelector({
+  selected,
+  available,
+  onChange,
+}: {
+  selected: string[]
+  available: string[]
+  onChange: (keys: string[]) => void
+}) {
+  function toggle(cat: string) {
+    onChange(selected.includes(cat) ? selected.filter(k => k !== cat) : [...selected, cat])
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+        Categorías Gesu incluidas ({selected.length} seleccionadas)
+      </p>
+      <div className="flex flex-wrap gap-1.5 p-3 rounded-lg border max-h-40 overflow-y-auto"
+        style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+        {available.map(cat => {
+          const activo = selected.includes(cat)
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => toggle(cat)}
+              className="text-xs px-2.5 py-1 rounded-full transition-all"
+              style={activo
+                ? { background: 'var(--color-granito)', color: 'white' }
+                : { background: 'white', color: 'var(--color-granito-claro)', border: '1px solid var(--color-acero-claro)' }
+              }
+            >
+              {activo && <Check size={10} className="inline mr-1" />}
+              {cat}
+            </button>
+          )
+        })}
+        {available.length === 0 && (
+          <p className="text-xs italic" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Sincronizá productos desde Gesu para ver las categorías disponibles.
+          </p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function CategoriasClient({
   categoriasIniciales,
   isMaster,
+  gesuCategorias,
 }: {
   categoriasIniciales: CategoriaHome[]
   isMaster: boolean
+  gesuCategorias: string[]
 }) {
   const [categorias, setCategorias] = useState<CategoriaHome[]>(categoriasIniciales)
   const [editando, setEditando] = useState<number | null>(null)
   const [form, setForm] = useState<Partial<CategoriaHome>>({})
   const [creando, setCreando] = useState(false)
-  const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', gesu_categoria: '' })
+  const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', categoria_keys: [] as string[] })
   const [saving, setSaving] = useState(false)
   const [uploadingId, setUploadingId] = useState<number | null>(null)
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
@@ -46,12 +96,13 @@ export function CategoriasClient({
 
   async function guardarEdicion(id: number) {
     setSaving(true)
+    const keys = Array.isArray(form.categoria_keys) ? form.categoria_keys : []
     await fetch('/api/categorias-home', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href }),
+      body: JSON.stringify({ id, nombre: form.nombre, descripcion: form.descripcion, href: form.href, categoria_keys: keys }),
     })
-    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form } : c))
+    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...form, categoria_keys: keys } : c))
     setEditando(null)
     setSaving(false)
   }
@@ -66,7 +117,7 @@ export function CategoriasClient({
     const { data } = await res.json()
     if (data) setCategorias(prev => [...prev, data])
     setCreando(false)
-    setNuevoForm({ nombre: '', descripcion: '', href: '', gesu_categoria: '' })
+    setNuevoForm({ nombre: '', descripcion: '', href: '', categoria_keys: [] })
     setSaving(false)
   }
 
@@ -78,10 +129,7 @@ export function CategoriasClient({
     const { error } = await supabase.storage.from('multimedia').upload(path, file, { upsert: true })
     if (error) { setUploadingId(null); return }
 
-    // Eliminar foto anterior si existe
-    if (cat.foto_url) {
-      await supabase.storage.from('multimedia').remove([cat.foto_url])
-    }
+    if (cat.foto_url) await supabase.storage.from('multimedia').remove([cat.foto_url])
 
     await fetch('/api/categorias-home', {
       method: 'PATCH',
@@ -106,7 +154,7 @@ export function CategoriasClient({
   return (
     <div className="max-w-2xl">
       <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Estas categorías aparecen en el bento de la página principal. Podés definir una foto de portada o se elegirá automáticamente de los productos asociados.
+        Estas categorías aparecen en el home. Seleccioná qué sub-categorías de Gesu incluye cada una.
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
@@ -139,11 +187,11 @@ export function CategoriasClient({
                   className="text-sm border rounded-lg px-3 py-1.5 outline-none w-full font-mono"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-mono"
-                  style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
-                  <span className="text-xs opacity-60">Gesu:</span>
-                  {cat.gesu_categoria ?? <span className="opacity-40 italic">sin asignar — sincronizá desde Gesu</span>}
-                </div>
+                <GesuSelector
+                  selected={(form.categoria_keys as string[]) ?? []}
+                  available={gesuCategorias}
+                  onChange={keys => setForm(f => ({ ...f, categoria_keys: keys }))}
+                />
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setEditando(null)}
                     className="text-sm px-3 py-1.5 rounded-lg border"
@@ -194,7 +242,6 @@ export function CategoriasClient({
                       disabled={uploadingId === cat.id}
                       className="flex-1 text-[10px] px-1 py-0.5 rounded text-center transition-colors"
                       style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}
-                      title="Subir foto de portada"
                     >
                       {cat.foto_url ? 'Cambiar' : 'Subir'}
                     </button>
@@ -203,7 +250,6 @@ export function CategoriasClient({
                         onClick={() => quitarFoto(cat)}
                         className="p-0.5 rounded transition-colors"
                         style={{ color: '#ef4444' }}
-                        title="Quitar foto de portada"
                       >
                         <Trash2 size={11} />
                       </button>
@@ -234,12 +280,17 @@ export function CategoriasClient({
                   </div>
                   <p className="text-sm mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{cat.descripcion}</p>
                   <p className="text-sm font-mono mb-2" style={{ color: 'var(--color-acero)' }}>{cat.href}</p>
-                  {cat.gesu_categoria && (
-                    <span className="text-sm px-2 py-0.5 rounded-full font-mono"
-                      style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
-                      {cat.gesu_categoria}
-                    </span>
-                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {(cat.categoria_keys ?? []).map(k => (
+                      <span key={k} className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)', border: '1px solid var(--color-acero-claro)' }}>
+                        {k}
+                      </span>
+                    ))}
+                    {(cat.categoria_keys ?? []).length === 0 && (
+                      <span className="text-xs italic" style={{ color: 'var(--color-acero-oscuro)' }}>Sin categorías asignadas</span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={() => {
@@ -269,13 +320,13 @@ export function CategoriasClient({
               placeholder="Descripción" className="text-sm border rounded-lg px-3 py-1.5 outline-none"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
             <input value={nuevoForm.href} onChange={e => setNuevoForm(f => ({ ...f, href: e.target.value }))}
-              placeholder="Link (ej: /tienda/termos)" className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
+              placeholder="Link (ej: /tienda/mates)" className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
               style={{ borderColor: 'var(--color-acero-claro)' }} />
-            <input value={nuevoForm.gesu_categoria}
-              onChange={e => setNuevoForm(f => ({ ...f, gesu_categoria: e.target.value }))}
-              placeholder="Categoría Gesu exacta (ej: Mates)"
-              className="text-sm border rounded-lg px-3 py-1.5 outline-none font-mono"
-              style={{ borderColor: 'var(--color-acero-claro)' }} />
+            <GesuSelector
+              selected={nuevoForm.categoria_keys}
+              available={gesuCategorias}
+              onChange={keys => setNuevoForm(f => ({ ...f, categoria_keys: keys }))}
+            />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setCreando(false)}
                 className="text-sm px-3 py-1.5 rounded-lg border"

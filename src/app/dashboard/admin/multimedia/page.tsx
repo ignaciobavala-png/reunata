@@ -20,7 +20,7 @@ export default async function MultimediaPage({
   const { data: profile } = user ? await supabase.from('profiles').select('rol').eq('id', user.id).single() : { data: null }
   const isMaster = profile?.rol === 'master'
 
-  const [{ data: productos }, { data: todasLasFotos }, { data: categorias }, { data: heroAssets }] = await Promise.all([
+  const [{ data: productos }, { data: todasLasFotos }, { data: categorias }, { data: heroAssets }, { data: gesuCatsRaw }] = await Promise.all([
     supabase
       .from('productos')
       .select('id, codigo_interno, titulo, categoria')
@@ -32,13 +32,20 @@ export default async function MultimediaPage({
       .order('orden'),
     supabase
       .from('categorias_home')
-      .select('id, nombre, descripcion, href, activo, gesu_categoria, foto_url')
+      .select('id, nombre, descripcion, href, activo, categoria_keys, foto_url')
       .order('orden'),
     supabase
       .from('hero_assets')
       .select('*')
       .order('orden'),
+    supabase
+      .from('productos')
+      .select('categoria')
+      .eq('activo', true)
+      .not('categoria', 'is', null),
   ])
+
+  const gesuCategorias = [...new Set((gesuCatsRaw ?? []).map(p => p.categoria as string).filter(Boolean))].sort()
 
   return (
     <div className="p-8 h-full flex flex-col">
@@ -98,7 +105,7 @@ export default async function MultimediaPage({
       ) : vistaActual === 'corporativos' ? (
         <CorporativosClient supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} />
       ) : (
-        <CategoriasClient categoriasIniciales={categorias ?? []} isMaster={isMaster} />
+        <CategoriasClient categoriasIniciales={categorias ?? []} isMaster={isMaster} gesuCategorias={gesuCategorias} />
       )}
     </div>
   )

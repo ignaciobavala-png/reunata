@@ -40,20 +40,23 @@ export default async function TiendaPage() {
     )
   }
 
-  const gesuCategorias = (categoriasHome.map(c => c.gesu_categoria).filter(Boolean)) as string[]
+  const allKeys = [...new Set(categoriasHome.flatMap(c => (c.categoria_keys ?? []) as string[]))]
 
-  const { data: productos } = gesuCategorias.length > 0
+  const { data: productos } = allKeys.length > 0
     ? await supabase
         .from('productos')
         .select('categoria')
         .eq('activo', true)
-        .in('categoria', gesuCategorias)
+        .in('categoria', allKeys)
     : { data: [] }
 
   const categoriasConProductos = new Set((productos ?? []).map(p => p.categoria).filter(Boolean))
 
   const categorias = categoriasHome
-    .filter(cat => cat.gesu_categoria && categoriasConProductos.has(cat.gesu_categoria as string))
+    .filter(cat => {
+      const keys = (cat.categoria_keys ?? []) as string[]
+      return keys.some(k => categoriasConProductos.has(k))
+    })
     .map((cat, i) => ({
       label: cat.nombre,
       href: cat.href ?? '/tienda',

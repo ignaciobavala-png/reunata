@@ -22,26 +22,27 @@ export async function CategoryBento() {
 
   const { data: categorias } = await supabase
     .from('categorias_home')
-    .select('id, nombre, descripcion, href, gradient, texto_claro, gesu_categoria')
+    .select('id, nombre, descripcion, href, gradient, texto_claro, categoria_keys')
     .eq('activo', true)
     .order('orden')
 
   if (!categorias?.length) return null
 
-  const gesuCategorias = categorias.map(c => c.gesu_categoria).filter(Boolean) as string[]
+  const allKeys = [...new Set(categorias.flatMap(c => c.categoria_keys ?? []))]
 
-  const { data: productos } = gesuCategorias.length > 0
+  const { data: productos } = allKeys.length > 0
     ? await supabase
         .from('productos')
         .select('id, categoria, producto_fotos(url)')
         .eq('activo', true)
-        .in('categoria', gesuCategorias)
+        .in('categoria', allKeys)
     : { data: [] }
 
   const fotosPorCat: Record<number, string[]> = {}
   for (const cat of categorias) {
+    const keys: string[] = cat.categoria_keys ?? []
     fotosPorCat[cat.id] = (productos ?? [])
-      .filter(p => p.categoria === cat.gesu_categoria)
+      .filter(p => keys.includes(p.categoria ?? ''))
       .flatMap(p => (p.producto_fotos as { url: string }[] ?? []).map(f => f.url))
   }
 

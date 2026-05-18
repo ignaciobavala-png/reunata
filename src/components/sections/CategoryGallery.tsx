@@ -17,7 +17,7 @@ interface CategoriaHome {
   descripcion: string
   href: string
   gradient: string
-  gesu_categoria: string | null
+  categoria_keys: string[]
   foto_url: string | null
 }
 
@@ -31,7 +31,7 @@ export function CategoryGallery() {
     async function loadData() {
       const { data: cats } = await supabase
         .from('categorias_home')
-        .select('id, nombre, descripcion, href, gradient, gesu_categoria, foto_url')
+        .select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url')
         .eq('activo', true)
         .order('orden')
 
@@ -39,20 +39,21 @@ export function CategoryGallery() {
 
       setCategorias(cats)
 
-      const gesuCategorias = cats.map(c => c.gesu_categoria).filter(Boolean) as string[]
+      const allKeys = [...new Set(cats.flatMap(c => c.categoria_keys ?? []))]
 
-      const { data: productos } = gesuCategorias.length > 0
+      const { data: productos } = allKeys.length > 0
         ? await supabase
             .from('productos')
             .select('id, categoria, producto_fotos(url)')
             .eq('activo', true)
-            .in('categoria', gesuCategorias)
+            .in('categoria', allKeys)
         : { data: [] }
 
       const fotosMap: Record<number, string[]> = {}
       for (const cat of cats) {
+        const keys: string[] = cat.categoria_keys ?? []
         fotosMap[cat.id] = (productos ?? [])
-          .filter(p => p.categoria === cat.gesu_categoria)
+          .filter(p => keys.includes(p.categoria ?? ''))
           .flatMap(p => (p.producto_fotos as Foto[] ?? []).map(f => f.url))
           .slice(0, 4)
       }

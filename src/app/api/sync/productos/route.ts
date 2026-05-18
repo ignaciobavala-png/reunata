@@ -137,9 +137,12 @@ async function syncProductos() {
       return true
     })
 
-    // Filtrar solo productos de Reunata
+    // Filtrar solo productos de Reunata, excluyendo categorías internas de gestión
+    const CATEGORIAS_INTERNAS = /^[MO]\)|preventa|productos en desarrollo|productos importados|bienes de uso/i
     const soloReunata = sinDuplicados.filter(item =>
-      item.marca?.toLowerCase().includes('reunata')
+      item.marca?.toLowerCase().includes('reunata') &&
+      item.categoria &&
+      !CATEGORIAS_INTERNAS.test(item.categoria)
     )
 
     // Transformar y hacer upsert por lotes de 100
@@ -180,14 +183,6 @@ async function syncProductos() {
       totalUpserted += Math.min(BATCH, rows.length - i)
     }
 
-    // Auto-poblar categorias_home con las categorías nuevas de Reunata
-    const categoriasUnicas = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))]
-    for (const cat of categoriasUnicas) {
-      await supabase.from('categorias_home').upsert(
-        { gesu_categoria: cat, nombre: cat, activo: false, orden: 999 },
-        { onConflict: 'gesu_categoria', ignoreDuplicates: true }
-      )
-    }
   } catch (e) {
     error = (e as Error).message
     console.error('[sync/productos] Error:', error)
