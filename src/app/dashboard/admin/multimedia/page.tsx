@@ -5,6 +5,7 @@ import { HeroClient } from './HeroClient'
 import { DisenoClient } from './DisenoClient'
 import { PromoClient } from './PromoClient'
 import { BannerClient } from './BannerClient'
+import { CorporativosClient } from './CorporativosClient'
 
 export default async function MultimediaPage({
   searchParams,
@@ -12,7 +13,7 @@ export default async function MultimediaPage({
   searchParams: Promise<{ tab?: string }>
 }) {
   const { tab } = await searchParams
-  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' ? 'hero' : tab === 'diseno' ? 'diseno' : tab === 'promo' ? 'promo' : tab === 'banner' ? 'banner' : 'fotos'
+  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' ? 'hero' : tab === 'diseno' ? 'diseno' : tab === 'promo' ? 'promo' : tab === 'banner' ? 'banner' : tab === 'corporativos' ? 'corporativos' : 'fotos'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -57,6 +58,7 @@ export default async function MultimediaPage({
           { key: 'banner', label: 'Banner promocional' },
           { key: 'diseno', label: 'Diseño' },
           { key: 'promo', label: 'Cinta promocional' },
+          { key: 'corporativos', label: 'Corporativos' },
         ].map(({ key, label }) => (
           <a
             key={key}
@@ -93,6 +95,8 @@ export default async function MultimediaPage({
         <BannerClient supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} />
       ) : vistaActual === 'promo' ? (
         <PromoClient />
+      ) : vistaActual === 'corporativos' ? (
+        <CorporativosClient supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} />
       ) : (
         <CategoriasClient categoriasIniciales={categorias ?? []} isMaster={isMaster} />
       )}

@@ -48,6 +48,7 @@ const navMaster: NavItem[] = [
       { label: 'Multimedia',  href: '/dashboard/admin/multimedia', icon: Images },
       { label: 'Instagram',   href: '/dashboard/admin/instagram',  icon: Camera },
       { label: 'Catálogos',   href: '/dashboard/admin/catalogos',  icon: FileText },
+      { label: 'Páginas',     href: '/dashboard/admin/contenido',  icon: FileText },
     ],
   },
   {
