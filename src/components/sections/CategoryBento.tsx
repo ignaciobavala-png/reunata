@@ -30,28 +30,14 @@ export async function CategoryBento() {
 
   const allKeys = [...new Set(categorias.flatMap(c => c.categoria_keys ?? []))]
 
-  // Obtener IDs de productos en el canal público
-  const { data: canalPublico } = await supabase
-    .from('canales')
-    .select('id')
-    .eq('slug', 'publico')
-    .single()
-
-  const { data: publicoAsignaciones } = canalPublico
-    ? await supabase.from('producto_canales').select('producto_id').eq('canal_id', canalPublico.id)
-    : { data: [] }
-
-  const idsPublicos = new Set((publicoAsignaciones ?? []).map(a => a.producto_id))
-
   const { data: productos } = allKeys.length > 0
     ? await supabase
         .from('productos')
         .select('id, categoria, producto_fotos(url)')
+        .eq('activo', true)
         .in('categoria', allKeys)
-        .in('id', [...idsPublicos])
     : { data: [] }
 
-  // Agrupar fotos por macrocategoría (solo productos en canal público)
   const fotosPorCat: Record<number, string[]> = {}
   for (const cat of categorias) {
     const keys: string[] = cat.categoria_keys ?? []

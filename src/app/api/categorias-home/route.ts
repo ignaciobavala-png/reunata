@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const body = await request.json()
   const { data } = await admin
     .from('categorias_home')
-    .insert({ nombre: body.nombre, descripcion: body.descripcion, href: body.href, categoria_keys: body.categoria_keys })
+    .insert({ nombre: body.nombre, descripcion: body.descripcion, href: body.href, categoria_keys: body.categoria_keys ?? [] })
     .select()
     .single()
 

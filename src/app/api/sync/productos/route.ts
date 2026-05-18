@@ -86,15 +86,15 @@ async function verificarAuth(request: Request): Promise<boolean> {
 
 export async function GET(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos()
+  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
 }
 
 export async function POST(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos()
+  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
 }
 
-async function syncProductos() {
+async function syncProductos(desactivarNoReunata = false) {
 
   if (!GESU_TOKEN) {
     return NextResponse.json(
@@ -137,11 +137,19 @@ async function syncProductos() {
       return true
     })
 
+    // Filtrar solo productos de Reunata, excluyendo categorías internas de gestión
+    const CATEGORIAS_INTERNAS = /^[MO]\)|preventa|productos en desarrollo|productos importados|bienes de uso/i
+    const soloReunata = sinDuplicados.filter(item =>
+      item.marca?.toLowerCase().includes('reunata') &&
+      item.categoria &&
+      !CATEGORIAS_INTERNAS.test(item.categoria)
+    )
+
     // Transformar y hacer upsert por lotes de 100
     const num = (v: unknown) => { const n = Number(v); return isNaN(n) || v === '' ? null : n }
     const int = (v: unknown) => { const n = parseInt(String(v)); return isNaN(n) ? null : n }
 
-    const rows = sinDuplicados.map((item) => ({
+    const rows = soloReunata.map((item) => ({
       codigo_interno:  item.codigoInterno || null,
       codigo_barras:   item.codigoBarras || null,
       tipo:            item.tipo || null,
@@ -174,6 +182,33 @@ async function syncProductos() {
       if (upsertError) throw new Error(upsertError.message)
       totalUpserted += Math.min(BATCH, rows.length - i)
     }
+
+    // Desactivar productos que ya no son de Reunata (opcional, controlado desde el panel)
+    if (desactivarNoReunata) {
+      const codigosReunata = soloReunata.map(item => item.codigoInterno).filter(Boolean) as string[]
+      if (codigosReunata.length > 0) {
+        await supabase
+          .from('productos')
+          .update({ activo: false })
+          .not('codigo_interno', 'in', `(${codigosReunata.map(c => `"${c}"`).join(',')})`)
+      }
+    }
+
+    // Auto-crear categorias_home para categorías Gesu que no tienen fila todavía
+    const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
+    const { data: filasExistentes } = await supabase.from('categorias_home').select('categoria_keys')
+    const keysAsignadas = new Set(
+      (filasExistentes ?? []).flatMap(f => (f.categoria_keys ?? []) as string[])
+    )
+    for (const cat of categoriasGesu.filter(cat => !keysAsignadas.has(cat))) {
+      await supabase.from('categorias_home').insert({
+        nombre: cat,
+        categoria_keys: [cat],
+        activo: false,
+        orden: 999,
+      })
+    }
+
   } catch (e) {
     error = (e as Error).message
     console.error('[sync/productos] Error:', error)
