@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: 'Crear cuenta' }
 export default async function RegistroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirmar?: string; tab?: string }>
+  searchParams: Promise<{ confirmar?: string; tab?: string; next?: string }>
 }) {
-  const { confirmar, tab } = await searchParams
+  const { confirmar, tab, next } = await searchParams
   const defaultTab = tab === 'mayorista' ? 'mayorista' : 'minorista'
 
   if (confirmar) {
@@ -43,7 +43,7 @@ export default async function RegistroPage({
               Registrate para ver precios, stock y hacer pedidos.
             </p>
           </div>
-          <RegistroForm defaultTab={defaultTab} />
+          <RegistroForm defaultTab={defaultTab} next={next} />
         </div>
       </main>
     </div>

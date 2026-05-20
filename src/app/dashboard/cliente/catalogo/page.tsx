@@ -22,7 +22,12 @@ const MOCK_PRODUCTOS = [
   { id: -8,  codigo_interno: 'ACC-003', titulo: 'Porta documentos ejecutivo',    categoria: 'Accesorios',stock: 20,  precio: 16.00 },
 ]
 
-export default async function CatalogoPage() {
+export default async function CatalogoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cart?: string }>
+}) {
+  const { cart } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -108,7 +113,7 @@ export default async function CatalogoPage() {
       )}
 
       <CatalogoClient productos={productos} categorias={categorias} tipoCliente={tipoCliente} />
-      <CartDrawer tipoCliente={tipoCliente} />
+      <CartDrawer tipoCliente={tipoCliente} initialOpen={cart === 'open'} />
     </div>
   )
 }

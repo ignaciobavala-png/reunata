@@ -14,9 +14,9 @@ function buildWhatsAppLink(items: CartItem[]) {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
 }
 
-export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minorista' }) {
+export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 'mayorista' | 'minorista'; initialOpen?: boolean }) {
   const { items, remove, updateCantidad, total, totalItems, clear } = useCartStore()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(initialOpen)
   const [enviando, setEnviando] = useState(false)
   const router = useRouter()
 

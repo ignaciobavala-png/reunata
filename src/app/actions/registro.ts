@@ -16,6 +16,7 @@ interface RegistroInput {
   sitio_web?: string
   puntos_venta?: number
   clientes_activos?: number
+  next?: string
 }
 
 export async function registrarse(data: RegistroInput) {
@@ -70,7 +71,8 @@ export async function registrarse(data: RegistroInput) {
   }
 
   if (signUpData.session) {
-    redirect('/dashboard/cliente')
+    const destino = data.next?.startsWith('/') ? data.next : '/dashboard/cliente'
+    redirect(destino)
   }
 
   redirect('/registro?confirmar=1')

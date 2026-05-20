@@ -119,7 +119,7 @@ export function PublicCartDrawer() {
                 Los precios se muestran al iniciar sesión.
               </p>
               <Link
-                href="/login?next=/dashboard/cliente/catalogo"
+                href={`/login?next=${encodeURIComponent('/dashboard/cliente/catalogo?cart=open')}`}
                 onClick={() => setOpen(false)}
                 className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
                 style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
@@ -127,7 +127,7 @@ export function PublicCartDrawer() {
                 Continuar →
               </Link>
               <Link
-                href="/registro"
+                href={`/registro?next=${encodeURIComponent('/dashboard/cliente/catalogo?cart=open')}`}
                 onClick={() => setOpen(false)}
                 className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}

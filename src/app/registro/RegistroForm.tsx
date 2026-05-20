@@ -12,7 +12,7 @@ const TIPOS_MAYORISTA = [
   { value: 'mercha', label: 'Merchandising' },
 ]
 
-export function RegistroForm({ defaultTab = 'minorista' }: { defaultTab?: Tab }) {
+export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: Tab; next?: string }) {
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -60,6 +60,7 @@ export function RegistroForm({ defaultTab = 'minorista' }: { defaultTab?: Tab })
       sitio_web: data.get('sitio_web') as string,
       puntos_venta: data.get('puntos_venta') ? Number(data.get('puntos_venta')) : undefined,
       clientes_activos: data.get('clientes_activos') ? Number(data.get('clientes_activos')) : undefined,
+      next,
     })
 
     setLoading(false)

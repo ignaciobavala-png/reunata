@@ -1,3 +1,6 @@
+'use client'
+
+import { useRef, useEffect } from 'react'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Image from 'next/image'
 
@@ -11,6 +14,20 @@ interface Post {
 }
 
 export function InstagramSlider({ posts }: { posts: Post[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || posts.length <= 2) return
+    const t1 = setTimeout(() => {
+      el.scrollTo({ left: 80, behavior: 'smooth' })
+    }, 800)
+    const t2 = setTimeout(() => {
+      el.scrollTo({ left: 0, behavior: 'smooth' })
+    }, 1600)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [posts.length])
+
   if (posts.length === 0) return null
 
   return (
@@ -39,49 +56,57 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
       </FadeIn>
 
       <FadeIn delay={0.1}>
-        <div
-          className="overflow-x-auto"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          <div className="flex gap-2 pl-6 md:pl-10 pr-6 w-max">
-            {posts.map((post) => (
-              <a
-                key={post.id}
-                href={post.permalink ?? post.url_instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-none w-[260px] md:w-[300px] aspect-square relative overflow-hidden group"
-                style={{ border: '1px solid var(--border)' }}
-              >
-                {post.thumbnail_url ? (
-                  <Image
-                    src={post.thumbnail_url}
-                    alt={post.caption ?? ''}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="300px"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <span className="text-[9px] tracking-widest text-gray-400 uppercase">
-                      {post.username ?? 'Instagram'}
-                    </span>
+        <div className="relative">
+          {/* Gradient fade derecho */}
+          <div
+            className="absolute top-0 right-0 h-full w-24 pointer-events-none z-10"
+            style={{ background: 'linear-gradient(to left, var(--background) 10%, transparent 100%)' }}
+          />
+
+          <div
+            ref={scrollRef}
+            className="overflow-x-auto"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <div className="flex gap-2 pl-6 md:pl-10 pr-6 w-max">
+              {posts.map((post) => (
+                <a
+                  key={post.id}
+                  href={post.permalink ?? post.url_instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-none w-[260px] md:w-[300px] aspect-square relative overflow-hidden group"
+                  style={{ border: '1px solid var(--border)' }}
+                >
+                  {post.thumbnail_url ? (
+                    <Image
+                      src={post.thumbnail_url}
+                      alt={post.caption ?? ''}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="300px"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <span className="text-[9px] tracking-widest text-gray-400 uppercase">
+                        {post.username ?? 'Instagram'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      {post.caption && (
+                        <p className="text-white text-xs leading-relaxed line-clamp-2">{post.caption}</p>
+                      )}
+                    </div>
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    {post.caption && (
-                      <p className="text-white text-xs leading-relaxed line-clamp-2">{post.caption}</p>
-                    )}
-                  </div>
-                </div>
-              </a>
-            ))}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </FadeIn>
-
     </section>
   )
 }
