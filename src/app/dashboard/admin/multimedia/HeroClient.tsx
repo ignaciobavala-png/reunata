@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, ImageIcon, Pencil, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
+import { BannerClient } from './BannerClient'
 
 interface HeroAsset {
   id: number
@@ -25,13 +26,16 @@ export function HeroClient({
   supabaseUrl,
   supabaseKey,
   isMaster,
+  initialSubtab = 'carrusel',
 }: {
   assetsIniciales: HeroAsset[]
   supabaseUrl: string
   supabaseKey: string
   isMaster: boolean
+  initialSubtab?: 'carrusel' | 'banner'
 }) {
   const supabase = createClient()
+  const [subtab, setSubtab] = useState<'carrusel' | 'banner'>(initialSubtab)
   const [assets, setAssets] = useState<HeroAsset[]>(assetsIniciales)
   const [pendingFiles, setPendingFiles] = useState<ArchivoPreview[]>([])
   const [subiendo, setSubiendo] = useState(false)
@@ -192,6 +196,32 @@ export function HeroClient({
         </div>
       )}
 
+      {/* Sub-tabs */}
+      <div className="flex gap-1 mb-6 p-1 rounded-lg w-fit" style={{ background: 'var(--color-acero-brillo)' }}>
+        {([
+          { key: 'carrusel', label: 'Carrusel hero' },
+          { key: 'banner', label: 'Banner promocional' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSubtab(key)}
+            className="px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-150"
+            style={{
+              background: subtab === key ? 'white' : 'transparent',
+              color: subtab === key ? 'var(--foreground)' : 'var(--color-acero-oscuro)',
+              boxShadow: subtab === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {subtab === 'banner' ? (
+        <BannerClient supabaseUrl={supabaseUrl} />
+      ) : (
+      <>
+
       <div className="flex-shrink-0 mb-6">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
@@ -212,47 +242,54 @@ export function HeroClient({
           {sorted.map(a => {
             const idx = sorted.findIndex(s => s.id === a.id)
             return (
-              <div key={a.id}
-                onClick={() => abrirEditor(a)}
-                className="relative group rounded-lg overflow-hidden aspect-video border cursor-pointer"
-                style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)', opacity: a.activo ? 1 : 0.4 }}>
-                {a.tipo === 'imagen' ? (
-                  <Image src={getPublicUrl(a.url)} alt="" fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-black/80">
-                    <Play size={32} className="text-white/60" />
+              <div key={a.id} className="flex flex-col" style={{ opacity: a.activo ? 1 : 0.5 }}>
+                <div
+                  onClick={() => abrirEditor(a)}
+                  className="relative group rounded-t-lg overflow-hidden aspect-video border-x border-t cursor-pointer"
+                  style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}>
+                  {a.tipo === 'imagen' ? (
+                    <Image src={getPublicUrl(a.url)} alt="" fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-black/80">
+                      <Play size={32} className="text-white/60" />
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                    {idx > 0 && (
+                      <button onClick={e => { e.stopPropagation(); reordenar(a, 'up') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover arriba">
+                        <ChevronLeft size={14} className="text-white rotate-90" />
+                      </button>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); toggleActivo(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-amber-400" title={a.activo ? 'Ocultar del hero' : 'Mostrar en hero'}>
+                      <Star size={14} className="text-white" fill={a.activo ? 'white' : 'none'} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); pedirEliminar(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-red-500">
+                      <X size={14} className="text-white" />
+                    </button>
+                    {idx < sorted.length - 1 && (
+                      <button onClick={e => { e.stopPropagation(); reordenar(a, 'down') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover abajo">
+                        <ChevronLeft size={14} className="text-white -rotate-90" />
+                      </button>
+                    )}
                   </div>
-                )}
 
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                  {idx > 0 && (
-                    <button onClick={e => { e.stopPropagation(); reordenar(a, 'up') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover arriba">
-                      <ChevronLeft size={14} className="text-white rotate-90" />
-                    </button>
+                  <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
+                  {a.tipo === 'video' && (
+                    <span className="absolute top-2 right-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded">video</span>
                   )}
-                  <button onClick={e => { e.stopPropagation(); toggleActivo(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-amber-400" title={a.activo ? 'Ocultar del hero' : 'Mostrar en hero'}>
-                    <Star size={14} className="text-white" fill={a.activo ? 'white' : 'none'} />
-                  </button>
-                  <button onClick={e => { e.stopPropagation(); pedirEliminar(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-red-500">
-                    <X size={14} className="text-white" />
-                  </button>
-                  {idx < sorted.length - 1 && (
-                    <button onClick={e => { e.stopPropagation(); reordenar(a, 'down') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover abajo">
-                      <ChevronLeft size={14} className="text-white -rotate-90" />
-                    </button>
+                  {a.activo && (
+                    <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
                   )}
-                  <button onClick={e => { e.stopPropagation(); abrirEditor(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-blue-500" title="Editar contenido">
-                    <Pencil size={14} className="text-white" />
-                  </button>
                 </div>
-
-                <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
-                {a.tipo === 'video' && (
-                  <span className="absolute top-2 right-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded">video</span>
-                )}
-                {a.activo && (
-                  <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
-                )}
+                <button
+                  onClick={() => abrirEditor(a)}
+                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-b-lg border text-xs font-medium transition-colors hover:opacity-80"
+                  style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)', background: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                >
+                  <Pencil size={11} />
+                  Editar contenido
+                </button>
               </div>
             )
           })}
@@ -442,6 +479,8 @@ export function HeroClient({
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   )

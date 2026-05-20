@@ -4,7 +4,6 @@ import { CategoriasClient } from './CategoriasClient'
 import { HeroClient } from './HeroClient'
 import { DisenoClient } from './DisenoClient'
 import { PromoClient } from './PromoClient'
-import { BannerClient } from './BannerClient'
 import { CorporativosClient } from './CorporativosClient'
 
 export default async function MultimediaPage({
@@ -13,7 +12,7 @@ export default async function MultimediaPage({
   searchParams: Promise<{ tab?: string }>
 }) {
   const { tab } = await searchParams
-  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' ? 'hero' : tab === 'diseno' ? 'diseno' : tab === 'promo' ? 'promo' : tab === 'banner' ? 'banner' : tab === 'corporativos' ? 'corporativos' : 'fotos'
+  const vistaActual = tab === 'categorias' ? 'categorias' : tab === 'hero' || tab === 'banner' ? 'hero' : tab === 'diseno' ? 'diseno' : tab === 'promo' ? 'promo' : tab === 'corporativos' ? 'corporativos' : 'fotos'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,8 +60,7 @@ export default async function MultimediaPage({
         {[
           { key: 'fotos', label: 'Fotos de productos' },
           { key: 'categorias', label: 'Categorías home' },
-          { key: 'hero', label: 'Hero' },
-          { key: 'banner', label: 'Banner promocional' },
+          { key: 'hero', label: 'Hero & Banner' },
           { key: 'diseno', label: 'Diseño' },
           { key: 'promo', label: 'Cinta promocional' },
           { key: 'corporativos', label: 'Corporativos' },
@@ -95,11 +93,10 @@ export default async function MultimediaPage({
           supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
           supabaseKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
           isMaster={isMaster}
+          initialSubtab={tab === 'banner' ? 'banner' : 'carrusel'}
         />
       ) : vistaActual === 'diseno' ? (
         <DisenoClient />
-      ) : vistaActual === 'banner' ? (
-        <BannerClient supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} />
       ) : vistaActual === 'promo' ? (
         <PromoClient />
       ) : vistaActual === 'corporativos' ? (
