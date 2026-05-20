@@ -55,12 +55,16 @@ export function HeroClient({
   }
 
   function handleFileSelect(archivos: FileList | File[]) {
-    const lista = Array.from(archivos).map(file => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-      tipo: file.type.startsWith('video/') ? 'video' as const : 'imagen' as const,
-    }))
-    setPendingFiles(prev => [...prev, ...lista])
+    const rechazados: string[] = []
+    const lista = Array.from(archivos).flatMap(file => {
+      if (file.type.startsWith('video/') && file.type !== 'video/mp4') {
+        rechazados.push(file.name)
+        return []
+      }
+      return [{ file, previewUrl: URL.createObjectURL(file), tipo: file.type.startsWith('video/') ? 'video' as const : 'imagen' as const }]
+    })
+    if (rechazados.length > 0) mostrarToast(`Solo se aceptan videos MP4. Rechazado: ${rechazados.join(', ')}`)
+    if (lista.length > 0) setPendingFiles(prev => [...prev, ...lista])
   }
 
   function removePending(idx: number) {
@@ -317,7 +321,9 @@ export function HeroClient({
         >
           <div className="flex items-center justify-between">
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-              {pendingFiles.length > 0 ? `${pendingFiles.length} archivo${pendingFiles.length !== 1 ? 's' : ''} pendiente${pendingFiles.length !== 1 ? 's' : ''}` : 'Arrastrá archivos acá o usá el botón +'}
+              {pendingFiles.length > 0
+                ? `${pendingFiles.length} archivo${pendingFiles.length !== 1 ? 's' : ''} pendiente${pendingFiles.length !== 1 ? 's' : ''}`
+                : <>Arrastrá archivos acá o usá el botón + <span className="opacity-60">(imágenes o video MP4)</span></>}
             </p>
             {pendingFiles.length > 0 && (
               <div className="flex gap-2 flex-wrap items-center">
@@ -351,7 +357,7 @@ export function HeroClient({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"
+          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4"
           multiple
           className="hidden"
           onChange={e => e.target.files && handleFileSelect(e.target.files)}
