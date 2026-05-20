@@ -193,6 +193,70 @@ function FotoSlot({ clave, storagePath, label, supabaseUrl }: SlotProps) {
   )
 }
 
+function DriveUrlField() {
+  const supabase = createClient()
+  const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.from('configuracion').select('valor').eq('clave', 'banco_imagenes_drive_url').single()
+      .then(({ data }) => { setUrl(data?.valor ?? ''); setLoading(false) })
+  }, []) // eslint-disable-line
+
+  async function guardar() {
+    setSaving(true)
+    await supabase.from('configuracion').upsert(
+      { clave: 'banco_imagenes_drive_url', valor: url },
+      { onConflict: 'clave' }
+    )
+    setSaving(false)
+    setToast('Link guardado')
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  return (
+    <div className="max-w-2xl">
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-base"
+          style={{ background: 'var(--color-granito)', color: 'white' }}>
+          <CheckCircle size={15} /> {toast}
+        </div>
+      )}
+      <p className="text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
+        Link de Google Drive
+      </p>
+      <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+        Si está completo, el botón en la página pública redirige a este link. Dejalo vacío para mostrar el mensaje "próximamente".
+      </p>
+      {loading ? (
+        <div className="h-10 rounded-lg animate-pulse" style={{ background: 'var(--color-acero-claro)' }} />
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder="https://drive.google.com/drive/folders/..."
+            className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none"
+            style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+          />
+          <button
+            onClick={guardar}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+            style={{ background: 'var(--color-granito)', color: 'white' }}
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : null}
+            Guardar
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const SECCIONES = [
   {
     key: 'corporativos',
@@ -221,6 +285,15 @@ const SECCIONES = [
       { clave: 'faq_foto_derecha',   storagePath: 'paginas/faq/derecha',   label: 'Foto derecha' },
     ],
   },
+  {
+    key: 'banco',
+    titulo: 'Banco de imágenes',
+    descripcion: 'Aparecen a los costados del contenido en /banco-imagenes.',
+    slots: [
+      { clave: 'banco_imagenes_foto_izquierda', storagePath: 'paginas/banco/izquierda', label: 'Foto izquierda' },
+      { clave: 'banco_imagenes_foto_derecha',   storagePath: 'paginas/banco/derecha',   label: 'Foto derecha' },
+    ],
+  },
 ]
 
 export function CorporativosClient({ supabaseUrl }: { supabaseUrl: string }) {
@@ -237,6 +310,11 @@ export function CorporativosClient({ supabaseUrl }: { supabaseUrl: string }) {
               <p className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>{seccion.titulo}</p>
               <p className="text-sm mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>{seccion.descripcion}</p>
             </div>
+            {seccion.key === 'banco' && (
+              <div className="mb-8">
+                <DriveUrlField />
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl">
               {seccion.slots.map(slot => (
                 <FotoSlot key={slot.clave} {...slot} supabaseUrl={supabaseUrl} />

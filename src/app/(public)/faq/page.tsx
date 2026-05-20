@@ -49,7 +49,7 @@ export default async function FaqPage() {
   const fotoDerecha   = cfg['faq_foto_derecha']   || null
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-acero-claro)' }}>
+    <div className="min-h-screen">
       <div className="px-6 md:px-16 max-w-7xl mx-auto">
         <section className="pt-36 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-8 lg:gap-12 items-start">

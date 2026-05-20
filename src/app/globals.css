@@ -77,6 +77,12 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-acero-brillo);
 }
 
+/* ─── Dashboard — bordes y divisores más oscuros ─────────────────────────── */
+[data-dashboard] {
+  --color-acero-brillo: #d1d5db;
+  --color-acero-claro:  #6b7280;
+}
+
 /* ─── Animations ──────────────────────────────────────────────────────────── */
 @keyframes slide-in {
   from { transform: translateX(100%); }

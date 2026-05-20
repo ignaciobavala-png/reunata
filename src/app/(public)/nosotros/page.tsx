@@ -67,7 +67,7 @@ export default async function NosotrosPage() {
   const fotoDerecha   = cfg['nosotros_foto_derecha']   || null
 
   return (
-    <main className="bg-[var(--color-acero-claro)]">
+    <main>
       <div className="px-6 md:px-16 max-w-7xl mx-auto">
 
         {/* Hero */}
