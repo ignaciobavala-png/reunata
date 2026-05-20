@@ -118,7 +118,12 @@ export function HeroClient({
       const { error: uploadError } = await supabase.storage
         .from('multimedia')
         .upload(path, blob, { contentType: tipo === 'imagen' ? 'image/webp' : file.type, upsert: false })
-      if (uploadError) { console.error(uploadError); continue }
+      if (uploadError) {
+        console.error(uploadError)
+        mostrarToast(`Error al subir "${file.name}": ${uploadError.message}`)
+        setSubiendo(false)
+        return
+      }
 
       const maxOrden = assets.reduce((max, a) => Math.max(max, a.orden), 0)
       const { data } = await supabase
