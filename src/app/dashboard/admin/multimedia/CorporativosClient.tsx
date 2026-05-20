@@ -5,20 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 
-const CLAVES = {
-  izquierda: 'corporativos_foto_izquierda',
-  derecha: 'corporativos_foto_derecha',
-} as const
-
-type Lado = keyof typeof CLAVES
-
 interface SlotProps {
-  lado: Lado
+  clave: string
+  storagePath: string
   label: string
   supabaseUrl: string
 }
 
-function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
+function FotoSlot({ clave, storagePath, label, supabaseUrl }: SlotProps) {
   const supabase = createClient()
   const [path, setPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -32,7 +26,7 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
       const { data } = await supabase
         .from('configuracion')
         .select('valor')
-        .eq('clave', CLAVES[lado])
+        .eq('clave', clave)
         .single()
       setPath(data?.valor || null)
       setLoading(false)
@@ -79,10 +73,9 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
       return
     }
 
-    // eliminar anterior si existe
     if (path) await supabase.storage.from('multimedia').remove([path])
 
-    const newPath = `corporativos/trabajos/${lado}-${Date.now()}.webp`
+    const newPath = `${storagePath}-${Date.now()}.webp`
     const { error } = await supabase.storage
       .from('multimedia')
       .upload(newPath, blob, { contentType: 'image/webp', upsert: false })
@@ -93,9 +86,8 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
       return
     }
 
-    // upsert en configuracion
     await supabase.from('configuracion').upsert(
-      { clave: CLAVES[lado], valor: newPath },
+      { clave, valor: newPath },
       { onConflict: 'clave' }
     )
 
@@ -109,7 +101,7 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
     if (!path) return
     await supabase.storage.from('multimedia').remove([path])
     await supabase.from('configuracion').upsert(
-      { clave: CLAVES[lado], valor: '' },
+      { clave, valor: '' },
       { onConflict: 'clave' }
     )
     setPath(null)
@@ -170,7 +162,7 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
             <>
               <Upload size={20} strokeWidth={1.5} style={{ color: 'var(--color-acero-oscuro)' }} />
               <p className="text-sm mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>Subir foto</p>
-              <p className="text-xs mt-1 opacity-60" style={{ color: 'var(--color-acero-oscuro)' }}>JPG, PNG o WEBP</p>
+              <p className="text-xs mt-1 opacity-60" style={{ color: 'var(--color-acero-oscuro)' }}>JPG, PNG o WEBP · recomendado vertical</p>
             </>
           )}
         </div>
@@ -201,19 +193,57 @@ function FotoSlot({ lado, label, supabaseUrl }: SlotProps) {
   )
 }
 
+const SECCIONES = [
+  {
+    key: 'corporativos',
+    titulo: 'Productos personalizados',
+    descripcion: 'Aparecen a los costados del formulario en /corporativos.',
+    slots: [
+      { clave: 'corporativos_foto_izquierda', storagePath: 'paginas/corporativos/izquierda', label: 'Foto izquierda' },
+      { clave: 'corporativos_foto_derecha',   storagePath: 'paginas/corporativos/derecha',   label: 'Foto derecha' },
+    ],
+  },
+  {
+    key: 'nosotros',
+    titulo: 'Nosotros',
+    descripcion: 'Aparecen a los costados del contenido en /nosotros.',
+    slots: [
+      { clave: 'nosotros_foto_izquierda', storagePath: 'paginas/nosotros/izquierda', label: 'Foto izquierda' },
+      { clave: 'nosotros_foto_derecha',   storagePath: 'paginas/nosotros/derecha',   label: 'Foto derecha' },
+    ],
+  },
+  {
+    key: 'faq',
+    titulo: 'Preguntas frecuentes',
+    descripcion: 'Aparecen a los costados del contenido en /faq.',
+    slots: [
+      { clave: 'faq_foto_izquierda', storagePath: 'paginas/faq/izquierda', label: 'Foto izquierda' },
+      { clave: 'faq_foto_derecha',   storagePath: 'paginas/faq/derecha',   label: 'Foto derecha' },
+    ],
+  },
+]
+
 export function CorporativosClient({ supabaseUrl }: { supabaseUrl: string }) {
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-shrink-0 mb-6">
-        <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Estas fotos aparecen a los costados del formulario de Corporativos en la página pública.
-          Recomendado: fotos verticales de trabajos realizados, aprox. 600×900px.
-        </p>
-      </div>
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+      <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+        Fotos verticales que se muestran a los costados del contenido en cada página. Recomendado: aprox. 600×900px.
+      </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl">
-        <FotoSlot lado="izquierda" label="Foto izquierda" supabaseUrl={supabaseUrl} />
-        <FotoSlot lado="derecha" label="Foto derecha" supabaseUrl={supabaseUrl} />
+      <div className="flex flex-col gap-12 pb-8">
+        {SECCIONES.map(seccion => (
+          <div key={seccion.key}>
+            <div className="mb-4 pb-3 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
+              <p className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>{seccion.titulo}</p>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>{seccion.descripcion}</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl">
+              {seccion.slots.map(slot => (
+                <FotoSlot key={slot.clave} {...slot} supabaseUrl={supabaseUrl} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

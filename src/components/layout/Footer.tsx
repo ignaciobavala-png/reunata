@@ -158,11 +158,11 @@ export function Footer() {
       {/* Logo */}
       <div className="flex justify-center py-10 md:py-20 border-t border-[var(--color-granito-claro)] bg-white mt-4 md:mt-0">
         <Image
-          src="/logo.png"
+          src="/Logo-Reunata.png"
           alt="Reunata"
-          width={1200}
-          height={400}
-          className="w-[clamp(180px,55vw,700px)] h-auto object-contain brightness-0"
+          width={7883}
+          height={1719}
+          className="w-[clamp(200px,60vw,800px)] h-auto object-contain brightness-0"
           priority={false}
         />
       </div>

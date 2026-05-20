@@ -63,7 +63,7 @@ export default async function MultimediaPage({
           { key: 'hero', label: 'Hero & Banner' },
           { key: 'diseno', label: 'Diseño' },
           { key: 'promo', label: 'Cinta promocional' },
-          { key: 'corporativos', label: 'Corporativos' },
+          { key: 'corporativos', label: 'Fotos de páginas' },
         ].map(({ key, label }) => (
           <a
             key={key}
