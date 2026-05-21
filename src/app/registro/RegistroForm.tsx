@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { registrarse } from '@/app/actions/registro'
+import { GoogleLoginButton } from '@/app/login/GoogleLoginButton'
 import { Loader2 } from 'lucide-react'
 
 type Tab = 'minorista' | 'mayorista'
@@ -95,6 +96,18 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
         <div className="px-4 py-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5' }}>
           {error}
         </div>
+      )}
+
+      {/* Google OAuth — solo minoristas */}
+      {tab === 'minorista' && (
+        <>
+          <GoogleLoginButton next={next} />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
+            <span className="text-xs" style={{ color: 'var(--color-acero-claro)', opacity: 0.6 }}>o registrate con email</span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
+          </div>
+        </>
       )}
 
       {/* Minorista fields */}

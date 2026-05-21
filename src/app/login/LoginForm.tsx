@@ -74,7 +74,7 @@ export function LoginForm({ error, next }: { error?: string; next?: string }) {
         <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
       </div>
 
-      <GoogleLoginButton />
+      <GoogleLoginButton next={next} />
 
       <div className="my-6 flex items-center gap-4">
         <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />

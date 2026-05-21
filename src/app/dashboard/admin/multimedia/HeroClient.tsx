@@ -42,6 +42,7 @@ export function HeroClient({
   const [toast, setToast] = useState<string | null>(null)
   const [assetAEliminar, setAssetAEliminar] = useState<HeroAsset | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<HeroAsset | null>(null)
+  const [guardando, setGuardando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const activos = assets.filter(a => a.activo).length
@@ -179,6 +180,7 @@ export function HeroClient({
   }
 
   async function guardarContenido(asset: HeroAsset) {
+    setGuardando(true)
     const payload = {
       etiqueta: asset.etiqueta,
       titulo: asset.titulo,
@@ -186,9 +188,15 @@ export function HeroClient({
       boton_texto: asset.boton_texto,
       boton_url: asset.boton_url,
     }
-    await supabase.from('hero_assets').update(payload).eq('id', asset.id)
+    const { error } = await supabase.from('hero_assets').update(payload).eq('id', asset.id)
+    setGuardando(false)
+    if (error) {
+      mostrarToast('Error al guardar cambios')
+      return
+    }
     setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, ...payload } : a))
     setSelectedAsset(a => a?.id === asset.id ? { ...a, ...payload } : a)
+    mostrarToast('Cambios guardados')
   }
 
   function abrirEditor(asset: HeroAsset) {
@@ -264,23 +272,32 @@ export function HeroClient({
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                    {idx > 0 && (
-                      <button onClick={e => { e.stopPropagation(); reordenar(a, 'up') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover arriba">
-                        <ChevronLeft size={14} className="text-white rotate-90" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      {idx > 0 && (
+                        <button onClick={e => { e.stopPropagation(); reordenar(a, 'up') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover arriba">
+                          <ChevronLeft size={14} className="text-white rotate-90" />
+                        </button>
+                      )}
+                      <button onClick={e => { e.stopPropagation(); toggleActivo(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-amber-400" title={a.activo ? 'Ocultar del hero' : 'Mostrar en hero'}>
+                        <Star size={14} className="text-white" fill={a.activo ? 'white' : 'none'} />
                       </button>
-                    )}
-                    <button onClick={e => { e.stopPropagation(); toggleActivo(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-amber-400" title={a.activo ? 'Ocultar del hero' : 'Mostrar en hero'}>
-                      <Star size={14} className="text-white" fill={a.activo ? 'white' : 'none'} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); pedirEliminar(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-red-500">
-                      <X size={14} className="text-white" />
-                    </button>
-                    {idx < sorted.length - 1 && (
-                      <button onClick={e => { e.stopPropagation(); reordenar(a, 'down') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover abajo">
-                        <ChevronLeft size={14} className="text-white -rotate-90" />
+                      <button onClick={e => { e.stopPropagation(); pedirEliminar(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-red-500">
+                        <X size={14} className="text-white" />
                       </button>
-                    )}
+                      {idx < sorted.length - 1 && (
+                        <button onClick={e => { e.stopPropagation(); reordenar(a, 'down') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover abajo">
+                          <ChevronLeft size={14} className="text-white -rotate-90" />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); abrirEditor(a) }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-900 hover:bg-gray-100 transition-colors"
+                    >
+                      <Pencil size={11} />
+                      Editar título y texto
+                    </button>
                   </div>
 
                   <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
@@ -290,14 +307,17 @@ export function HeroClient({
                   {a.activo && (
                     <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
                   )}
+                  {!a.titulo && (
+                    <span className="absolute bottom-2 right-2 text-xs bg-amber-500/90 text-white px-1.5 py-0.5 rounded">Sin título</span>
+                  )}
                 </div>
                 <button
                   onClick={() => abrirEditor(a)}
-                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-b-lg border text-xs font-medium transition-colors hover:opacity-80"
-                  style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)', background: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-b-lg border text-xs font-semibold transition-colors hover:opacity-90"
+                  style={{ borderColor: 'var(--color-granito)', background: 'var(--color-granito)', color: 'white' }}
                 >
                   <Pencil size={11} />
-                  Editar contenido
+                  Editar título y texto
                 </button>
               </div>
             )
@@ -482,10 +502,11 @@ export function HeroClient({
 
               <button
                 onClick={() => guardarContenido(selectedAsset)}
-                className="w-full px-4 py-3 rounded-lg text-base font-medium transition-colors"
+                disabled={guardando}
+                className="w-full px-4 py-3 rounded-lg text-base font-medium transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 style={{ background: 'var(--color-granito)', color: 'white' }}
               >
-                Guardar cambios
+                {guardando ? <><Loader2 size={14} className="animate-spin" /> Guardando…</> : 'Guardar cambios'}
               </button>
             </div>
           </div>

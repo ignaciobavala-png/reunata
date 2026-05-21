@@ -51,6 +51,10 @@ export async function registrarse(data: RegistroInput) {
     telefono: data.telefono ?? null,
   }
 
+  if (data.rol === 'consumidor_final') {
+    profileUpdate.aprobado = true
+  }
+
   if (data.rol !== 'consumidor_final') {
     profileUpdate.razon_social = data.razon_social ?? null
     profileUpdate.cuit_dni = data.cuit_dni ?? null

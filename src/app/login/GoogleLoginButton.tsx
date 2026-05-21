@@ -1,9 +1,25 @@
 'use client'
 
-export function GoogleLoginButton() {
+import { createClient } from '@/lib/supabase/client'
+
+export function GoogleLoginButton({ next }: { next?: string }) {
+  async function handleClick() {
+    const supabase = createClient()
+    const origin = window.location.origin
+    const redirectTo = next
+      ? `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+      : `${origin}/auth/callback`
+
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    })
+  }
+
   return (
     <button
       type="button"
+      onClick={handleClick}
       className="w-full flex items-center justify-center gap-3 rounded-md py-3.5 text-sm font-medium transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
       style={{
         background: 'rgba(255,255,255,0.95)',
@@ -12,7 +28,6 @@ export function GoogleLoginButton() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
       }}
     >
-      {/* Google "G" logo oficial */}
       <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
         <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
