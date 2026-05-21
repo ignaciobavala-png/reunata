@@ -37,9 +37,20 @@ export async function GET(request: NextRequest) {
       data.user.email?.split('@')[0] ||
       null
 
+    const { data: canal } = await serviceSupabase
+      .from('canales')
+      .select('id')
+      .eq('slug', 'consumidor_final')
+      .single()
+
     await serviceSupabase
       .from('profiles')
-      .update({ rol: 'consumidor_final', aprobado: true, nombre })
+      .update({
+        rol: 'consumidor_final',
+        aprobado: true,
+        nombre,
+        ...(canal ? { canal_id: canal.id } : {}),
+      })
       .eq('id', userId)
   }
 

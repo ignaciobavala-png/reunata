@@ -53,6 +53,12 @@ export async function registrarse(data: RegistroInput) {
 
   if (data.rol === 'consumidor_final') {
     profileUpdate.aprobado = true
+    const { data: canal } = await serviceSupabase
+      .from('canales')
+      .select('id')
+      .eq('slug', 'consumidor_final')
+      .single()
+    if (canal) profileUpdate.canal_id = canal.id
   }
 
   if (data.rol !== 'consumidor_final') {
