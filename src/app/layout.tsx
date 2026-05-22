@@ -3,6 +3,7 @@ import { DM_Sans, DM_Serif_Display, DM_Mono } from 'next/font/google'
 import { LenisProvider } from '@/providers/LenisProvider'
 import { FloatingActions } from '@/components/sections/FloatingActions'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { SupabaseAuthListener } from '@/components/SupabaseAuthListener'
 import { createServiceClient } from '@/lib/supabase/server'
 import './globals.css'
 
@@ -86,6 +87,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <ThemeProvider>{children}</ThemeProvider>
         </LenisProvider>
         <FloatingActions />
+        <SupabaseAuthListener />
       </body>
     </html>
   )
