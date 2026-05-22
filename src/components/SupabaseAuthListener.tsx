@@ -2,20 +2,25 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export function SupabaseAuthListener() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useRef(createClient())
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+    const { data: { subscription } } = supabase.current.auth.onAuthStateChange((event) => {
+      if (
+        event === 'SIGNED_IN' ||
+        event === 'SIGNED_OUT' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'INITIAL_SESSION'
+      ) {
         router.refresh()
       }
     })
     return () => subscription.unsubscribe()
-  }, [router, supabase])
+  }, [router])
 
   return null
 }
