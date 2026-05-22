@@ -310,4 +310,27 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Supabase Site URL: `https://reunata.vercel.app`
 - Dominio verificado en Google Search Console (meta tag en layout via `metadata.verification.google`)
 - Pendiente: con dominio propio del cliente, completar verificación de propiedad (ver `docs/google-oauth-dominio.md`)
+
+### Fix Google OAuth — login persistente — sesión 22/05 (segunda parte)
+Tres bugs en cadena que impedían que el login con Google persista la sesión:
+
+1. **`src/proxy.ts` no era middleware** — Next.js solo reconoce `src/middleware.ts`. El archivo
+   `proxy.ts` exportaba `proxy` (no `middleware`) y nunca se ejecutaba, dejando `updateSession`
+   sin correr en ningún request. Renombrado a `middleware.ts` con la función `middleware` correcta.
+   El matcher excluye `auth/` para no interferir con el code_verifier de PKCE durante el callback.
+
+2. **`SupabaseAuthListener` recreaba el cliente en cada render** — `createClient()` estaba fuera
+   del `useEffect`, causando subscribe/unsubscribe constante que podía perder el evento `SIGNED_IN`
+   justo después del redirect OAuth. Corregido con `useRef(createClient())`. También se agregó
+   `TOKEN_REFRESHED` a la lista de eventos que disparan `router.refresh()`.
+
+3. **Homepage renderizaba `<Header />` sin `user`** — `src/app/page.tsx` está fuera del grupo
+   `(public)` y nunca leía la sesión del usuario, por lo que el Header siempre mostraba el ícono
+   del navbar como "no logueado" (link a `/login`) sin dropdown de cuenta. El OAuth callback
+   redirige a `/` por defecto (cuando no hay parámetro `next`), así que el login desde el navbar
+   siempre terminaba en la homepage sin mostrar la sesión. Fix: leer el user con `createClient()`
+   en la homepage y pasarlo como prop `user` al `Header`.
+
+   Esto explica por qué el login desde el carrito funcionaba: el carrito usa `/login?next=/tienda`
+   → callback redirige a `/tienda` (grupo `(public)`) → layout sí pasa `user` al Header.
 <!-- END:feactures -->
