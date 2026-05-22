@@ -4,7 +4,12 @@ import { useCartStore } from '@/stores/cartStore'
 import { ShoppingBag, X, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
-export function PublicCartDrawer() {
+interface CartUser {
+  nombre: string | null
+  rol: string
+}
+
+export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
   const { items, remove, totalItems, cartOpen, setCartOpen } = useCartStore()
   const open = cartOpen
   const setOpen = setCartOpen
@@ -114,27 +119,38 @@ export function PublicCartDrawer() {
         {/* Footer */}
         <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
           {items.length > 0 ? (
-            <>
-              <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Los precios se muestran al iniciar sesión.
-              </p>
+            user ? (
               <Link
-                href={`/login?next=${encodeURIComponent('/dashboard/cliente/catalogo?cart=open')}`}
+                href="/tienda"
                 onClick={() => setOpen(false)}
                 className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
                 style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
               >
-                Continuar →
+                Continuar comprando →
               </Link>
-              <Link
-                href={`/registro?next=${encodeURIComponent('/dashboard/cliente/catalogo?cart=open')}`}
-                onClick={() => setOpen(false)}
-                className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
-                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
-              >
-                ¿No tenés cuenta? Registrate
-              </Link>
-            </>
+            ) : (
+              <>
+                <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Iniciá sesión para ver precios y hacer tu pedido.
+                </p>
+                <Link
+                  href="/login?next=/tienda"
+                  onClick={() => setOpen(false)}
+                  className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                >
+                  Iniciar sesión →
+                </Link>
+                <Link
+                  href="/registro"
+                  onClick={() => setOpen(false)}
+                  className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                >
+                  ¿No tenés cuenta? Registrate
+                </Link>
+              </>
+            )
           ) : (
             <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
               Agregá productos para continuar.

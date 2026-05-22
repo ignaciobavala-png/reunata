@@ -5,8 +5,16 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Search, Menu, X, ChevronDown, ShoppingBag, Trash2 } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, ChevronDown, ShoppingBag, Trash2, User } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
+import { logout } from '@/app/actions/auth'
+
+const ROLES_INTERNOS = ['master', 'empleado', 'comisionista']
+
+interface HeaderUser {
+  nombre: string | null
+  rol: string
+}
 
 const categorias = [
   { label: 'Materas y Mochilas',          href: '/tienda/materas-y-mochilas' },
@@ -26,23 +34,21 @@ const tiendaLinks = [
   { label: 'Vistos recientemente', href: '/historial' },
 ]
 
-const nav = [
-  { label: 'Mi Cuenta', href: '/login' },
-]
-
-export function Header() {
+export function Header({ user }: { user?: HeaderUser | null }) {
   const pathname = usePathname()
   const isHome = pathname === '/'
 
   const [open, setOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [corporativosOpen, setCorporativosOpen] = useState(false)
+  const [userOpen, setUserOpen] = useState(false)
   const [scrolled, setScrolled] = useState(!isHome)
 
   const { items, remove, updateCantidad, totalItems, cartOpen, setCartOpen } = useCartStore()
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const corporativosRef = useRef<HTMLDivElement>(null)
+  const userRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isHome) return
@@ -57,6 +63,9 @@ export function Header() {
       }
       if (corporativosRef.current && !corporativosRef.current.contains(e.target as Node)) {
         setCorporativosOpen(false)
+      }
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
+        setUserOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -239,25 +248,95 @@ export function Header() {
             Mayoristas
           </Link>
 
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
-            >
-              {item.label}
-            </Link>
-          ))}
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
           <button aria-label="Buscar" className={`transition-colors duration-300 ${iconColor}`}>
-            <Search
-              size={20}
-              strokeWidth={1.5}
-            />
+            <Search size={20} strokeWidth={1.5} />
           </button>
+
+          {/* Usuario / login */}
+          <div ref={userRef} className="relative">
+            {user ? (
+              <button
+                onClick={() => setUserOpen(!userOpen)}
+                aria-label="Mi cuenta"
+                className={`transition-colors duration-300 ${iconColor}`}
+              >
+                <User size={20} strokeWidth={1.5} />
+              </button>
+            ) : (
+              <Link href="/login" aria-label="Iniciar sesión" className={`transition-colors duration-300 ${iconColor}`}>
+                <User size={20} strokeWidth={1.5} />
+              </Link>
+            )}
+
+            <AnimatePresence>
+              {userOpen && user && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute top-full right-0 mt-4 w-52 rounded-xl overflow-hidden"
+                  style={{
+                    background: 'var(--color-acero-brillo)',
+                    border: '1px solid var(--color-acero-claro)',
+                    boxShadow: '0 8px 24px rgba(13,15,17,0.1)',
+                  }}
+                >
+                  {user.nombre && (
+                    <>
+                      <div className="px-5 py-3 border-b" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                        <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>{user.nombre}</p>
+                      </div>
+                    </>
+                  )}
+                  {ROLES_INTERNOS.includes(user.rol) ? (
+                    <Link
+                      href="/dashboard/admin"
+                      onClick={() => setUserOpen(false)}
+                      className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                      style={{ color: 'var(--color-granito)' }}
+                    >
+                      Panel de administración
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href="/cuenta"
+                        onClick={() => setUserOpen(false)}
+                        className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                        style={{ color: 'var(--color-granito)' }}
+                      >
+                        Mi cuenta
+                      </Link>
+                      <Link
+                        href="/pedidos"
+                        onClick={() => setUserOpen(false)}
+                        className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                        style={{ color: 'var(--color-granito)' }}
+                      >
+                        Mis pedidos
+                      </Link>
+                    </>
+                  )}
+                  <div className="mx-5 h-px" style={{ background: 'var(--color-acero-claro)' }} />
+                  <form action={logout}>
+                    <button
+                      type="submit"
+                      className="block w-full text-left px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                      style={{ color: 'var(--color-acero-oscuro)' }}
+                    >
+                      Cerrar sesión
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={() => setCartOpen(true)}
             aria-label="Carrito"
@@ -367,17 +446,61 @@ export function Header() {
 
         <div className="h-px bg-[var(--border)]" />
 
-        {nav.map((item) => (
+        {/* Usuario mobile */}
+        {user ? (
+          <div className="flex flex-col gap-1">
+            <span className="text-xs tracking-widest uppercase text-[var(--color-acero-oscuro)] mb-2">
+              {user.nombre ?? 'Mi cuenta'}
+            </span>
+            {ROLES_INTERNOS.includes(user.rol) ? (
+              <Link
+                href="/dashboard/admin"
+                onClick={() => setOpen(false)}
+                className="text-lg text-[var(--color-granito)] py-1"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Panel de administración
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/cuenta"
+                  onClick={() => setOpen(false)}
+                  className="text-lg text-[var(--color-granito)] py-1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Mi cuenta
+                </Link>
+                <Link
+                  href="/pedidos"
+                  onClick={() => setOpen(false)}
+                  className="text-lg text-[var(--color-granito)] py-1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Mis pedidos
+                </Link>
+              </>
+            )}
+            <form action={logout}>
+              <button
+                type="submit"
+                className="text-lg text-[var(--color-acero-oscuro)] py-1 text-left"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
+        ) : (
           <Link
-            key={item.href}
-            href={item.href}
+            href="/login"
             onClick={() => setOpen(false)}
             className="text-2xl text-[var(--foreground)]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            {item.label}
+            Iniciar sesión
           </Link>
-        ))}
+        )}
       </motion.div>
 
       {/* Cart drawer */}
@@ -502,27 +625,38 @@ export function Header() {
               {/* Footer */}
               <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
                 {items.length > 0 ? (
-                  <>
-                    <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Los precios se muestran al iniciar sesión.
-                    </p>
+                  user ? (
                     <Link
-                      href="/login?next=/dashboard/cliente/catalogo"
+                      href="/tienda"
                       onClick={() => setCartOpen(false)}
                       className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
                       style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
                     >
-                      Continuar →
+                      Continuar comprando →
                     </Link>
-                    <Link
-                      href="/registro"
-                      onClick={() => setCartOpen(false)}
-                      className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
-                      style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
-                    >
-                      ¿No tenés cuenta? Registrate
-                    </Link>
-                  </>
+                  ) : (
+                    <>
+                      <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Iniciá sesión para ver precios y hacer tu pedido.
+                      </p>
+                      <Link
+                        href="/login?next=/tienda"
+                        onClick={() => setCartOpen(false)}
+                        className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
+                        style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                      >
+                        Iniciar sesión →
+                      </Link>
+                      <Link
+                        href="/registro"
+                        onClick={() => setCartOpen(false)}
+                        className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                      >
+                        ¿No tenés cuenta? Registrate
+                      </Link>
+                    </>
+                  )
                 ) : (
                   <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Agregá productos para continuar.

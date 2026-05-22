@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 
+const ROLES_CON_DASHBOARD = ['master', 'empleado', 'comisionista']
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,6 +17,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single()
 
   if (!profile) redirect('/login')
+
+  if (!ROLES_CON_DASHBOARD.includes(profile.rol)) redirect('/')
 
   return (
     <div data-dashboard className="flex h-screen overflow-hidden font-medium" style={{ background: 'var(--background)' }}>

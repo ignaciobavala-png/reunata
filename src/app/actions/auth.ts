@@ -31,15 +31,15 @@ export async function login(formData: FormData) {
   }
 
   const next = formData.get('next') as string | null
-  if (next?.startsWith('/dashboard/')) {
+  if (next?.startsWith('/') && !next.startsWith('//')) {
     redirect(next)
   }
 
-  redirect('/dashboard/cliente')
+  redirect('/')
 }
 
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/login')
+  redirect('/')
 }

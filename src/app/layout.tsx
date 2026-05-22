@@ -41,6 +41,7 @@ export const metadata: Metadata = {
     default: 'Reunata — El mate que te une',
     template: '%s | Reunata',
   },
+  applicationName: 'Reunata',
   description:
     'Reunata importa los mejores mates, termos y accesorios. Productos seleccionados, diseño renovado, entrega en todo el país.',
   keywords: ['mate', 'mates', 'termos', 'yerbas', 'accesorios mate', 'reunata'],
@@ -50,6 +51,9 @@ export const metadata: Metadata = {
     siteName: 'Reunata',
     locale: 'es_AR',
     type: 'website',
+  },
+  verification: {
+    google: 'TR3zjqW_qNkWaGtgrn8JiqEQIHJ8flbPeWJhN8Oia2Y',
   },
 }
 

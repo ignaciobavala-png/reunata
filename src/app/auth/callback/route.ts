@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard/cliente'
+  const next = searchParams.get('next') ?? '/'
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_error`)
@@ -54,6 +54,6 @@ export async function GET(request: NextRequest) {
       .eq('id', userId)
   }
 
-  const destino = next.startsWith('/') ? next : '/dashboard/cliente'
+  const destino = next.startsWith('/') && !next.startsWith('//') ? next : '/'
   return NextResponse.redirect(`${origin}${destino}`)
 }
