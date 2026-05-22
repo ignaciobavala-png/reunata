@@ -8,10 +8,22 @@ import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export default async function Home() {
   const supabase = createServiceClient()
+
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  let headerUser: { nombre: string | null; rol: string } | null = null
+  if (user) {
+    const { data: profile } = await supabaseAuth
+      .from('profiles')
+      .select('nombre, rol')
+      .eq('id', user.id)
+      .single()
+    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol }
+  }
 
   // Obtener IDs de productos visibles en el canal público
   const { data: canalPublico } = await supabase
@@ -69,7 +81,7 @@ export default async function Home() {
 
   return (
     <>
-      <Header />
+      <Header user={headerUser} />
       <main className="flex-1">
         <Hero />
         <PromoTicker />
