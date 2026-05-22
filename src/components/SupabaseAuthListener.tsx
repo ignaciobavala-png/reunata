@@ -10,7 +10,7 @@ export function SupabaseAuthListener() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
         router.refresh()
       }
     })
