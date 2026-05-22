@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -10,7 +11,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=oauth_error`)
   }
 
-  const supabase = await createClient()
+  const destino = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+  const response = NextResponse.redirect(`${origin}${destino}`)
+
+  // En route handlers las cookies son read-only vía cookies().
+  // Las cookies de sesión deben escribirse directamente en el response.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error || !data.user) {
@@ -20,14 +42,12 @@ export async function GET(request: NextRequest) {
   const userId = data.user.id
   const serviceSupabase = createServiceClient()
 
-  // Verificar si el profile ya tiene rol asignado (usuario que ya existía)
   const { data: profile } = await serviceSupabase
     .from('profiles')
     .select('rol, aprobado')
     .eq('id', userId)
     .single()
 
-  // Solo actualizar si es un usuario nuevo (sin rol) o si llegó por OAuth y es consumidor_final
   const isNewOrMinorista = !profile?.rol || profile.rol === 'consumidor_final'
 
   if (isNewOrMinorista) {
@@ -54,6 +74,5 @@ export async function GET(request: NextRequest) {
       .eq('id', userId)
   }
 
-  const destino = next.startsWith('/') && !next.startsWith('//') ? next : '/'
-  return NextResponse.redirect(`${origin}${destino}`)
+  return response
 }
