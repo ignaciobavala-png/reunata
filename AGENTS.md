@@ -272,4 +272,42 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Panel en `/dashboard/admin/catalogos`: subir PDF con nombre, listar, toggle activo/inactivo, descargar (signed URL 1h), eliminar con confirmación
 - Server actions en `src/app/actions/catalogos.ts`: `subirCatalogo`, `eliminarCatalogo`, `toggleCatalogoActivo`
 - "Catálogos" agregado al sidebar bajo el grupo Contenido
+
+### Clientes sin dashboard — sesión 22/05
+- Roles `consumidor_final`, `distribuidor`, `local`, `mercha` ya NO tienen dashboard
+- Post-login redirigen a `/` en lugar de `/dashboard/cliente`
+- `dashboard/layout.tsx` bloquea acceso a toda la sección `/dashboard/` para roles cliente → redirect a `/`
+- Rutas públicas nuevas: `/cuenta` y `/pedidos` (con `/pedidos/[id]`) en el grupo `(public)` con header/footer normal
+- `CuentaForm` y componentes de pago copiados a las nuevas rutas públicas
+- Links internos de pedidos apuntan a `/pedidos/[id]` (antes `/dashboard/cliente/pedidos/[id]`)
+
+### Navbar con sesión — sesión 22/05
+- `(public)/layout.tsx` ahora es async y obtiene sesión server-side, pasa `user` al `Header` y `PublicCartDrawer`
+- `Header` acepta prop `user?: { nombre, rol }`: muestra ícono `User` (hombrecito) siempre
+  - Sin sesión: ícono lleva a `/login`
+  - Con sesión cliente: dropdown con Mi cuenta → `/cuenta`, Mis pedidos → `/pedidos`, Cerrar sesión
+  - Con sesión interna: dropdown con Panel de administración → `/dashboard/admin`
+- Ícono de usuario en la zona de acciones (junto a Search y Cart), visible en mobile y desktop
+- `logout()` ahora redirige a `/` en lugar de `/login`
+
+### Carrito reactivo al login — sesión 22/05
+- `PublicCartDrawer` acepta prop `user` y muestra footer diferenciado:
+  - Sin sesión: "Iniciá sesión para ver precios" + botón "Iniciar sesión →" + "Registrate"
+  - Con sesión: solo botón "Continuar comprando →" sin prompts de login
+- Mismo comportamiento en el carrito inline del `Header`
+
+### Fix sesión OAuth — sesión 22/05
+- `auth/callback/route.ts` reescrito: las cookies de sesión ahora se escriben directamente en el `NextResponse`
+  en lugar de vía `cookies()` de Next.js (que es read-only en Route Handlers)
+- `SupabaseAuthListener` client component agregado al root layout: llama `router.refresh()` en cada cambio
+  de sesión para invalidar el Router Cache de Next.js y forzar re-render de Server Components
+- Archivo `proxy.ts` ya existía con `updateSession` correctamente implementado
+
+### Google OAuth — configuración — sesión 22/05
+- App name "Reunata" configurado en Google Cloud Console OAuth consent screen
+- App publicada en modo Production (antes Testing)
+- `https://znmqvjxdnslrrvsjquej.supabase.co/auth/v1/callback` agregado como Authorized redirect URI
+- Supabase Site URL: `https://reunata.vercel.app`
+- Dominio verificado en Google Search Console (meta tag en layout via `metadata.verification.google`)
+- Pendiente: con dominio propio del cliente, completar verificación de propiedad (ver `docs/google-oauth-dominio.md`)
 <!-- END:feactures -->
