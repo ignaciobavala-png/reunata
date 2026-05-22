@@ -9,8 +9,10 @@ export function SupabaseAuthListener() {
   const supabase = createClient()
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      router.refresh()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        router.refresh()
+      }
     })
     return () => subscription.unsubscribe()
   }, [router, supabase])
