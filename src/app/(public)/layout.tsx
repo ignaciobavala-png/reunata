@@ -17,9 +17,17 @@ export default async function PublicLayout({ children }: { children: React.React
     if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol }
   }
 
+  const { data: categoriasRows } = await supabase
+    .from('categorias_home')
+    .select('nombre, href')
+    .eq('activo', true)
+    .not('href', 'is', null)
+    .order('orden')
+  const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
-      <Header user={headerUser} />
+      <Header user={headerUser} categorias={headerCategorias} />
       <main className="flex-1">
         {children}
       </main>

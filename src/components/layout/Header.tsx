@@ -16,16 +16,10 @@ interface HeaderUser {
   rol: string
 }
 
-const categorias = [
-  { label: 'Materas y Mochilas',          href: '/tienda/materas-y-mochilas' },
-  { label: 'Mates',                         href: '/tienda/mates' },
-  { label: 'Bombillas y Sorbetes',         href: '/tienda/bombillas-y-sorbetes' },
-  { label: 'Accesorios para el mate',      href: '/tienda/accesorios' },
-  { label: 'Térmicos de Acero',            href: '/tienda/termicos-de-acero' },
-  { label: 'Merchandising y Promocionales',href: '/tienda/merchandising' },
-  { label: 'Para la cocina',               href: '/tienda/cocina' },
-  { label: 'Gift Card',                    href: '/tienda/gift-card' },
-]
+interface HeaderCategoria {
+  label: string
+  href: string
+}
 
 const tiendaLinks = [
   { label: 'Novedades',           href: '/tienda/novedades' },
@@ -34,7 +28,7 @@ const tiendaLinks = [
   { label: 'Vistos recientemente', href: '/historial' },
 ]
 
-export function Header({ user }: { user?: HeaderUser | null }) {
+export function Header({ user, categorias = [] }: { user?: HeaderUser | null; categorias?: HeaderCategoria[] }) {
   const pathname = usePathname()
   const isHome = pathname === '/'
 

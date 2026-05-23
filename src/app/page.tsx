@@ -45,6 +45,14 @@ export default async function Home() {
     .in('producto_id', idsPublicos.length > 0 ? idsPublicos : [-1])
     .order('orden')
 
+  const { data: categoriasRows } = await supabase
+    .from('categorias_home')
+    .select('nombre, href')
+    .eq('activo', true)
+    .not('href', 'is', null)
+    .order('orden')
+  const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
+
   const { data: bannerData } = await supabase
     .from('banners')
     .select('url, titulo, link_url')
@@ -81,7 +89,7 @@ export default async function Home() {
 
   return (
     <>
-      <Header user={headerUser} />
+      <Header user={headerUser} categorias={headerCategorias} />
       <main className="flex-1">
         <Hero />
         <PromoTicker />
