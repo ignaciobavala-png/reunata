@@ -333,4 +333,47 @@ Tres bugs en cadena que impedían que el login con Google persista la sesión:
 
    Esto explica por qué el login desde el carrito funcionaba: el carrito usa `/login?next=/tienda`
    → callback redirige a `/tienda` (grupo `(public)`) → layout sí pasa `user` al Header.
+
+### Bug fixes — sesión 23/05
+
+#### Sync — desactivación de productos no-Reunata
+- **Query rota:** `.not('codigo_interno', 'in', ...)` generaba `("ABC","DEF")` con comillas dobles
+  extra que PostgREST no matcheaba. Corregido a `(ABC,DEF)` sin comillas → ahora funciona.
+- **Variable fuera de scope:** `totalDesactivados` declarado dentro del `try` pero usado en el
+  `return` final fuera de él → error de TypeScript que rompía el endpoint. Movida la declaración
+  al mismo nivel que `totalUpserted`.
+- **Sin feedback:** la respuesta ahora incluye `desactivados: number` y el panel muestra
+  "X registros sincronizados · Y productos desactivados".
+- **Toggle sin persistencia:** el checkbox "Desactivar productos que no son de Reunata" se reseteaba
+  al navegar. Ahora persiste en `localStorage` (clave `sync:desactivarNoReunata`).
+- Resultado validado: 123 registros sincronizados, 129 productos desactivados en producción.
+
+#### createClient() fuera de useEffect/useRef — patrón sistemático
+Varios componentes llamaban `createClient()` (browser Supabase client) a nivel módulo o en el
+cuerpo del componente. Turbopack lo ejecuta durante SSR donde las APIs del browser no existen,
+causando "Error in input stream". Corregido en:
+- `DisenoClient.tsx` — movido a `useRef` con inicialización lazy
+- `CategoriasClient.tsx` — ídem (era nivel módulo, el más grave)
+- `CategoryGallery.tsx` — movido dentro del `useEffect` (solo se usaba ahí)
+
+**Patrón correcto para componentes que necesitan Supabase en handlers:**
+```ts
+const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+function getSupabase() {
+  if (!supabaseRef.current) supabaseRef.current = createClient()
+  return supabaseRef.current
+}
+```
+**Para componentes que solo usan Supabase en useEffect:** instanciar dentro del useEffect.
+
+#### PromoTicker — framer-motion v12
+- `animate={false}` no es válido en framer-motion v12 → error de runtime. Cambiado a `animate={{ x: 0 }}`.
+- `JSON.parse(promo_items)` no validaba que el resultado fuera un array → posible crash en `.map()`.
+  Ahora valida `Array.isArray(parsed) && parsed.length > 0` antes de `setItems`.
+
+#### proxy.ts — convención Next.js 16.x
+En Next.js 16.x la convención cambió: el archivo de interceptación de requests se llama `proxy.ts`
+(no `middleware.ts`) y exporta `proxy` (no `middleware`). En sesión 22/05 se había renombrado a
+`middleware.ts` para corregir un bug de OAuth; en esta sesión se revirtió al nombre correcto para
+eliminar el warning de deprecación. La lógica de `updateSession` no cambió.
 <!-- END:feactures -->
