@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
 const GESU_BASE = process.env.GESU_API_BASE_URL!
 const GESU_TOKEN = process.env.GESU_API_TOKEN!
 const SYNC_SECRET = process.env.SYNC_SECRET!
@@ -198,17 +207,22 @@ async function syncProductos(desactivarNoReunata = false) {
 
     // Auto-crear categorias_home para categorías Gesu que no tienen fila todavía
     const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
-    const { data: filasExistentes } = await supabase.from('categorias_home').select('categoria_keys')
+    const { data: filasExistentes } = await supabase.from('categorias_home').select('id, nombre, href, categoria_keys')
     const keysAsignadas = new Set(
       (filasExistentes ?? []).flatMap(f => (f.categoria_keys ?? []) as string[])
     )
     for (const cat of categoriasGesu.filter(cat => !keysAsignadas.has(cat))) {
       await supabase.from('categorias_home').insert({
         nombre: cat,
+        href: `/tienda/${slugify(cat)}`,
         categoria_keys: [cat],
         activo: false,
         orden: 999,
       })
+    }
+    // Parchear filas existentes sin href
+    for (const fila of (filasExistentes ?? []).filter(f => !f.href)) {
+      await supabase.from('categorias_home').update({ href: `/tienda/${slugify(fila.nombre)}` }).eq('id', fila.id)
     }
 
   } catch (e) {
