@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import { supabaseImg } from '@/lib/images'
 
-const supabase = createClient()
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
 interface CategoriaHome {
@@ -76,6 +75,12 @@ export function CategoriasClient({
   isMaster: boolean
   gesuCategorias: string[]
 }) {
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
+
   const [categorias, setCategorias] = useState<CategoriaHome[]>(categoriasIniciales)
   const [editando, setEditando] = useState<number | null>(null)
   const [form, setForm] = useState<Partial<CategoriaHome>>({})
@@ -126,10 +131,10 @@ export function CategoriasClient({
     const ext = file.name.split('.').pop() ?? 'jpg'
     const path = `categorias/${cat.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-    const { error } = await supabase.storage.from('multimedia').upload(path, file, { upsert: true })
+    const { error } = await getSupabase().storage.from('multimedia').upload(path, file, { upsert: true })
     if (error) { setUploadingId(null); return }
 
-    if (cat.foto_url) await supabase.storage.from('multimedia').remove([cat.foto_url])
+    if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
 
     await fetch('/api/categorias-home', {
       method: 'PATCH',
@@ -142,7 +147,7 @@ export function CategoriasClient({
 
   async function quitarFoto(cat: CategoriaHome) {
     if (!cat.foto_url) return
-    await supabase.storage.from('multimedia').remove([cat.foto_url])
+    await getSupabase().storage.from('multimedia').remove([cat.foto_url])
     await fetch('/api/categorias-home', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },

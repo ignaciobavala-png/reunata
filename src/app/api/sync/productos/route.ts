@@ -112,6 +112,7 @@ async function syncProductos(desactivarNoReunata = false) {
 
   const inicio = Date.now()
   let totalUpserted = 0
+  let totalDesactivados = 0
   let error: string | null = null
 
   try {
@@ -187,10 +188,11 @@ async function syncProductos(desactivarNoReunata = false) {
     if (desactivarNoReunata) {
       const codigosReunata = soloReunata.map(item => item.codigoInterno).filter(Boolean) as string[]
       if (codigosReunata.length > 0) {
-        await supabase
+        const { count } = await supabase
           .from('productos')
-          .update({ activo: false })
-          .not('codigo_interno', 'in', `(${codigosReunata.map(c => `"${c}"`).join(',')})`)
+          .update({ activo: false }, { count: 'exact' })
+          .not('codigo_interno', 'in', `(${codigosReunata.join(',')})`)
+        totalDesactivados = count ?? 0
       }
     }
 
@@ -226,5 +228,5 @@ async function syncProductos(desactivarNoReunata = false) {
     return NextResponse.json({ error }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, registros: totalUpserted, ms: Date.now() - inicio })
+  return NextResponse.json({ ok: true, registros: totalUpserted, desactivados: totalDesactivados, ms: Date.now() - inicio })
 }

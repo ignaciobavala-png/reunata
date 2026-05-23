@@ -7,8 +7,6 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabaseImg } from '@/lib/images'
 
-const supabase = createClient()
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
 interface CategoriaHome {
@@ -29,6 +27,7 @@ export function CategoryGallery() {
 
   useEffect(() => {
     async function loadData() {
+      const supabase = createClient()
       const { data: cats } = await supabase
         .from('categorias_home')
         .select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url')

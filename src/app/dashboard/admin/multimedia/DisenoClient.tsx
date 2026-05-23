@@ -60,7 +60,11 @@ function restoreDefaults() {
 }
 
 export function DisenoClient() {
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
   const [colores, setColores] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -69,7 +73,7 @@ export function DisenoClient() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('configuracion')
         .select('clave, valor')
         .in('clave', COLORES.map(c => c.clave))
@@ -97,7 +101,7 @@ export function DisenoClient() {
     for (const [clave, valor] of Object.entries(colores)) {
       const c = COLORES.find(c => c.clave === clave)
       const finalValor = valor || c?.default || ''
-      await supabase
+      await getSupabase()
         .from('configuracion')
         .upsert({ clave, valor: finalValor }, { onConflict: 'clave' })
     }
@@ -108,7 +112,7 @@ export function DisenoClient() {
 
   async function restaurar() {
     for (const c of COLORES) {
-      await supabase.from('configuracion').delete().eq('clave', c.clave)
+      await getSupabase().from('configuracion').delete().eq('clave', c.clave)
     }
     const defaults: Record<string, string> = {}
     for (const c of COLORES) defaults[c.clave] = c.default

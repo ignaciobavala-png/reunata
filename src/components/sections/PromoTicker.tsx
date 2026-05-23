@@ -36,7 +36,10 @@ export function PromoTicker() {
 
       const itemsRow = data?.find(r => r.clave === 'promo_items')
       if (itemsRow?.valor) {
-        try { setItems(JSON.parse(itemsRow.valor)) } catch {}
+        try {
+          const parsed = JSON.parse(itemsRow.valor)
+          if (Array.isArray(parsed) && parsed.length > 0) setItems(parsed)
+        } catch {}
       }
 
       const speedRow = data?.find(r => r.clave === 'promo_speed')
@@ -56,7 +59,7 @@ export function PromoTicker() {
       <motion.div
         ref={trackRef}
         className="flex gap-20 whitespace-nowrap"
-        animate={halfWidth ? { x: [0, -halfWidth] } : false}
+        animate={halfWidth > 0 ? { x: [0, -halfWidth] } : { x: 0 }}
         transition={{ repeat: Infinity, duration: speed, ease: 'linear' }}
       >
         {[...items, ...items].map((item, i) => (

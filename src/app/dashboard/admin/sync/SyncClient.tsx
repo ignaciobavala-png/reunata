@@ -1,15 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
 
-type SyncResult = { ok: boolean; registros: number; ms: number; error?: string }
+type SyncResult = { ok: boolean; registros: number; ms: number; desactivados?: number; error?: string }
 type Tipo = 'productos' | 'clientes'
+
+const LS_KEY = 'sync:desactivarNoReunata'
 
 export function SyncClient({ isMaster }: { isMaster: boolean }) {
   const [loading, setLoading] = useState<Tipo | null>(null)
   const [results, setResults] = useState<Record<Tipo, SyncResult | null>>({ productos: null, clientes: null })
   const [desactivarNoReunata, setDesactivarNoReunata] = useState(false)
+
+  useEffect(() => {
+    setDesactivarNoReunata(localStorage.getItem(LS_KEY) === 'true')
+  }, [])
+
+  function toggleDesactivar() {
+    setDesactivarNoReunata(v => {
+      localStorage.setItem(LS_KEY, String(!v))
+      return !v
+    })
+  }
 
   async function runSync(tipo: Tipo) {
     setLoading(tipo)
@@ -59,7 +72,7 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
                   {tipo === 'productos' && (
                     <label className="flex items-center gap-2.5 mt-3 cursor-pointer w-fit">
                       <div
-                        onClick={() => setDesactivarNoReunata(v => !v)}
+                        onClick={toggleDesactivar}
                         className="relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0"
                         style={{ background: desactivarNoReunata ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}
                       >
@@ -81,7 +94,7 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
                         : <XCircle size={14} className="text-red-500" />}
                       <span style={{ color: result.ok ? '#16a34a' : '#ef4444' }}>
                         {result.ok
-                          ? `${result.registros} registros actualizados en ${result.ms}ms`
+                          ? `${result.registros} registros sincronizados en ${result.ms}ms${result.desactivados != null ? ` · ${result.desactivados} productos desactivados` : ''}`
                           : result.error}
                       </span>
                     </div>
