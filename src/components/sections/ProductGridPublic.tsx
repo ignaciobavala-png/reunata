@@ -11,15 +11,18 @@ interface ProductoPublico {
   titulo: string
   codigo_interno: string
   foto_url: string | null
+  precio: number | null
   supabaseUrl: string
 }
 
 export function ProductGridPublic({
   productos,
   nombreCategoria,
+  mostrarPrecios = false,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
+  mostrarPrecios?: boolean
 }) {
   const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
@@ -112,41 +115,48 @@ export function ProductGridPublic({
               <p className="text-[10px] font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
                 {p.codigo_interno}
               </p>
+              {p.precio != null && (
+                <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                  u$s {p.precio.toFixed(2)}
+                </p>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* CTA */}
-      <div
-        className="mt-16 py-10 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6"
-        style={{ borderTop: '1px solid var(--border)' }}
-      >
-        <div>
-          <p className="text-lg font-medium mb-1" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>
-            ¿Querés ver precios y hacer pedidos?
-          </p>
-          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Registrate para ver precios, stock y hacer pedidos de {nombreCategoria.toLowerCase()}.
-          </p>
+      {/* CTA — solo para usuarios sin precios asignados */}
+      {!mostrarPrecios && (
+        <div
+          className="mt-16 py-10 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6"
+          style={{ borderTop: '1px solid var(--border)' }}
+        >
+          <div>
+            <p className="text-lg font-medium mb-1" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>
+              ¿Querés ver precios y hacer pedidos?
+            </p>
+            <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Registrate para ver precios, stock y hacer pedidos de {nombreCategoria.toLowerCase()}.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="/registro"
+              className="px-6 py-3 text-xs tracking-widest uppercase transition-colors"
+              style={{ background: 'var(--color-granito)', color: 'white' }}
+            >
+              Quiero ser cliente
+            </a>
+            <a
+              href="/login"
+              className="text-xs tracking-widest uppercase hover:underline"
+              style={{ color: 'var(--color-granito-claro)' }}
+            >
+              Ya tengo cuenta
+            </a>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <a
-            href="/registro"
-            className="px-6 py-3 text-xs tracking-widest uppercase transition-colors"
-            style={{ background: 'var(--color-granito)', color: 'white' }}
-          >
-            Quiero ser cliente
-          </a>
-          <a
-            href="/login?next=/dashboard/cliente/catalogo"
-            className="text-xs tracking-widest uppercase hover:underline"
-            style={{ color: 'var(--color-granito-claro)' }}
-          >
-            Ya tengo cuenta
-          </a>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

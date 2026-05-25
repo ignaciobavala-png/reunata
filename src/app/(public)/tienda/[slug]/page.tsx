@@ -2,42 +2,69 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
-  novedades:    { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
+  novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
   'mas-vendidos': { nombre: 'Más vendidos', subtitulo: 'Los productos más elegidos por nuestros clientes.' },
 }
 
 export default async function CategoriaProductosPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-
   const supabase = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  // Slugs especiales: no dependen de categorias_home
+  const { canalId, listaPrecio, mostrarPrecios } = await resolverCanalTienda()
+  const idsCanal = await getProductosDelCanal(canalId)
+  const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
+
+  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista5'
+
+  function extraerPrecio(p: Record<string, unknown>): number | null {
+    if (!mostrarPrecios || !listaPrecio) return null
+    return (p[listaPrecio] as number | null) ?? null
+  }
+
+  function mapProducto(p: {
+    id: number
+    titulo: string
+    codigo_interno: string
+    precio_lista1?: number | null
+    precio_lista2?: number | null
+    precio_lista3?: number | null
+    precio_lista5?: number | null
+    producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null
+  }) {
+    const fotos = (p.producto_fotos ?? []).sort((a, b) => a.orden - b.orden)
+    return {
+      id: p.id,
+      titulo: p.titulo,
+      codigo_interno: p.codigo_interno,
+      foto_url: fotos[0]?.url ?? null,
+      precio: extraerPrecio(p as Record<string, unknown>),
+      supabaseUrl,
+    }
+  }
+
+  // ── Slugs especiales ──────────────────────────────────────────────
   if (slug in SLUGS_ESPECIALES) {
     const meta = SLUGS_ESPECIALES[slug]
 
     let query = supabase
       .from('productos')
-      .select('id, titulo, codigo_interno, producto_fotos(url, orden, destacada)')
+      .select(`id, titulo, codigo_interno, ${precioSelect}, producto_fotos(url, orden, destacada)`)
       .eq('activo', true)
+      .in('id', filterCanal)
 
     if (slug === 'novedades') {
       query = query.order('created_at', { ascending: false }).limit(48)
     } else {
-      // mas-vendidos: productos con al menos una foto destacada
       query = query.eq('producto_fotos.destacada', true).order('titulo')
     }
 
     const { data: productos } = await query
-
-    const productosPublicos = (productos ?? []).map(p => {
-      const fotos = (p.producto_fotos as { url: string; orden: number }[] | null) ?? []
-      const primeraFoto = fotos.sort((a, b) => a.orden - b.orden)[0] ?? null
-      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: primeraFoto?.url ?? null, supabaseUrl }
-    }).filter(p => p.foto_url !== null)
+    const productosGrid = (productos ?? []).map(mapProducto).filter(p => p.foto_url !== null)
 
     return (
       <main style={{ background: 'var(--background)' }}>
@@ -47,16 +74,17 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
             {meta.nombre}
           </h1>
           <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {productosPublicos.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
+            {productosGrid.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
           </p>
-          {productosPublicos.length > 0 && (
-            <ProductGridPublic productos={productosPublicos} nombreCategoria={meta.nombre} />
+          {productosGrid.length > 0 && (
+            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} />
           )}
         </div>
       </main>
     )
   }
 
+  // ── Categoría normal ──────────────────────────────────────────────
   const { data: categoriaHome } = await supabase
     .from('categorias_home')
     .select('nombre, categoria_keys')
@@ -70,34 +98,20 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
   const { data: productos } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, producto_fotos(url, orden)')
+    .select(`id, titulo, codigo_interno, ${precioSelect}, producto_fotos(url, orden)`)
     .eq('activo', true)
+    .in('id', filterCanal)
     .in('categoria', categoriaKeys)
     .order('titulo')
 
-  const productosPublicos = (productos ?? []).map(p => {
-    const fotos = (p.producto_fotos as { url: string; orden: number }[] | null) ?? []
-    const primeraFoto = fotos.sort((a, b) => a.orden - b.orden)[0] ?? null
-    return {
-      id: p.id,
-      titulo: p.titulo,
-      codigo_interno: p.codigo_interno,
-      foto_url: primeraFoto?.url ?? null,
-      supabaseUrl,
-    }
-  })
+  const productosGrid = (productos ?? []).map(mapProducto)
 
-  if (productosPublicos.length === 0) {
+  if (productosGrid.length === 0) {
     return (
       <main style={{ background: 'var(--background)' }}>
         <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Catálogo
-          </p>
-          <h1
-            className="text-3xl md:text-5xl mb-2"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
-          >
+          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Catálogo</p>
+          <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             {categoriaHome.nombre}
           </h1>
           <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -111,20 +125,14 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   return (
     <main style={{ background: 'var(--background)' }}>
       <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-        <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Catálogo
-        </p>
-        <h1
-          className="text-3xl md:text-5xl mb-2"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
-        >
+        <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Catálogo</p>
+        <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           {categoriaHome.nombre}
         </h1>
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {productosPublicos.length} producto{productosPublicos.length !== 1 ? 's' : ''}
+          {productosGrid.length} producto{productosGrid.length !== 1 ? 's' : ''}
         </p>
-
-        <ProductGridPublic productos={productosPublicos} nombreCategoria={categoriaHome.nombre} />
+        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} />
       </div>
     </main>
   )
