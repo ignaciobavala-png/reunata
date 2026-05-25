@@ -19,10 +19,12 @@ export function ProductGridPublic({
   productos,
   nombreCategoria,
   mostrarPrecios = false,
+  estaLogueado = false,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
   mostrarPrecios?: boolean
+  estaLogueado?: boolean
 }) {
   const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
@@ -136,24 +138,38 @@ export function ProductGridPublic({
               ¿Querés ver precios y hacer pedidos?
             </p>
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Registrate para ver precios, stock y hacer pedidos de {nombreCategoria.toLowerCase()}.
+              {estaLogueado
+                ? 'Contactanos para activar tu acceso a precios y pedidos mayoristas.'
+                : `Registrate para ver precios, stock y hacer pedidos de ${nombreCategoria.toLowerCase()}.`}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="/registro"
-              className="px-6 py-3 text-xs tracking-widest uppercase transition-colors"
-              style={{ background: 'var(--color-granito)', color: 'white' }}
-            >
-              Quiero ser cliente
-            </a>
-            <a
-              href="/login"
-              className="text-xs tracking-widest uppercase hover:underline"
-              style={{ color: 'var(--color-granito-claro)' }}
-            >
-              Ya tengo cuenta
-            </a>
+            {estaLogueado ? (
+              <a
+                href="/contacto"
+                className="px-6 py-3 text-xs tracking-widest uppercase transition-colors"
+                style={{ background: 'var(--color-granito)', color: 'white' }}
+              >
+                Contactar
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/registro"
+                  className="px-6 py-3 text-xs tracking-widest uppercase transition-colors"
+                  style={{ background: 'var(--color-granito)', color: 'white' }}
+                >
+                  Quiero ser cliente
+                </a>
+                <a
+                  href="/login"
+                  className="text-xs tracking-widest uppercase hover:underline"
+                  style={{ color: 'var(--color-granito-claro)' }}
+                >
+                  Ya tengo cuenta
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

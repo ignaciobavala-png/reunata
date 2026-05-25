@@ -69,6 +69,20 @@ export async function resolverCanalTienda(): Promise<{
         }
       }
 
+      // consumidor_final sin canal asignado → usar canal CF en memoria (sin escribir a DB)
+      if (!canalId && profile.rol === 'consumidor_final') {
+        const { data: canalCF } = await service
+          .from('canales')
+          .select('id, lista_precios')
+          .eq('slug', 'consumidor_final')
+          .single()
+        if (canalCF) {
+          canalId = canalCF.id
+          listaPrecio = canalCF.lista_precios
+          mostrarPrecios = true
+        }
+      }
+
       userSession = { nombre: profile.nombre, rol: profile.rol, canal }
 
       // Mayorista que completó el formulario pero aún no fue aprobado

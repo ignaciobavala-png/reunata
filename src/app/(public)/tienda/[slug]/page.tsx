@@ -80,7 +80,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
             {productosGrid.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} />
+            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
           )}
         </div>
       </main>
@@ -135,7 +135,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productosGrid.length} producto{productosGrid.length !== 1 ? 's' : ''}
         </p>
-        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} />
+        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
       </div>
     </main>
   )
