@@ -8,59 +8,30 @@ import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
+import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 
 export default async function Home() {
   const supabase = createServiceClient()
 
-  const supabaseAuth = await createClient()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
-  let headerUser: { nombre: string | null; rol: string } | null = null
-  if (user) {
-    const { data: profile } = await supabaseAuth
-      .from('profiles')
-      .select('nombre, rol')
-      .eq('id', user.id)
-      .single()
-    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol }
-  }
+  const [canalInfo, { data: categoriasRows }, { data: bannerData }, { data: postsInstagram }] = await Promise.all([
+    resolverCanalTienda(),
+    supabase.from('categorias_home').select('nombre, href').eq('activo', true).not('href', 'is', null).order('orden'),
+    supabase.from('banners').select('url, titulo, link_url').eq('activo', true).order('id', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
+  ])
 
-  // Obtener IDs de productos visibles en el canal público
-  const { data: canalPublico } = await supabase
-    .from('canales')
-    .select('id')
-    .eq('slug', 'publico')
-    .single()
-
-  const { data: publicoAsignaciones } = canalPublico
-    ? await supabase.from('producto_canales').select('producto_id').eq('canal_id', canalPublico.id)
-    : { data: [] }
-
-  const idsPublicos = (publicoAsignaciones ?? []).map(a => a.producto_id)
+  const { user, canalId, listaPrecio, mostrarPrecios } = canalInfo
+  const idsCanal = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno)')
+    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
     .eq('destacada', true)
-    .in('producto_id', idsPublicos.length > 0 ? idsPublicos : [-1])
+    .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')
 
-  const { data: categoriasRows } = await supabase
-    .from('categorias_home')
-    .select('nombre, href')
-    .eq('activo', true)
-    .not('href', 'is', null)
-    .order('orden')
   const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
-
-  const { data: bannerData } = await supabase
-    .from('banners')
-    .select('url, titulo, link_url')
-    .eq('activo', true)
-    .order('id', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
   const banner = bannerData ? {
     url: bannerData.url,
     titulo: bannerData.titulo,
@@ -68,24 +39,23 @@ export default async function Home() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
   } : null
 
-  const { data: postsInstagram } = await supabase
-    .from('comunidad_fotos')
-    .select('id, thumbnail_url, caption, username, permalink, url_instagram')
-    .eq('activo', true)
-    .order('orden')
-
   const fotos = (fotosDestacadas ?? []).map((f) => {
-    const productos = f.productos as { titulo: string; codigo_interno: string }[] | null
-    const producto = productos?.[0] ?? null
+    const producto = Array.isArray(f.productos) ? f.productos[0] : null
+    const precio = mostrarPrecios && listaPrecio && producto
+      ? (producto[listaPrecio as keyof typeof producto] as number | null) ?? null
+      : null
     return {
       id: f.id,
       url: f.url,
       producto_id: f.producto_id,
       titulo: producto?.titulo ?? '',
       codigo_interno: producto?.codigo_interno ?? '',
+      precio,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })
+
+  const headerUser = user ? { nombre: user.nombre, rol: user.rol } : null
 
   return (
     <>

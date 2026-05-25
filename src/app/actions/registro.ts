@@ -81,7 +81,7 @@ export async function registrarse(data: RegistroInput) {
   }
 
   if (signUpData.session) {
-    const destino = data.next?.startsWith('/') ? data.next : '/dashboard/cliente'
+    const destino = data.next?.startsWith('/') ? data.next : '/'
     redirect(destino)
   }
 

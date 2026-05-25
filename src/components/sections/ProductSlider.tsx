@@ -13,6 +13,7 @@ export interface FotoDestacada {
   producto_id: number
   titulo: string
   codigo_interno: string
+  precio: number | null
   supabaseUrl: string
 }
 
@@ -92,6 +93,11 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                   <p className="text-[10px] tracking-wider text-[var(--color-acero-oscuro)]">
                     {foto.codigo_interno}
                   </p>
+                  {foto.precio != null && (
+                    <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
+                      u$s {foto.precio.toFixed(2)}
+                    </p>
+                  )}
                 </button>
               )
             })}

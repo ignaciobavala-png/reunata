@@ -7,36 +7,26 @@ import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 
 export default async function TiendaPage() {
   const supabase = createServiceClient()
 
-  const { data: canalPublico } = await supabase
-    .from('canales')
-    .select('id')
-    .eq('slug', 'publico')
-    .single()
+  const [canalInfo, { data: bannerData }, { data: postsInstagram }] = await Promise.all([
+    resolverCanalTienda(),
+    supabase.from('banners').select('url, titulo, link_url').eq('activo', true).order('id', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
+  ])
 
-  const { data: publicoAsignaciones } = canalPublico
-    ? await supabase.from('producto_canales').select('producto_id').eq('canal_id', canalPublico.id)
-    : { data: [] }
-
-  const idsPublicos = (publicoAsignaciones ?? []).map(a => a.producto_id)
+  const { canalId, listaPrecio, mostrarPrecios } = canalInfo
+  const idsCanal = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno)')
+    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
     .eq('destacada', true)
-    .in('producto_id', idsPublicos.length > 0 ? idsPublicos : [-1])
+    .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')
-
-  const { data: bannerData } = await supabase
-    .from('banners')
-    .select('url, titulo, link_url')
-    .eq('activo', true)
-    .order('id', { ascending: false })
-    .limit(1)
-    .maybeSingle()
 
   const banner = bannerData ? {
     url: bannerData.url,
@@ -45,21 +35,18 @@ export default async function TiendaPage() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
   } : null
 
-  const { data: postsInstagram } = await supabase
-    .from('comunidad_fotos')
-    .select('id, thumbnail_url, caption, username, permalink, url_instagram')
-    .eq('activo', true)
-    .order('orden')
-
   const fotos = (fotosDestacadas ?? []).map((f) => {
-    const productos = f.productos as { titulo: string; codigo_interno: string }[] | null
-    const producto = productos?.[0] ?? null
+    const producto = Array.isArray(f.productos) ? f.productos[0] : null
+    const precio = mostrarPrecios && listaPrecio && producto
+      ? (producto[listaPrecio as keyof typeof producto] as number | null) ?? null
+      : null
     return {
       id: f.id,
       url: f.url,
       producto_id: f.producto_id,
       titulo: producto?.titulo ?? '',
       codigo_interno: producto?.codigo_interno ?? '',
+      precio,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })
