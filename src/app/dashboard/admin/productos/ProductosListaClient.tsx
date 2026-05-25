@@ -38,6 +38,7 @@ export function ProductosListaClient({
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
+  const [ocultarSinActivos, setOcultarSinActivos] = useState(true)
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
   const [ofertas, setOfertas] = useState<Set<string>>(new Set(ofertasIniciales))
   const [destacadas, setDestacadas] = useState<Set<number>>(new Set(destacadasIniciales))
@@ -62,8 +63,13 @@ export function ProductosListaClient({
       if (!grupos[cat]) grupos[cat] = []
       grupos[cat].push(p)
     }
+    if (ocultarSinActivos) {
+      for (const cat of Object.keys(grupos)) {
+        if (grupos[cat].every(p => !p.activo)) delete grupos[cat]
+      }
+    }
     return grupos
-  }, [filtrados])
+  }, [filtrados, ocultarSinActivos])
 
   const categoriasList = Object.keys(porCategoria).sort()
   const catExpandidas = busqueda ? new Set(categoriasList) : expandidas
@@ -126,6 +132,15 @@ export function ProductosListaClient({
             style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
           />
         </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <input
+            type="checkbox"
+            checked={ocultarSinActivos}
+            onChange={e => setOcultarSinActivos(e.target.checked)}
+            className="w-4 h-4 rounded accent-granito cursor-pointer"
+          />
+          Ocultar categorías sin activos
+        </label>
         <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
           {filtrados.length} productos · {categoriasList.length} categorías
         </span>
