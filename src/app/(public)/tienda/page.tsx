@@ -8,6 +8,7 @@ import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { PendingApproval } from '@/components/sections/PendingApproval'
 
 export default async function TiendaPage() {
   const supabase = createServiceClient()
@@ -18,7 +19,9 @@ export default async function TiendaPage() {
     supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
   ])
 
-  const { canalId, listaPrecio, mostrarPrecios } = canalInfo
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
+
+  if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const idsCanal = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase

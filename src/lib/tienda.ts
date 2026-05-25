@@ -17,11 +17,14 @@ export interface UserSession {
  * Resuelve la sesión del usuario y su canal de venta.
  * Si no hay sesión o no tiene canal asignado, devuelve el canal "publico" como fallback.
  */
+const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha']
+
 export async function resolverCanalTienda(): Promise<{
   user: UserSession | null
   canalId: number
   listaPrecio: string | null
   mostrarPrecios: boolean
+  pendienteAprobacion: boolean
 }> {
   const supabase = await createClient()
   const service = createServiceClient()
@@ -32,6 +35,7 @@ export async function resolverCanalTienda(): Promise<{
   let canalId: number | null = null
   let listaPrecio: string | null = null
   let mostrarPrecios = false
+  let pendienteAprobacion = false
 
   if (user) {
     const { data: profile } = await supabase
@@ -66,6 +70,11 @@ export async function resolverCanalTienda(): Promise<{
       }
 
       userSession = { nombre: profile.nombre, rol: profile.rol, canal }
+
+      // Mayorista que completó el formulario pero aún no fue aprobado
+      if (ROLES_MAYORISTA.includes(profile.rol) && !profile.aprobado) {
+        pendienteAprobacion = true
+      }
     }
   }
 
@@ -84,6 +93,7 @@ export async function resolverCanalTienda(): Promise<{
     canalId: canalId!,
     listaPrecio,
     mostrarPrecios,
+    pendienteAprobacion,
   }
 }
 

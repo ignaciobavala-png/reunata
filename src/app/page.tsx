@@ -10,6 +10,7 @@ import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { PendingApproval } from '@/components/sections/PendingApproval'
 
 export default async function Home() {
   const supabase = createServiceClient()
@@ -21,7 +22,7 @@ export default async function Home() {
     supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
   ])
 
-  const { user, canalId, listaPrecio, mostrarPrecios } = canalInfo
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
   const idsCanal = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
@@ -61,12 +62,18 @@ export default async function Home() {
     <>
       <Header user={headerUser} categorias={headerCategorias} />
       <main className="flex-1">
-        <Hero />
-        <PromoTicker />
-        <CategoryGallery />
-        <ProductSlider fotos={fotos} />
-        <InstagramSlider posts={postsInstagram ?? []} />
-        <PromotionalBanner banner={banner} />
+        {pendienteAprobacion ? (
+          <PendingApproval nombre={user?.nombre} />
+        ) : (
+          <>
+            <Hero />
+            <PromoTicker />
+            <CategoryGallery />
+            <ProductSlider fotos={fotos} />
+            <InstagramSlider posts={postsInstagram ?? []} />
+            <PromotionalBanner banner={banner} />
+          </>
+        )}
       </main>
       <Footer />
     </>

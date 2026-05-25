@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
+import { PendingApproval } from '@/components/sections/PendingApproval'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
@@ -15,7 +16,9 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabase = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  const { canalId, listaPrecio, mostrarPrecios } = await resolverCanalTienda()
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = await resolverCanalTienda()
+
+  if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const idsCanal = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
