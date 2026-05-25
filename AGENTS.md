@@ -376,4 +376,48 @@ En Next.js 16.x la convención cambió: el archivo de interceptación de request
 (no `middleware.ts`) y exporta `proxy` (no `middleware`). En sesión 22/05 se había renombrado a
 `middleware.ts` para corregir un bug de OAuth; en esta sesión se revirtió al nombre correcto para
 eliminar el warning de deprecación. La lógica de `updateSession` no cambió.
+
+### Tienda como homepage + navbar desde DB — sesión 25/05
+- `/tienda/page.tsx` tiene la misma estructura visual que `/`: Hero, PromoTicker, CategoryGallery, ProductSlider, InstagramSlider, PromotionalBanner
+- `Header.tsx`: categorías del navbar vienen de `categorias_home` (DB), no mockdata
+- Sync Gesu auto-genera `href` en `categorias_home` usando el slug de la categoría; parchea filas existentes con `href=null`
+- `src/app/page.tsx` (homepage `/`) pasa `categorias` al Header desde DB para mantener consistencia
+
+### Tienda por canal de venta — sesión 25/05
+
+#### Arquitectura central: `src/lib/tienda.ts`
+- `resolverCanalTienda()`: resuelve sesión del usuario → canal de venta → lista de precios
+  - Si el usuario tiene `canal_id` y `aprobado=true`: activa `mostrarPrecios=true` y devuelve `listaPrecio`
+  - Si el rol es mayorista (`distribuidor`, `local`, `mercha`) y `aprobado=false`: devuelve `pendienteAprobacion=true`
+  - Si el usuario es `consumidor_final` sin `canal_id` (ej: recién registrado con Google): resuelve el canal `consumidor_final` en memoria sin escribir a DB
+  - Fallback: canal `publico` si no hay sesión o no se pudo resolver
+- `getProductosDelCanal(canalId)`: devuelve array de `producto_id` visibles para ese canal (tabla `producto_canales`)
+
+#### Páginas de tienda filtradas por canal
+- `/tienda/page.tsx` y `/tienda/[slug]/page.tsx` usan `resolverCanalTienda()` + `getProductosDelCanal()`
+- Filtro `.in('id', filterCanal)` aplicado a todos los queries de productos
+- Todos los campos de precio se seleccionan siempre (`precio_lista1/2/3/5`) y se elige el correcto en runtime con `producto[listaPrecio]`
+- Slugs especiales `novedades` y `mas-vendidos` también respetan el canal
+- Si `pendienteAprobacion`: render temprano de `<PendingApproval>` sin mostrar el catálogo
+
+#### `PendingApproval` — pantalla para mayoristas sin aprobar
+- Componente `src/components/sections/PendingApproval.tsx`
+- Muestra nombre del usuario, explicación de que el formulario fue recibido, botón WhatsApp y link a `/cuenta`
+- Visible para roles `distribuidor`, `local`, `mercha` que completaron el formulario pero aún no fueron aprobados por admin
+
+#### Auto-asignación de canal al aprobar
+- `aprobarCliente()` en `src/app/actions/clientes.ts`: cuando `aprobado=true`, busca el canal cuyo `slug` coincide con el `rol` del usuario y lo asigna en el mismo UPDATE
+- Elimina el paso manual de asignar canal separadamente
+- Slugs de canales coinciden exactamente con los valores de `profiles.rol`: `consumidor_final`, `distribuidor`, `local`, `mercha`
+
+#### `ProductGridPublic` — precios y CTA consciente de sesión
+- Prop `mostrarPrecios`: muestra precio solo cuando es `true` (usuarios con canal aprobado)
+- Prop `estaLogueado`: diferencia el CTA
+  - Sin sesión: "Registrate para ver precios" + botón a `/registro` + link a `/login`
+  - Con sesión pero sin precios: "Contactanos para activar tu acceso" + botón a `/contacto`
+
+#### Panel de productos — filtro de categorías internas Gesu
+- Checkbox "Ocultar categorías sin activos" en `ProductosListaClient.tsx` (default: activado)
+- Filtra grupos donde todos los productos están inactivos (ej: categorías de costos internos de Gesu)
+- Persiste solo en estado local del componente
 <!-- END:feactures -->
