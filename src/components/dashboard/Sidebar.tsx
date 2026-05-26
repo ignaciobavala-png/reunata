@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
   Sparkles, ClipboardList, Megaphone, Building2, Camera,
-  ChevronDown, TrendingUp, FileText,
+  ChevronDown, TrendingUp, FileText, Mail,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -55,7 +55,8 @@ const navMaster: NavItem[] = [
     label: 'Marketing',
     icon: Megaphone,
     children: [
-      { label: 'Chatbot', href: '/dashboard/admin/chatbot', icon: Sparkles },
+      { label: 'Newsletter', href: '/dashboard/admin/newsletter', icon: Mail },
+      { label: 'Chatbot',    href: '/dashboard/admin/chatbot',    icon: Sparkles },
     ],
   },
   {

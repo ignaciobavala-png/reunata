@@ -42,7 +42,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 async function ListaContent() {
   const supabase = createServiceClient()
 
-  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }] = await Promise.all([
+  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }] = await Promise.all([
     supabase
       .from('productos')
       .select('id, codigo_interno, titulo, categoria, stock, precio_lista1, precio_lista2, precio_lista3, activo')
@@ -55,6 +55,10 @@ async function ListaContent() {
       .from('producto_fotos')
       .select('producto_id')
       .eq('destacada', true),
+    supabase
+      .from('productos')
+      .select('id')
+      .eq('es_novedad', true),
   ])
 
   const ofertasSet = new Set(
@@ -63,13 +67,16 @@ async function ListaContent() {
   const destacadasSet = new Set(
     (fotosDestacadas ?? []).map(f => f.producto_id)
   )
+  const novedadesSet = new Set(
+    (novedadesData ?? []).map(p => p.id)
+  )
 
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
         {productos?.length ?? 0} productos sincronizados desde Gesu
       </p>
-      <ProductosListaClient productos={productos ?? []} ofertasIniciales={ofertasSet} destacadasIniciales={destacadasSet} />
+      <ProductosListaClient productos={productos ?? []} ofertasIniciales={ofertasSet} destacadasIniciales={destacadasSet} novedadesIniciales={novedadesSet} />
     </div>
   )
 }

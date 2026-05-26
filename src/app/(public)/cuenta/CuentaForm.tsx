@@ -81,12 +81,10 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
       {esMayorista && (
         <div className="rounded-xl border p-6 flex flex-col gap-4" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
           <h2 className="text-sm tracking-widest uppercase" style={{ color: 'var(--color-granito-claro)' }}>Datos de empresa</h2>
-          {campo('razon_social', 'Razón Social', 'text', profile.razon_social ?? '')}
           {campo('direccion', 'Dirección', 'text', profile.direccion ?? '')}
           {campo('localidad', 'Localidad', 'text', profile.localidad ?? '')}
           {campo('sitio_web', 'Sitio Web / Red Social', 'text', profile.sitio_web ?? '')}
           {campo('puntos_venta', 'Puntos de Venta', 'number', profile.puntos_venta?.toString() ?? '')}
-          {campo('clientes_activos', 'Clientes Activos', 'number', profile.clientes_activos?.toString() ?? '')}
         </div>
       )}
 

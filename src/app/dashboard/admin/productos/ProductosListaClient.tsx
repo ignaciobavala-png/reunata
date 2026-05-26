@@ -3,7 +3,7 @@
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2 } from 'lucide-react'
-import { toggleOferta, toggleDestacada } from '@/app/actions/ofertas'
+import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
 
 interface Producto {
   id: number
@@ -21,6 +21,7 @@ const TAGS = [
   { key: 'ofertas' as const, label: 'Oferta',        color: '#f59e0b' },
   { key: 'hotsale' as const, label: 'Hot Sale',       color: '#ef4444' },
   { key: 'elegidos' as const, label: 'Más elegidos',  color: '#8b5cf6' },
+  { key: 'novedad' as const, label: 'Novedad',        color: '#0ea5e9' },
 ]
 
 function fmt(v: number | null) {
@@ -31,10 +32,12 @@ export function ProductosListaClient({
   productos,
   ofertasIniciales,
   destacadasIniciales,
+  novedadesIniciales,
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>   // `${canal}-${producto_id}`
   destacadasIniciales: Set<number>
+  novedadesIniciales: Set<number>
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -42,8 +45,10 @@ export function ProductosListaClient({
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
   const [ofertas, setOfertas] = useState<Set<string>>(new Set(ofertasIniciales))
   const [destacadas, setDestacadas] = useState<Set<number>>(new Set(destacadasIniciales))
+  const [novedades, setNovedades] = useState<Set<number>>(new Set(novedadesIniciales))
   const [guardando, setGuardando] = useState<string | null>(null)
   const [guardandoDestacada, setGuardandoDestacada] = useState<number | null>(null)
+  const [guardandoNovedad, setGuardandoNovedad] = useState<number | null>(null)
   const [, startTransition] = useTransition()
 
   const filtrados = useMemo(() => {
@@ -97,6 +102,23 @@ export function ProductosListaClient({
         else router.refresh()
       } catch { setDestacadas(anterior) }
       finally { setGuardandoDestacada(null) }
+    })
+  }
+
+  function handleToggleNovedad(p: Producto) {
+    const nuevoValor = !novedades.has(p.id)
+    setGuardandoNovedad(p.id)
+    const anterior = new Set(novedades)
+    const nuevo = new Set(novedades)
+    nuevoValor ? nuevo.add(p.id) : nuevo.delete(p.id)
+    setNovedades(nuevo)
+    startTransition(async () => {
+      try {
+        const res = await toggleNovedad(p.id, nuevoValor)
+        if (!res.ok) setNovedades(anterior)
+        else router.refresh()
+      } catch { setNovedades(anterior) }
+      finally { setGuardandoNovedad(null) }
     })
   }
 
@@ -205,7 +227,7 @@ export function ProductosListaClient({
                           )}
                         </div>
                       </td>
-                      <td /><td /><td /><td /><td /><td /><td /><td />
+                      <td /><td /><td /><td /><td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -265,6 +287,29 @@ export function ProductosListaClient({
                               </td>
                             )
                           }
+                          if (t.key === 'novedad') {
+                            const activo = novedades.has(p.id)
+                            const cargando = guardandoNovedad === p.id
+                            return (
+                              <td key={t.key} className="px-3 py-2.5 text-center">
+                                <button
+                                  onClick={() => handleToggleNovedad(p)}
+                                  disabled={cargando || !p.activo}
+                                  title={activo ? 'Quitar de Novedades' : 'Agregar a Novedades'}
+                                  className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
+                                  style={{
+                                    borderColor: activo ? t.color : 'var(--color-acero-claro)',
+                                    background: activo ? t.color : 'transparent',
+                                  }}
+                                >
+                                  {cargando
+                                    ? <Loader2 size={9} className="animate-spin" style={{ color: activo ? 'white' : t.color }} />
+                                    : activo && <span className="text-white text-[10px] leading-none">✓</span>
+                                  }
+                                </button>
+                              </td>
+                            )
+                          }
                           const key = `${t.key}-${p.id}`
                           const activo = ofertas.has(key)
                           const cargando = guardando === key
@@ -296,7 +341,7 @@ export function ProductosListaClient({
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={11} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos. Ejecutá una sincronización desde el panel de Sync.'}
                   </td>
                 </tr>

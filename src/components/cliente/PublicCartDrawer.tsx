@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useCartStore } from '@/stores/cartStore'
-import { ShoppingBag, X, Trash2 } from 'lucide-react'
+import { iniciarCheckoutMP } from '@/app/actions/checkout'
+import { ShoppingBag, X, Trash2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface CartUser {
@@ -10,11 +12,35 @@ interface CartUser {
 }
 
 export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
-  const { items, remove, totalItems, cartOpen, setCartOpen } = useCartStore()
+  const { items, remove, totalItems, total, clear, cartOpen, setCartOpen } = useCartStore()
+  const [mounted, setMounted] = useState(false)
+  const [pagando, setPagando] = useState(false)
+  const [errorPago, setErrorPago] = useState<string | null>(null)
   const open = cartOpen
   const setOpen = setCartOpen
 
-  if (totalItems() === 0 && !open) {
+  useEffect(() => { setMounted(true) }, [])
+
+  const esMinorista = user?.rol === 'consumidor_final'
+
+  async function handlePagarMP() {
+    if (!items.length || pagando) return
+    setPagando(true)
+    setErrorPago(null)
+    const result = await iniciarCheckoutMP(
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))
+    )
+    if (result.ok && result.init_point) {
+      clear()
+      setOpen(false)
+      window.location.href = result.init_point
+    } else {
+      setErrorPago(result.error ?? 'Error inesperado. Intentá de nuevo.')
+      setPagando(false)
+    }
+  }
+
+  if ((!mounted || totalItems() === 0) && !open) {
     return (
       <button
         onClick={() => setOpen(true)}
@@ -35,7 +61,7 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
         style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
       >
         <ShoppingBag size={18} />
-        {totalItems() > 0 && (
+        {mounted && totalItems() > 0 && (
           <>
             <span
               className="text-xs font-medium px-1.5 py-0.5 rounded-full"
@@ -117,40 +143,79 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+        <div className="px-5 py-4 border-t flex flex-col gap-3" style={{ borderColor: 'var(--color-acero-claro)' }}>
           {items.length > 0 ? (
-            user ? (
+            <>
+              {/* Total — solo para minoristas con sesión */}
+              {esMinorista && (
+                <div className="flex justify-between items-center text-sm">
+                  <span style={{ color: 'var(--color-acero-oscuro)' }}>Total</span>
+                  <span className="font-medium" style={{ color: 'var(--foreground)' }}>
+                    ${total().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
+              {/* Botón principal */}
+              {esMinorista ? (
+                <button
+                  onClick={handlePagarMP}
+                  disabled={pagando}
+                  className="w-full py-3 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                  style={{ background: '#009ee3', color: 'white' }}
+                >
+                  {pagando ? (
+                    <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+                  ) : (
+                    'Pagar con Mercado Pago'
+                  )}
+                </button>
+              ) : user ? (
+                <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Para completar tu pedido, contactanos por WhatsApp.
+                </p>
+              ) : null}
+
+              {/* Error */}
+              {errorPago && (
+                <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
+              )}
+
+              {/* Continuar comprando */}
               <Link
                 href="/tienda"
                 onClick={() => setOpen(false)}
-                className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
-                style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                className="block w-full py-2.5 rounded-lg text-xs text-center border transition-opacity"
+                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
               >
-                Continuar comprando →
+                Continuar comprando
               </Link>
-            ) : (
-              <>
-                <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Iniciá sesión para ver precios y hacer tu pedido.
-                </p>
-                <Link
-                  href="/login?next=/tienda"
-                  onClick={() => setOpen(false)}
-                  className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
-                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-                >
-                  Iniciar sesión →
-                </Link>
-                <Link
-                  href="/registro"
-                  onClick={() => setOpen(false)}
-                  className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
-                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
-                >
-                  ¿No tenés cuenta? Registrate
-                </Link>
-              </>
-            )
+
+              {/* Login prompts */}
+              {!user && (
+                <div className="flex flex-col gap-2 pt-1 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                  <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Iniciá sesión para ver precios y pagar.
+                  </p>
+                  <Link
+                    href="/login?next=/tienda"
+                    onClick={() => setOpen(false)}
+                    className="block w-full py-2.5 rounded-lg text-xs font-medium text-center border transition-opacity"
+                    style={{ borderColor: 'var(--color-granito-oscuro)', color: 'var(--color-granito-oscuro)' }}
+                  >
+                    Iniciar sesión
+                  </Link>
+                  <Link
+                    href="/registro"
+                    onClick={() => setOpen(false)}
+                    className="block w-full py-2.5 rounded-lg text-xs text-center border transition-opacity"
+                    style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                  >
+                    ¿No tenés cuenta? Registrate
+                  </Link>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
               Agregá productos para continuar.

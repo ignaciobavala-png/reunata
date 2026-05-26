@@ -54,13 +54,11 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
       nombre: data.get('nombre') as string,
       telefono: data.get('telefono') as string,
       rol,
-      razon_social: data.get('razon_social') as string,
       cuit_dni: data.get('cuit_dni') as string,
       direccion: data.get('direccion') as string,
       localidad: data.get('localidad') as string,
       sitio_web: data.get('sitio_web') as string,
       puntos_venta: data.get('puntos_venta') ? Number(data.get('puntos_venta')) : undefined,
-      clientes_activos: data.get('clientes_activos') ? Number(data.get('clientes_activos')) : undefined,
       next,
     })
 
@@ -136,15 +134,9 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Razón Social</label>
-              <input name="razon_social" required className={inputClass} style={inputStyle} placeholder="Razón social" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>CUIT / DNI</label>
-              <input name="cuit_dni" required className={inputClass} style={inputStyle} placeholder="XX-XXXXXXXX-X" />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>CUIT / DNI</label>
+            <input name="cuit_dni" required className={inputClass} style={inputStyle} placeholder="XX-XXXXXXXX-X" />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Nombre y Apellido</label>
@@ -168,15 +160,9 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
             <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Sitio web / Red social</label>
             <input name="sitio_web" className={inputClass} style={inputStyle} placeholder="https://..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Puntos de venta</label>
-              <input name="puntos_venta" type="number" min="0" className={inputClass} style={inputStyle} placeholder="0" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Clientes activos</label>
-              <input name="clientes_activos" type="number" min="0" className={inputClass} style={inputStyle} placeholder="0" />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Puntos de venta</label>
+            <input name="puntos_venta" type="number" min="0" className={inputClass} style={inputStyle} placeholder="0" />
           </div>
         </>
       )}
