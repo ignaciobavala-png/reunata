@@ -181,6 +181,7 @@ async function syncProductos(desactivarNoReunata = false) {
       descripcion:     item.descripcion || null,
       palabras_clave:  item.palabrasClave || null,
       ultima_sync:     new Date().toISOString(),
+      activo:          true,
     }))
 
     const BATCH = 100
@@ -205,24 +206,36 @@ async function syncProductos(desactivarNoReunata = false) {
       }
     }
 
-    // Auto-crear categorias_home para categorías Gesu que no tienen fila todavía
+    // Sincronizar categorias_home con las categorías de Gesu
     const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
-    const { data: filasExistentes } = await supabase.from('categorias_home').select('id, nombre, href, categoria_keys')
+    const { data: filasExistentes } = await supabase.from('categorias_home').select('id, nombre, href, categoria_keys, activo')
     const keysAsignadas = new Set(
       (filasExistentes ?? []).flatMap(f => (f.categoria_keys ?? []) as string[])
     )
+
+    // Crear nuevas categorías con activo: true (Gesu es la fuente de verdad)
     for (const cat of categoriasGesu.filter(cat => !keysAsignadas.has(cat))) {
       await supabase.from('categorias_home').insert({
         nombre: cat,
         href: `/tienda/${slugify(cat)}`,
         categoria_keys: [cat],
-        activo: false,
+        activo: true,
         orden: 999,
       })
     }
+
     // Parchear filas existentes sin href
     for (const fila of (filasExistentes ?? []).filter(f => !f.href)) {
       await supabase.from('categorias_home').update({ href: `/tienda/${slugify(fila.nombre)}` }).eq('id', fila.id)
+    }
+
+    // Auto-desactivar categorías cuyas categoria_keys ya no tienen productos activos en Gesu
+    for (const fila of (filasExistentes ?? []).filter(f => f.activo)) {
+      const keys = (fila.categoria_keys ?? []) as string[]
+      const tieneProductos = keys.some(k => categoriasGesu.includes(k))
+      if (!tieneProductos) {
+        await supabase.from('categorias_home').update({ activo: false }).eq('id', fila.id)
+      }
     }
 
   } catch (e) {

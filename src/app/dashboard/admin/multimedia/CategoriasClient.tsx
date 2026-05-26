@@ -170,7 +170,7 @@ export function CategoriasClient({
   return (
     <div className="max-w-2xl">
       <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Estas categorías aparecen en el home. Seleccioná qué sub-categorías de Gesu incluye cada una.
+        Las categorías se crean y activan automáticamente desde Gesu al sincronizar productos. Usá este panel solo para agregar foto de portada, ajustar el orden o desactivar una categoría manualmente.
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
