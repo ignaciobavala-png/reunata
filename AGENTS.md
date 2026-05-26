@@ -420,4 +420,75 @@ eliminar el warning de deprecación. La lógica de `updateSession` no cambió.
 - Checkbox "Ocultar categorías sin activos" en `ProductosListaClient.tsx` (default: activado)
 - Filtra grupos donde todos los productos están inactivos (ej: categorías de costos internos de Gesu)
 - Persiste solo en estado local del componente
+
+### Fixes feedback Gastón — sesión 26/05
+
+#### ProductSlider "Más Elegidos" — navegación a categoría
+- Click en cualquier card ya no agrega al carrito ni abre el drawer
+- Navega a `/tienda/mas-vendidos` igual que cualquier categoría
+- Archivo: `src/components/sections/ProductSlider.tsx`
+
+#### "Continuar comprando" — siempre visible
+- Botón visible para todos los usuarios cuando hay ítems en el carrito (antes solo con sesión)
+- Archivo: `src/components/cliente/PublicCartDrawer.tsx`
+
+#### Formulario de registro mayorista y /cuenta
+- Removidos campos `razon_social` y `clientes_activos` de ambas pantallas
+- Archivos: `src/app/registro/RegistroForm.tsx`, `src/app/(public)/cuenta/CuentaForm.tsx`
+
+#### Panel Corporativos — teléfono y logo
+- Tabla principal: teléfono apilado debajo del email en la misma celda
+- Detalle expandido: logo de la empresa visible si `logo_url` está cargado
+- Archivo: `src/app/dashboard/admin/corporativos/CorporativosClient.tsx`
+
+#### GesuSelector — categorías huérfanas visibles
+- `categoria_keys` asignadas a una categoría home pero sin productos activos en Gesu aparecen en rojo
+- Se pueden hacer clic para quitarlas y guardar (antes eran invisibles e irremovibles)
+- Archivo: `src/app/dashboard/admin/multimedia/CategoriasClient.tsx`
+
+### Newsletter — sesión 26/05
+- Migración: tabla `newsletter_suscriptores (id uuid, email text UNIQUE, created_at timestamptz)`
+- RLS: SELECT solo master/empleado; INSERT público
+- Server action `suscribirNewsletter(email)` en `src/app/actions/newsletter.ts`
+  - Inserta email en minúscula y sin espacios
+  - Si ya existe (`error.code === '23505'`): devuelve `{ ok: true, duplicado: true }`
+- `Footer.tsx`: formulario funcional con estados `idle | loading | ok | error`; muestra confirmación visual
+- Panel admin: `src/app/dashboard/admin/newsletter/` — tabla con Email y Fecha, búsqueda, exportar CSV
+- Sidebar: "Newsletter" bajo grupo Marketing antes de Chatbot
+
+### Toggle manual es_novedad — sesión 26/05
+- Migración: `ALTER TABLE productos ADD COLUMN es_novedad boolean NOT NULL DEFAULT false`
+- `toggleNovedad(productoId, activo)` en `src/app/actions/ofertas.ts`: actualiza `productos.es_novedad`
+- Panel Productos: tag 🆕 "Novedad" (celeste `#0ea5e9`) con mismo patrón que Oferta/Hot Sale/Destacado
+- `/tienda/novedades`: prioriza `es_novedad=true`; si no hay marcados manualmente, fallback a `order('created_at', desc)`
+
+### Favicon — sesión 26/05
+- Reemplazado el favicon genérico de Next.js por el ícono oficial de Reunata (el mate)
+- Procesado con ImageMagick: fondo blanco removido (`-fuzz 10% -transparent white`), recortado y centrado
+- ICO multi-size: 16×16, 32×32, 48×48, 256×256
+- Archivo: `src/app/favicon.ico`
+
+### Mercado Pago Checkout Pro — sesión 26/05
+- SDK `mercadopago` v3 instalado
+- `src/lib/mercadopago.ts`: inicialización lazy del cliente; `isSandbox()` detecta el token automáticamente
+- `src/app/actions/checkout.ts`: server action `iniciarCheckoutMP(items)`
+  - Valida que el usuario sea `consumidor_final`
+  - Precios leídos desde DB (`precio_lista5`) — nunca desde el cliente
+  - Crea pedido en DB, luego preferencia en MP con `external_reference = pedido.id`
+  - Si MP falla, elimina el pedido creado (rollback)
+  - Retorna `init_point` (prod) o `sandbox_init_point` (TEST-) según el token
+- `src/app/api/mp/webhook/route.ts`: endpoint IPN
+  - `approved` → `pago_confirmado` + `fecha_pago`
+  - `rejected` / `cancelled` → `cancelado`
+  - Guarda `mp_payment_id` en el pedido
+- Páginas de resultado: `/checkout/exito`, `/checkout/pendiente`, `/checkout/fallo`
+- `PublicCartDrawer`: botón azul "Pagar con Mercado Pago" solo para `consumidor_final`, con total ARS, loading spinner y manejo de error
+- Migración: columnas `mp_preference_id` y `mp_payment_id` en tabla `pedidos`
+- Activar: reemplazar `MP_ACCESS_TOKEN` y `NEXT_PUBLIC_APP_URL` en `.env.local` / Vercel
+
+### Fix hydration mismatch — Zustand persist + SSR — sesión 26/05
+- **Causa:** `useCartStore` con `persist` arranca vacío en el servidor pero rehidrata desde `localStorage` en el cliente. `totalItems() > 0` difería entre renders, causando hydration error de React.
+- **Fix:** flag `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`) en ambos componentes. Badge y contador solo se renderizan cuando `mounted === true`.
+- Archivos: `src/components/layout/Header.tsx`, `src/components/cliente/PublicCartDrawer.tsx`
+- **Patrón a seguir:** cualquier UI que dependa de Zustand `persist` debe protegerse con `mounted` para evitar este error.
 <!-- END:feactures -->
