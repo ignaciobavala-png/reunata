@@ -126,6 +126,16 @@ export async function toggleDestacada(productoId: number, activo: boolean) {
   return { ok: true }
 }
 
+export async function toggleNovedad(productoId: number, activo: boolean) {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('productos')
+    .update({ es_novedad: activo })
+    .eq('id', productoId)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
 export async function actualizarOferta(
   id: number,
   data: {

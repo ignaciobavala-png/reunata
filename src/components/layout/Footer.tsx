@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { FadeIn } from '@/components/ui/FadeIn'
 import { ChevronDown } from 'lucide-react'
+import { suscribirNewsletter } from '@/app/actions/newsletter'
 
 const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
@@ -61,6 +62,18 @@ function Accordion({ title, children }: { title: string; children: React.ReactNo
 }
 
 export function Footer() {
+  const [email, setEmail] = useState('')
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  async function handleNewsletter(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email || newsletterStatus === 'loading') return
+    setNewsletterStatus('loading')
+    const res = await suscribirNewsletter(email)
+    setNewsletterStatus(res.ok ? 'ok' : 'error')
+    if (res.ok) setEmail('')
+  }
+
   return (
     <footer className="bg-[var(--color-granito-oscuro)] border-t border-[var(--color-granito-claro)] overflow-hidden">
       <FadeIn delay={0.1}>
@@ -115,19 +128,34 @@ export function Footer() {
               Newsletter
             </p>
             <p className="text-xs text-[var(--color-acero-oscuro)] mb-3">10% OFF en tu próxima compra</p>
-            <form className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-6">
-              <input
-                type="email"
-                placeholder="tu@email.com"
-                className="flex-1 px-3 py-2.5 bg-transparent text-xs outline-none text-[var(--color-acero-brillo)] placeholder:text-[var(--color-granito-claro)] min-w-0"
-              />
-              <button
-                type="submit"
-                className="px-3 py-2.5 text-[10px] tracking-widest uppercase bg-[var(--color-acero-oscuro)] text-[var(--color-granito-oscuro)] hover:bg-[var(--color-acero)] transition-colors duration-200 whitespace-nowrap"
-              >
-                OK
-              </button>
-            </form>
+            {newsletterStatus === 'ok' ? (
+              <p className="text-xs mb-6 py-2.5 text-center" style={{ color: '#10b981' }}>
+                ¡Listo! Te llegará tu descuento por email.
+              </p>
+            ) : (
+              <form onSubmit={handleNewsletter} className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-6">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="flex-1 px-3 py-2.5 bg-transparent text-xs outline-none text-[var(--color-acero-brillo)] placeholder:text-[var(--color-granito-claro)] min-w-0"
+                />
+                <button
+                  type="submit"
+                  disabled={newsletterStatus === 'loading'}
+                  className="px-3 py-2.5 text-[10px] tracking-widest uppercase bg-[var(--color-acero-oscuro)] text-[var(--color-granito-oscuro)] hover:bg-[var(--color-acero)] transition-colors duration-200 whitespace-nowrap disabled:opacity-60"
+                >
+                  {newsletterStatus === 'loading' ? '...' : 'OK'}
+                </button>
+              </form>
+            )}
+            {newsletterStatus === 'error' && (
+              <p className="text-xs -mt-5 mb-3" style={{ color: '#f87171' }}>
+                Hubo un error. Intentá de nuevo.
+              </p>
+            )}
 
             <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] mb-3">Seguinos</p>
             <div className="flex gap-3 pb-4 md:pb-0">

@@ -119,7 +119,7 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
         {/* Footer */}
         <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
           {items.length > 0 ? (
-            user ? (
+            <>
               <Link
                 href="/tienda"
                 onClick={() => setOpen(false)}
@@ -128,29 +128,30 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
               >
                 Continuar comprando →
               </Link>
-            ) : (
-              <>
-                <p className="text-xs mb-4 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Iniciá sesión para ver precios y hacer tu pedido.
-                </p>
-                <Link
-                  href="/login?next=/tienda"
-                  onClick={() => setOpen(false)}
-                  className="block w-full py-3 rounded-lg text-sm font-medium text-center transition-opacity"
-                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-                >
-                  Iniciar sesión →
-                </Link>
-                <Link
-                  href="/registro"
-                  onClick={() => setOpen(false)}
-                  className="block w-full py-2.5 mt-2 rounded-lg text-xs text-center border transition-opacity"
-                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
-                >
-                  ¿No tenés cuenta? Registrate
-                </Link>
-              </>
-            )
+              {!user && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Iniciá sesión para ver precios y hacer tu pedido.
+                  </p>
+                  <Link
+                    href="/login?next=/tienda"
+                    onClick={() => setOpen(false)}
+                    className="block w-full py-2.5 rounded-lg text-xs font-medium text-center border transition-opacity"
+                    style={{ borderColor: 'var(--color-granito-oscuro)', color: 'var(--color-granito-oscuro)' }}
+                  >
+                    Iniciar sesión
+                  </Link>
+                  <Link
+                    href="/registro"
+                    onClick={() => setOpen(false)}
+                    className="block w-full py-2.5 rounded-lg text-xs text-center border transition-opacity"
+                    style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                  >
+                    ¿No tenés cuenta? Registrate
+                  </Link>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
               Agregá productos para continuar.

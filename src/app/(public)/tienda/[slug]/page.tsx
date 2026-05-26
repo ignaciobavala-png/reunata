@@ -61,7 +61,17 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       .in('id', filterCanal)
 
     if (slug === 'novedades') {
-      query = query.order('created_at', { ascending: false }).limit(48)
+      const { data: marcados } = await supabase
+        .from('productos')
+        .select('id')
+        .eq('es_novedad', true)
+        .eq('activo', true)
+        .in('id', filterCanal)
+      if (marcados && marcados.length > 0) {
+        query = query.in('id', marcados.map(p => p.id)).order('titulo')
+      } else {
+        query = query.order('created_at', { ascending: false }).limit(48)
+      }
     } else {
       query = query.eq('producto_fotos.destacada', true).order('titulo')
     }

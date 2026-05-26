@@ -4,8 +4,8 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { supabaseImg } from '@/lib/images'
-import { useCartStore } from '@/stores/cartStore'
 
 export interface FotoDestacada {
   id: number
@@ -23,18 +23,7 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
     containScroll: 'trimSnaps',
     loop: false,
   })
-  const { add, setCartOpen } = useCartStore()
-
-  function handleAddToCart(foto: FotoDestacada, imgUrl: string) {
-    add({
-      productoId: foto.producto_id,
-      codigo_interno: foto.codigo_interno,
-      titulo: foto.titulo,
-      precio: 0,
-      foto_url: imgUrl,
-    })
-    setCartOpen(true)
-  }
+  const router = useRouter()
 
   if (fotos.length === 0) return null
 
@@ -64,7 +53,7 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                 <button
                   key={foto.id}
                   className="group flex-none w-[200px] md:w-[240px] text-left cursor-pointer"
-                  onClick={() => handleAddToCart(foto, imgUrl)}
+                  onClick={() => router.push('/tienda/mas-vendidos')}
                 >
                   <div
                     className="w-full aspect-[3/4] mb-4 relative overflow-hidden transition-opacity duration-200 group-hover:opacity-90"

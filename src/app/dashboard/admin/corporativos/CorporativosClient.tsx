@@ -20,6 +20,7 @@ interface Corporativo {
   estado: string
   created_at: string
   updated_at: string | null
+  logo_url: string | null
 }
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -164,7 +165,12 @@ export function CorporativosClient({ corporativos: inicial }: { corporativos: Co
                   </button>
                 </td>
                 <td className="py-3" style={{ color: 'var(--color-acero)' }}>{c.empresa || '—'}</td>
-                <td className="py-3" style={{ color: 'var(--color-acero)' }}>{c.email}</td>
+                <td className="py-3">
+                  <span style={{ color: 'var(--color-acero)' }}>{c.email || '—'}</span>
+                  {c.telefono && (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>{c.telefono}</p>
+                  )}
+                </td>
                 <td className="py-3" style={{ color: 'var(--color-acero)' }}>{c.ocasion || '—'}</td>
                 <td className="py-3">
                   <span
@@ -247,9 +253,19 @@ export function CorporativosClient({ corporativos: inicial }: { corporativos: Co
           style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-granito)' }}
         >
           <div className="flex items-start justify-between mb-4">
-            <h3 className="text-base font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
-              Detalle de solicitud
-            </h3>
+            <div className="flex items-center gap-4">
+              {detalle.logo_url && (
+                <img
+                  src={detalle.logo_url}
+                  alt="Logo"
+                  className="w-12 h-12 rounded-lg object-contain border"
+                  style={{ borderColor: 'var(--color-acero-oscuro)', background: 'white' }}
+                />
+              )}
+              <h3 className="text-base font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
+                Detalle de solicitud
+              </h3>
+            </div>
             <button
               onClick={() => setDetalleId(null)}
               className="text-xl leading-none"
