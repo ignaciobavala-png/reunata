@@ -156,6 +156,17 @@ export function CategoriasClient({
     setUploadingId(null)
   }
 
+  async function eliminarCategoria(cat: CategoriaHome) {
+    if (!confirm(`¿Eliminar "${cat.nombre}"? Esta acción no se puede deshacer.`)) return
+    if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
+    await fetch('/api/categorias-home', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+      body: JSON.stringify({ id: cat.id }),
+    })
+    setCategorias(prev => prev.filter(c => c.id !== cat.id))
+  }
+
   async function quitarFoto(cat: CategoriaHome) {
     if (!cat.foto_url) return
     await getSupabase().storage.from('multimedia').remove([cat.foto_url])
@@ -308,16 +319,27 @@ export function CategoriasClient({
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setEditando(cat.id)
-                    setForm({ ...cat })
-                  }}
-                  className="text-sm px-2.5 py-1 rounded-lg border flex-shrink-0"
-                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
-                >
-                  Editar
-                </button>
+                <div className="flex flex-col gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setEditando(cat.id)
+                      setForm({ ...cat })
+                    }}
+                    className="text-sm px-2.5 py-1 rounded-lg border"
+                    style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                  >
+                    Editar
+                  </button>
+                  {!cat.activo && (
+                    <button
+                      onClick={() => eliminarCategoria(cat)}
+                      className="text-sm px-2.5 py-1 rounded-lg border flex items-center gap-1 justify-center"
+                      style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+                    >
+                      <Trash2 size={11} /> Eliminar
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

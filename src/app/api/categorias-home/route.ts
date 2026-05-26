@@ -19,6 +19,15 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true })
 }
 
+export async function DELETE(request: Request) {
+  if (!verificarMaster(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { id } = await request.json()
+  await admin.from('categorias_home').delete().eq('id', id)
+
+  return NextResponse.json({ ok: true })
+}
+
 export async function POST(request: Request) {
   if (!verificarMaster(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
