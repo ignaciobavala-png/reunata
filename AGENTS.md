@@ -491,4 +491,38 @@ eliminar el warning de deprecación. La lógica de `updateSession` no cambió.
 - **Fix:** flag `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`) en ambos componentes. Badge y contador solo se renderizan cuando `mounted === true`.
 - Archivos: `src/components/layout/Header.tsx`, `src/components/cliente/PublicCartDrawer.tsx`
 - **Patrón a seguir:** cualquier UI que dependa de Zustand `persist` debe protegerse con `mounted` para evitar este error.
+### Gesu como fuente de verdad — categorías y productos — sesión 27/05
+
+#### Sync de productos (`src/app/api/sync/productos/route.ts`)
+- `activo: true` agregado al objeto `rows` del upsert: cada sync reactiva explícitamente los productos que vienen de Gesu. Antes, productos marcados inactivos (por el flag o manualmente) nunca se reactivaban aunque volvieran a aparecer en Gesu.
+- **Categorías 1:1 automáticas:** nuevas categorías detectadas en Gesu se crean en `categorias_home` con `activo: true` (antes era `false`, requería activación manual). Gastón crea una categoría en Gesu → aparece sola en la web.
+- **Auto-desactivación:** al final de cada sync, las filas de `categorias_home` cuyas `categoria_keys` ya no tienen productos en Gesu se marcan `activo: false` automáticamente.
+- **`keysAsignadas` solo de categorías activas:** si una categoría se desactiva (manual o automáticamente), sus keys quedan "libres" para que el sync las cree como entradas individuales. Antes se contaban keys de todas las filas (incluso inactivas), lo que bloqueaba la auto-creación.
+
+#### Flujo resultante (Gesu → web)
+```
+Gesu: categoría "Mates Imperiales" con productos
+  ↓ sync
+categorias_home: { nombre: "Mates Imperiales", href: "/tienda/mates-imperiales", activo: true }
+  ↓ web
+Card en el home + página /tienda/mates-imperiales
+
+Gastón renombra en Gesu → clave vieja desaparece → auto-deactivate + nueva auto-create
+```
+
+#### Panel Categorías Home — rol simplificado
+- Ya no es donde se activan categorías; solo sirve para enriquecer: foto de portada, orden, nombre visible, desactivar manualmente.
+- Botón "Eliminar" agregado (rojo, solo visible en categorías **inactivas**): elimina la fila y la foto del bucket. Endpoint `DELETE /api/categorias-home` con verificación de master.
+
+#### Fix — toggle "Desactivar productos no-Reunata"
+- `localStorage.setItem` estaba dentro del callback funcional de `setState`, que React (Concurrent Mode) puede invocar más de una vez con el mismo valor inicial, corrompiendo el valor persistido. Movido fuera del callback → persiste correctamente entre navegaciones.
+- Archivo: `src/app/dashboard/admin/sync/SyncClient.tsx`
+
+#### Categorías internas de Gesu — siempre filtradas
+Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en el sync y **nunca aparecen en la web**:
+- `Preventa *` (ej: "Preventa C3")
+- `Productos Importados`
+- `Productos en Desarrollo`
+- `Bienes de Uso`
+- Categorías que empiezan con `M)` o `O)`
 <!-- END:feactures -->
