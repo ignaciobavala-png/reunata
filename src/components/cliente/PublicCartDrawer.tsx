@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { ShoppingBag, X, Trash2, Loader2 } from 'lucide-react'
@@ -13,10 +13,13 @@ interface CartUser {
 
 export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
   const { items, remove, totalItems, total, clear, cartOpen, setCartOpen } = useCartStore()
+  const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
   const open = cartOpen
   const setOpen = setCartOpen
+
+  useEffect(() => { setMounted(true) }, [])
 
   const esMinorista = user?.rol === 'consumidor_final'
 
@@ -37,7 +40,7 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
     }
   }
 
-  if (totalItems() === 0 && !open) {
+  if ((!mounted || totalItems() === 0) && !open) {
     return (
       <button
         onClick={() => setOpen(true)}
@@ -58,7 +61,7 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
         style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
       >
         <ShoppingBag size={18} />
-        {totalItems() > 0 && (
+        {mounted && totalItems() > 0 && (
           <>
             <span
               className="text-xs font-medium px-1.5 py-0.5 rounded-full"

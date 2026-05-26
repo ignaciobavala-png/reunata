@@ -39,10 +39,13 @@ export function Header({ user, categorias = [] }: { user?: HeaderUser | null; ca
   const [scrolled, setScrolled] = useState(!isHome)
 
   const { items, remove, updateCantidad, totalItems, cartOpen, setCartOpen } = useCartStore()
+  const [mounted, setMounted] = useState(false)
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const corporativosRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (!isHome) return
@@ -341,7 +344,7 @@ export function Header({ user, categorias = [] }: { user?: HeaderUser | null; ca
               strokeWidth={1.5}
               className={`transition-colors duration-300 ${iconColor}`}
             />
-            {totalItems() > 0 && (
+            {mounted && totalItems() > 0 && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-medium flex items-center justify-center bg-[var(--color-granito-oscuro)] text-[var(--color-acero-brillo)]">
                 {totalItems()}
               </span>
