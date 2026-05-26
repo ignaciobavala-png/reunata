@@ -18,10 +18,9 @@ export function SyncClient({ isMaster }: { isMaster: boolean }) {
   }, [])
 
   function toggleDesactivar() {
-    setDesactivarNoReunata(v => {
-      localStorage.setItem(LS_KEY, String(!v))
-      return !v
-    })
+    const next = !desactivarNoReunata
+    localStorage.setItem(LS_KEY, String(next))
+    setDesactivarNoReunata(next)
   }
 
   async function runSync(tipo: Tipo) {
