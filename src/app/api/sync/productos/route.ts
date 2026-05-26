@@ -209,8 +209,9 @@ async function syncProductos(desactivarNoReunata = false) {
     // Sincronizar categorias_home con las categorías de Gesu
     const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
     const { data: filasExistentes } = await supabase.from('categorias_home').select('id, nombre, href, categoria_keys, activo')
+    // Solo contar keys de categorías activas — las inactivas liberan sus keys
     const keysAsignadas = new Set(
-      (filasExistentes ?? []).flatMap(f => (f.categoria_keys ?? []) as string[])
+      (filasExistentes ?? []).filter(f => f.activo).flatMap(f => (f.categoria_keys ?? []) as string[])
     )
 
     // Crear nuevas categorías con activo: true (Gesu es la fuente de verdad)
