@@ -31,6 +31,10 @@ function GesuSelector({
     onChange(selected.includes(cat) ? selected.filter(k => k !== cat) : [...selected, cat])
   }
 
+  // Categorías seleccionadas que ya no tienen productos activos (huérfanas)
+  const huerfanas = selected.filter(k => !available.includes(k))
+  const todas = [...available, ...huerfanas.filter(k => !available.includes(k))]
+
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -38,8 +42,9 @@ function GesuSelector({
       </p>
       <div className="flex flex-wrap gap-1.5 p-3 rounded-lg border max-h-40 overflow-y-auto"
         style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
-        {available.map(cat => {
+        {todas.map(cat => {
           const activo = selected.includes(cat)
+          const huerfana = !available.includes(cat)
           return (
             <button
               key={cat}
@@ -47,21 +52,27 @@ function GesuSelector({
               onClick={() => toggle(cat)}
               className="text-xs px-2.5 py-1 rounded-full transition-all"
               style={activo
-                ? { background: 'var(--color-granito)', color: 'white' }
+                ? { background: huerfana ? '#dc2626' : 'var(--color-granito)', color: 'white' }
                 : { background: 'white', color: 'var(--color-granito-claro)', border: '1px solid var(--color-acero-claro)' }
               }
+              title={huerfana ? 'Sin productos activos — click para quitar' : undefined}
             >
               {activo && <Check size={10} className="inline mr-1" />}
               {cat}
             </button>
           )
         })}
-        {available.length === 0 && (
+        {todas.length === 0 && (
           <p className="text-xs italic" style={{ color: 'var(--color-acero-oscuro)' }}>
             Sincronizá productos desde Gesu para ver las categorías disponibles.
           </p>
         )}
       </div>
+      {huerfanas.length > 0 && (
+        <p className="text-xs" style={{ color: '#dc2626' }}>
+          {huerfanas.length} categoría{huerfanas.length > 1 ? 's' : ''} en rojo no tienen productos activos. Clickeá para quitarlas.
+        </p>
+      )}
     </div>
   )
 }
