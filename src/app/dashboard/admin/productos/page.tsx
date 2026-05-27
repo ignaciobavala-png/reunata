@@ -95,6 +95,7 @@ async function CanalesContent() {
       .from('canales')
       .select('id, slug, nombre')
       .eq('activo', true)
+      .neq('slug', 'publico')
       .order('id'),
     supabase
       .from('producto_canales')
