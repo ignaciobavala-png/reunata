@@ -30,6 +30,30 @@ export async function iniciarCheckoutMP(
   }
 
   const service = createServiceClient()
+
+  // Validar múltiplos: leer canal del usuario y verificar cantidades
+  const { data: profileCanal } = await supabase
+    .from('profiles')
+    .select('canal_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileCanal?.canal_id) {
+    const { data: multiplosDb } = await service
+      .from('producto_canales')
+      .select('producto_id, multiplo')
+      .eq('canal_id', profileCanal.canal_id)
+      .in('producto_id', items.map(i => i.productoId))
+
+    for (const item of items) {
+      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+      const multiplo = row?.multiplo ?? 1
+      if (multiplo > 1 && item.cantidad % multiplo !== 0) {
+        return { ok: false, error: `La cantidad de un producto debe ser múltiplo de ${multiplo}.` }
+      }
+    }
+  }
+
   const { data: productos } = await service
     .from('productos')
     .select('id, titulo, precio_lista5')

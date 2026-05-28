@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
-import { ShoppingBag, X, Trash2, Loader2 } from 'lucide-react'
+import { ShoppingBag, X, Trash2, Loader2, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 interface CartUser {
@@ -12,7 +12,7 @@ interface CartUser {
 }
 
 export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
-  const { items, remove, totalItems, total, clear, cartOpen, setCartOpen } = useCartStore()
+  const { items, remove, updateCantidad, totalItems, total, clear, cartOpen, setCartOpen } = useCartStore()
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
@@ -129,9 +129,40 @@ export function PublicCartDrawer({ user }: { user?: CartUser | null }) {
                     <p className="text-xs leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
                       {item.titulo}
                     </p>
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Cant: {item.cantidad}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <button
+                        onClick={() => {
+                          const multiplo = item.multiplo ?? 1
+                          const nueva = item.cantidad - multiplo
+                          if (nueva <= 0) remove(item.productoId)
+                          else updateCantidad(item.productoId, nueva)
+                        }}
+                        className="w-5 h-5 flex items-center justify-center rounded border transition-colors"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                        aria-label="Reducir cantidad"
+                      >
+                        <Minus size={10} strokeWidth={2.5} />
+                      </button>
+                      <span className="text-xs tabular-nums" style={{ color: 'var(--foreground)', minWidth: '2ch', textAlign: 'center' }}>
+                        {item.cantidad}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const multiplo = item.multiplo ?? 1
+                          updateCantidad(item.productoId, item.cantidad + multiplo)
+                        }}
+                        className="w-5 h-5 flex items-center justify-center rounded border transition-colors"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                        aria-label="Aumentar cantidad"
+                      >
+                        <Plus size={10} strokeWidth={2.5} />
+                      </button>
+                      {(item.multiplo ?? 1) > 1 && (
+                        <span className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          ×{item.multiplo}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button onClick={() => remove(item.productoId)} className="mt-0.5 flex-shrink-0">
                     <Trash2 size={12} style={{ color: 'var(--color-acero)' }} />

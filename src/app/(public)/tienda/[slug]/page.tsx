@@ -19,7 +19,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = await resolverCanalTienda()
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
-  const idsCanal = await getProductosDelCanal(canalId)
+  const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
   const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista5'
@@ -46,6 +46,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       codigo_interno: p.codigo_interno,
       foto_url: fotos[0]?.url ?? null,
       precio: extraerPrecio(p as Record<string, unknown>),
+      multiplo: multiplos[p.id] ?? 1,
       supabaseUrl,
     }
   }

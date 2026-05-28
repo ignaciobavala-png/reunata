@@ -7,6 +7,7 @@ export interface CartItem {
   titulo: string
   precio: number
   cantidad: number
+  multiplo?: number
   foto_url?: string | null
 }
 
@@ -30,17 +31,18 @@ export const useCartStore = create<CartStore>()(
       setCartOpen: (open) => set({ cartOpen: open }),
 
       add: (item) => set(state => {
+        const multiplo = item.multiplo ?? 1
         const existe = state.items.find(i => i.productoId === item.productoId)
         if (existe) {
           return {
             items: state.items.map(i =>
               i.productoId === item.productoId
-                ? { ...i, cantidad: i.cantidad + 1 }
+                ? { ...i, cantidad: i.cantidad + multiplo }
                 : i
             ),
           }
         }
-        return { items: [...state.items, { ...item, cantidad: 1 }] }
+        return { items: [...state.items, { ...item, multiplo, cantidad: multiplo }] }
       }),
 
       remove: (productoId) => set(state => ({
