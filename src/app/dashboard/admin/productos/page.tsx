@@ -117,12 +117,17 @@ async function CanalesContent() {
       .order('id'),
     supabase
       .from('producto_canales')
-      .select('producto_id, canal_id'),
+      .select('producto_id, canal_id, multiplo'),
   ])
 
   const asignacionesSet = new Set(
     (asignaciones ?? []).map(a => `${a.producto_id}-${a.canal_id}`)
   )
+
+  const multiplosMap: Record<string, number> = {}
+  for (const a of asignaciones ?? []) {
+    multiplosMap[`${a.producto_id}-${a.canal_id}`] = a.multiplo ?? 1
+  }
 
   const categorias = [...new Set((productos ?? []).map(p => p.categoria).filter(Boolean))] as string[]
 
@@ -136,6 +141,7 @@ async function CanalesContent() {
         productos={productos ?? []}
         canales={canales ?? []}
         asignacionesIniciales={asignacionesSet}
+        multiplosIniciales={multiplosMap}
         categorias={categorias}
       />
     </div>
