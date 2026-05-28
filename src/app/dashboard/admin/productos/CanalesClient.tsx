@@ -47,6 +47,7 @@ export function CanalesClient({
   const [isPending, startTransition] = useTransition()
   const [guardando, setGuardando] = useState<string | null>(null)
   const [guardandoCat, setGuardandoCat] = useState<string | null>(null)
+  const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
 
@@ -215,7 +216,7 @@ export function CanalesClient({
                         background: 'var(--color-acero-brillo)',
                         borderTop: '2px solid var(--color-acero-claro)',
                       }}
-                      onClick={() => toggleExpand(cat)}
+                      onClick={() => { setConfirmandoCat(null); toggleExpand(cat) }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -236,27 +237,69 @@ export function CanalesClient({
                         const catKey = `cat-${cat}-${canal.id}`
                         const estado: EstadoCat = estadoCategoria(prods, canal.id, asignaciones)
                         const cargando = guardandoCat === catKey
+                        const confirmando = confirmandoCat === catKey
                         const color = COLORES_CANAL[canal.slug]
+                        const accion = estado === 'all' ? 'Quitar' : 'Asignar'
                         return (
                           <td key={canal.id} className="px-4 py-3 text-center">
-                            <button
-                              onClick={(e) => toggleCategoria(cat, canal.id, e)}
-                              disabled={cargando}
-                              title={estado === 'all' ? `Quitar todos de ${canal.nombre}` : `Asignar todos a ${canal.nombre}`}
-                              className="w-6 h-6 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50 mx-auto"
-                              style={{
-                                borderColor: estado === 'none' ? 'var(--color-acero-claro)' : color,
-                                background: estado === 'all' ? color : estado === 'some' ? color + '33' : 'transparent',
-                              }}
-                            >
-                              {cargando ? (
-                                <Loader2 size={10} className="animate-spin" style={{ color: estado === 'all' ? 'white' : color }} />
-                              ) : estado === 'all' ? (
-                                <span className="text-white text-xs leading-none">✓</span>
-                              ) : estado === 'some' ? (
-                                <span className="text-xs leading-none font-bold" style={{ color }}>—</span>
-                              ) : null}
-                            </button>
+                            <div className="relative inline-block">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirmando) {
+                                    setConfirmandoCat(null)
+                                    return
+                                  }
+                                  setConfirmandoCat(catKey)
+                                }}
+                                disabled={cargando}
+                                title={`${accion} todos de ${canal.nombre}`}
+                                className="w-6 h-6 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50 mx-auto"
+                                style={{
+                                  borderColor: confirmando ? color : estado === 'none' ? 'var(--color-acero-claro)' : color,
+                                  background: confirmando ? color + '33' : estado === 'all' ? color : estado === 'some' ? color + '33' : 'transparent',
+                                  outline: confirmando ? `2px solid ${color}` : 'none',
+                                  outlineOffset: '2px',
+                                }}
+                              >
+                                {cargando ? (
+                                  <Loader2 size={10} className="animate-spin" style={{ color: estado === 'all' ? 'white' : color }} />
+                                ) : estado === 'all' ? (
+                                  <span className="text-white text-xs leading-none">✓</span>
+                                ) : estado === 'some' ? (
+                                  <span className="text-xs leading-none font-bold" style={{ color }}>—</span>
+                                ) : null}
+                              </button>
+
+                              {/* Popover de confirmación */}
+                              {confirmando && (
+                                <div
+                                  className="absolute z-20 top-8 left-1/2 -translate-x-1/2 rounded-lg shadow-lg border p-2 text-xs whitespace-nowrap"
+                                  style={{ background: 'white', borderColor: 'var(--color-acero-claro)', minWidth: '140px' }}
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <p className="mb-1.5 font-medium text-center" style={{ color: 'var(--foreground)' }}>
+                                    {accion} {prods.length} productos
+                                  </p>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={(e) => { setConfirmandoCat(null); toggleCategoria(cat, canal.id, e) }}
+                                      className="flex-1 py-1 rounded font-medium text-white text-center"
+                                      style={{ background: color }}
+                                    >
+                                      Confirmar
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmandoCat(null)}
+                                      className="flex-1 py-1 rounded text-center"
+                                      style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)' }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         )
                       })}
