@@ -23,7 +23,7 @@ export default async function Home() {
   ])
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
-  const idsCanal = await getProductosDelCanal(canalId)
+  const { ids: idsCanal } = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')

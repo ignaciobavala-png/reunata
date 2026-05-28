@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
-import { toggleProductoCanal, asignarCanalMasivo } from '@/app/actions/canales'
+import { toggleProductoCanal, asignarCanalMasivo, actualizarMultiplo } from '@/app/actions/canales'
 import { Search, Loader2, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface Producto { id: number; codigo_interno: string; titulo: string; categoria: string | null }
@@ -29,18 +29,25 @@ export function CanalesClient({
   productos,
   canales,
   asignacionesIniciales,
+  multiplosIniciales,
   categorias: _categorias,
 }: {
   productos: Producto[]
   canales: Canal[]
   asignacionesIniciales: Set<string>
+  multiplosIniciales: Record<string, number>  // key: `${producto_id}-${canal_id}`
   categorias: string[]
 }) {
   const router = useRouter()
   const [asignaciones, setAsignaciones] = useState<Set<string>>(new Set(asignacionesIniciales))
+  const [multiplos, setMultiplos] = useState<Record<string, number>>(multiplosIniciales)
+  const [editandoMultiplo, setEditandoMultiplo] = useState<string | null>(null)
+  const [multiplosTemp, setMultiplosTemp] = useState<Record<string, string>>({})
+  const [guardandoMultiplo, setGuardandoMultiplo] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [guardando, setGuardando] = useState<string | null>(null)
   const [guardandoCat, setGuardandoCat] = useState<string | null>(null)
+  const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
 
@@ -120,6 +127,23 @@ export function CanalesClient({
     })
   }
 
+  function confirmarMultiplo(productoId: number, canalId: number) {
+    const key = `${productoId}-${canalId}`
+    const raw = multiplosTemp[key] ?? ''
+    const valor = Math.max(1, parseInt(raw) || 1)
+    setEditandoMultiplo(null)
+    if (valor === (multiplos[key] ?? 1)) return
+    setGuardandoMultiplo(key)
+    setMultiplos(prev => ({ ...prev, [key]: valor }))
+    startTransition(async () => {
+      try {
+        await actualizarMultiplo(productoId, canalId, valor)
+      } catch {
+        setMultiplos(prev => ({ ...prev, [key]: multiplosIniciales[key] ?? 1 }))
+      } finally { setGuardandoMultiplo(null) }
+    })
+  }
+
   return (
     <div>
       {/* Filtros */}
@@ -192,7 +216,7 @@ export function CanalesClient({
                         background: 'var(--color-acero-brillo)',
                         borderTop: '2px solid var(--color-acero-claro)',
                       }}
-                      onClick={() => toggleExpand(cat)}
+                      onClick={() => { setConfirmandoCat(null); toggleExpand(cat) }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -213,27 +237,69 @@ export function CanalesClient({
                         const catKey = `cat-${cat}-${canal.id}`
                         const estado: EstadoCat = estadoCategoria(prods, canal.id, asignaciones)
                         const cargando = guardandoCat === catKey
+                        const confirmando = confirmandoCat === catKey
                         const color = COLORES_CANAL[canal.slug]
+                        const accion = estado === 'all' ? 'Quitar' : 'Asignar'
                         return (
                           <td key={canal.id} className="px-4 py-3 text-center">
-                            <button
-                              onClick={(e) => toggleCategoria(cat, canal.id, e)}
-                              disabled={cargando}
-                              title={estado === 'all' ? `Quitar todos de ${canal.nombre}` : `Asignar todos a ${canal.nombre}`}
-                              className="w-6 h-6 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50 mx-auto"
-                              style={{
-                                borderColor: estado === 'none' ? 'var(--color-acero-claro)' : color,
-                                background: estado === 'all' ? color : estado === 'some' ? color + '33' : 'transparent',
-                              }}
-                            >
-                              {cargando ? (
-                                <Loader2 size={10} className="animate-spin" style={{ color: estado === 'all' ? 'white' : color }} />
-                              ) : estado === 'all' ? (
-                                <span className="text-white text-xs leading-none">✓</span>
-                              ) : estado === 'some' ? (
-                                <span className="text-xs leading-none font-bold" style={{ color }}>—</span>
-                              ) : null}
-                            </button>
+                            <div className="relative inline-block">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirmando) {
+                                    setConfirmandoCat(null)
+                                    return
+                                  }
+                                  setConfirmandoCat(catKey)
+                                }}
+                                disabled={cargando}
+                                title={`${accion} todos de ${canal.nombre}`}
+                                className="w-6 h-6 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50 mx-auto"
+                                style={{
+                                  borderColor: confirmando ? color : estado === 'none' ? 'var(--color-acero-claro)' : color,
+                                  background: confirmando ? color + '33' : estado === 'all' ? color : estado === 'some' ? color + '33' : 'transparent',
+                                  outline: confirmando ? `2px solid ${color}` : 'none',
+                                  outlineOffset: '2px',
+                                }}
+                              >
+                                {cargando ? (
+                                  <Loader2 size={10} className="animate-spin" style={{ color: estado === 'all' ? 'white' : color }} />
+                                ) : estado === 'all' ? (
+                                  <span className="text-white text-xs leading-none">✓</span>
+                                ) : estado === 'some' ? (
+                                  <span className="text-xs leading-none font-bold" style={{ color }}>—</span>
+                                ) : null}
+                              </button>
+
+                              {/* Popover de confirmación */}
+                              {confirmando && (
+                                <div
+                                  className="absolute z-20 top-8 left-1/2 -translate-x-1/2 rounded-lg shadow-lg border p-2 text-xs whitespace-nowrap"
+                                  style={{ background: 'white', borderColor: 'var(--color-acero-claro)', minWidth: '140px' }}
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <p className="mb-1.5 font-medium text-center" style={{ color: 'var(--foreground)' }}>
+                                    {accion} {prods.length} productos
+                                  </p>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={(e) => { setConfirmandoCat(null); toggleCategoria(cat, canal.id, e) }}
+                                      className="flex-1 py-1 rounded font-medium text-white text-center"
+                                      style={{ background: color }}
+                                    >
+                                      Confirmar
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmandoCat(null)}
+                                      className="flex-1 py-1 rounded text-center"
+                                      style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)' }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         )
                       })}
@@ -259,22 +325,60 @@ export function CanalesClient({
                           const activo = asignaciones.has(key)
                           const cargando = guardando === key
                           const color = COLORES_CANAL[canal.slug]
+                          const multiplo = multiplos[key] ?? 1
+                          const editando = editandoMultiplo === key
+                          const guardandoM = guardandoMultiplo === key
                           return (
                             <td key={canal.id} className="px-4 py-2 text-center">
-                              <button
-                                onClick={() => toggle(p.id, canal.id)}
-                                disabled={cargando}
-                                className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50"
-                                style={{
-                                  borderColor: activo ? color : 'var(--color-acero-claro)',
-                                  background: activo ? color : 'transparent',
-                                }}
-                              >
-                                {cargando
-                                  ? <Loader2 size={9} className="animate-spin" style={{ color: activo ? 'white' : color }} />
-                                  : activo && <span className="text-white text-xs leading-none">✓</span>
-                                }
-                              </button>
+                              <div className="inline-flex flex-col items-center gap-0.5">
+                                {/* Checkbox asignación */}
+                                <button
+                                  onClick={() => toggle(p.id, canal.id)}
+                                  disabled={cargando}
+                                  className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50"
+                                  style={{
+                                    borderColor: activo ? color : 'var(--color-acero-claro)',
+                                    background: activo ? color : 'transparent',
+                                  }}
+                                >
+                                  {cargando
+                                    ? <Loader2 size={9} className="animate-spin" style={{ color: activo ? 'white' : color }} />
+                                    : activo && <span className="text-white text-xs leading-none">✓</span>
+                                  }
+                                </button>
+
+                                {/* Badge ×N (solo si está asignado) */}
+                                {activo && (
+                                  editando ? (
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      autoFocus
+                                      value={multiplosTemp[key] ?? String(multiplo)}
+                                      onChange={e => setMultiplosTemp(prev => ({ ...prev, [key]: e.target.value }))}
+                                      onBlur={() => confirmarMultiplo(p.id, canal.id)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') confirmarMultiplo(p.id, canal.id)
+                                        if (e.key === 'Escape') setEditandoMultiplo(null)
+                                      }}
+                                      className="w-12 text-center text-xs rounded border px-1 py-0.5 outline-none"
+                                      style={{ borderColor: color, color: 'var(--foreground)' }}
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setEditandoMultiplo(key)
+                                        setMultiplosTemp(prev => ({ ...prev, [key]: String(multiplo) }))
+                                      }}
+                                      title="Editar múltiplo de cantidad"
+                                      className="text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity hover:opacity-70"
+                                      style={{ background: color + '22', color }}
+                                    >
+                                      {guardandoM ? <Loader2 size={9} className="animate-spin inline" /> : `×${multiplo}`}
+                                    </button>
+                                  )
+                                )}
+                              </div>
                             </td>
                           )
                         })}

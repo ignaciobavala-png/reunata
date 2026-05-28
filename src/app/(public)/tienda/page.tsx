@@ -22,7 +22,7 @@ export default async function TiendaPage() {
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
-  const idsCanal = await getProductosDelCanal(canalId)
+  const { ids: idsCanal } = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')

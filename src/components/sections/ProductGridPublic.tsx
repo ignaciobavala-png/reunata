@@ -12,6 +12,7 @@ interface ProductoPublico {
   codigo_interno: string
   foto_url: string | null
   precio: number | null
+  multiplo?: number
   supabaseUrl: string
 }
 
@@ -41,6 +42,7 @@ export function ProductGridPublic({
       codigo_interno: p.codigo_interno,
       titulo: p.titulo,
       precio: 0,
+      multiplo: p.multiplo ?? 1,
       foto_url: p.foto_url ? supabaseImg(p.supabaseUrl, p.foto_url, 200) : null,
     })
     setAgregados(prev => new Set(prev).add(p.id))
@@ -121,6 +123,14 @@ export function ProductGridPublic({
                 <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
                   u$s {p.precio.toFixed(2)}
                 </p>
+              )}
+              {(p.multiplo ?? 1) > 1 && (
+                <span
+                  className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-medium tracking-wide rounded"
+                  style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
+                >
+                  × {p.multiplo} u. mín.
+                </span>
               )}
             </div>
           )

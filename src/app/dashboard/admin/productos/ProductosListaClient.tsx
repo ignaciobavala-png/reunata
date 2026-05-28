@@ -2,8 +2,9 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2 } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera } from 'lucide-react'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
+import { ProductoFotosDrawer, type FotoItem } from '@/components/admin/ProductoFotosDrawer'
 
 interface Producto {
   id: number
@@ -33,11 +34,17 @@ export function ProductosListaClient({
   ofertasIniciales,
   destacadasIniciales,
   novedadesIniciales,
+  fotosIniciales,
+  supabaseUrl,
+  isMaster,
 }: {
   productos: Producto[]
-  ofertasIniciales: Set<string>   // `${canal}-${producto_id}`
+  ofertasIniciales: Set<string>
   destacadasIniciales: Set<number>
   novedadesIniciales: Set<number>
+  fotosIniciales: FotoItem[]
+  supabaseUrl: string
+  isMaster: boolean
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -50,6 +57,15 @@ export function ProductosListaClient({
   const [guardandoDestacada, setGuardandoDestacada] = useState<number | null>(null)
   const [guardandoNovedad, setGuardandoNovedad] = useState<number | null>(null)
   const [, startTransition] = useTransition()
+  const [fotosMap, setFotosMap] = useState<Record<number, FotoItem[]>>(() => {
+    const map: Record<number, FotoItem[]> = {}
+    for (const f of fotosIniciales) {
+      if (!map[f.producto_id]) map[f.producto_id] = []
+      map[f.producto_id].push(f)
+    }
+    return map
+  })
+  const [productoDrawer, setProductoDrawer] = useState<Producto | null>(null)
 
   const filtrados = useMemo(() => {
     if (!busqueda) return productos
@@ -141,6 +157,7 @@ export function ProductosListaClient({
   }
 
   return (
+    <>
     <div>
       {/* Búsqueda */}
       <div className="flex items-center gap-4 mb-6">
@@ -183,6 +200,7 @@ export function ProductosListaClient({
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
                 {TAGS.map(t => (
                   <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: t.color + '33', color: t.color }}>
@@ -227,7 +245,7 @@ export function ProductosListaClient({
                           )}
                         </div>
                       </td>
-                      <td /><td /><td /><td /><td /><td /><td /><td /><td />
+                      <td /><td /><td /><td /><td /><td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -262,6 +280,25 @@ export function ProductosListaClient({
                           >
                             {p.activo ? 'Activo' : 'Inactivo'}
                           </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {(() => {
+                            const count = fotosMap[p.id]?.length ?? 0
+                            return (
+                              <button
+                                onClick={() => setProductoDrawer(p)}
+                                title="Gestionar fotos"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+                                style={{
+                                  background: count > 0 ? '#dcfce7' : '#fee2e2',
+                                  color: count > 0 ? '#16a34a' : '#dc2626',
+                                }}
+                              >
+                                <Camera size={10} />
+                                {count}
+                              </button>
+                            )
+                          })()}
                         </td>
                         {TAGS.map(t => {
                           if (t.key === 'elegidos') {
@@ -341,7 +378,7 @@ export function ProductosListaClient({
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={12} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos. Ejecutá una sincronización desde el panel de Sync.'}
                   </td>
                 </tr>
@@ -351,5 +388,19 @@ export function ProductosListaClient({
         </div>
       </div>
     </div>
+
+      {productoDrawer && (
+        <ProductoFotosDrawer
+          producto={productoDrawer}
+          fotosIniciales={fotosMap[productoDrawer.id] ?? []}
+          supabaseUrl={supabaseUrl}
+          isMaster={isMaster}
+          onClose={() => setProductoDrawer(null)}
+          onFotosChange={(productoId, fotos) =>
+            setFotosMap(prev => ({ ...prev, [productoId]: fotos }))
+          }
+        />
+      )}
+    </>
   )
 }

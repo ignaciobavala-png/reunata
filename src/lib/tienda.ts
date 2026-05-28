@@ -15,7 +15,8 @@ export interface UserSession {
 
 /**
  * Resuelve la sesión del usuario y su canal de venta.
- * Si no hay sesión o no tiene canal asignado, devuelve el canal "publico" como fallback.
+ * Fallback para usuarios sin sesión: canal "consumidor_final" (mismos productos, sin precios).
+ * El canal "publico" no tiene gestión UI y no se usa como filtro de productos en la tienda.
  */
 const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha']
 
@@ -92,14 +93,14 @@ export async function resolverCanalTienda(): Promise<{
     }
   }
 
-  // Fallback a canal público si no hay canal resuelto
+  // Fallback: sin sesión o sin canal resuelto → usar consumidor_final (catálogo público sin precios)
   if (!canalId) {
-    const { data: publico } = await service
+    const { data: canalCF } = await service
       .from('canales')
       .select('id')
-      .eq('slug', 'publico')
+      .eq('slug', 'consumidor_final')
       .single()
-    canalId = publico?.id ?? null
+    canalId = canalCF?.id ?? null
   }
 
   return {
@@ -112,13 +113,18 @@ export async function resolverCanalTienda(): Promise<{
 }
 
 /**
- * Obtiene los IDs de productos visibles para un canal dado.
+ * Obtiene los IDs de productos visibles para un canal dado, junto con el múltiplo de cada uno.
  */
-export async function getProductosDelCanal(canalId: number): Promise<number[]> {
+export async function getProductosDelCanal(canalId: number): Promise<{ ids: number[]; multiplos: Record<number, number> }> {
   const service = createServiceClient()
   const { data } = await service
     .from('producto_canales')
-    .select('producto_id')
+    .select('producto_id, multiplo')
     .eq('canal_id', canalId)
-  return (data ?? []).map(r => r.producto_id)
+  const ids = (data ?? []).map(r => r.producto_id)
+  const multiplos: Record<number, number> = {}
+  for (const r of data ?? []) {
+    multiplos[r.producto_id] = r.multiplo ?? 1
+  }
+  return { ids, multiplos }
 }

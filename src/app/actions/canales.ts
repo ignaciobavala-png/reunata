@@ -23,6 +23,19 @@ export async function toggleProductoCanal(productoId: number, canalId: number, a
   return { ok: true }
 }
 
+export async function actualizarMultiplo(productoId: number, canalId: number, multiplo: number) {
+  const supabase = createServiceClient()
+  const valor = Math.max(1, Math.round(multiplo))
+  const { error } = await supabase
+    .from('producto_canales')
+    .update({ multiplo: valor })
+    .eq('producto_id', productoId)
+    .eq('canal_id', canalId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/dashboard/admin/productos')
+  return { ok: true }
+}
+
 export async function asignarCanalMasivo(productoIds: number[], canalId: number, activo: boolean) {
   const supabase = createServiceClient()
 
