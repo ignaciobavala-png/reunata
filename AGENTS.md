@@ -525,4 +525,45 @@ Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en e
 - `Productos en Desarrollo`
 - `Bienes de Uso`
 - Categorías que empiezan con `M)` o `O)`
+### Fotos desde panel Productos — sesión 28/05
+- Nuevo componente `src/components/admin/ProductoFotosDrawer.tsx`: drawer lateral de gestión de fotos extraído de MultimediaClient, autocontenido con sus propias llamadas a `/api/multimedia` y Storage
+- `ProductosListaClient.tsx`: columna "Fotos" con badge cámara (verde = tiene fotos, rojo = sin fotos); clic abre el drawer lateral
+- `page.tsx (ListaContent)`: carga sesión para determinar `isMaster`, consulta `producto_fotos`, pasa `fotosIniciales`, `supabaseUrl`, `isMaster` al cliente
+- Callback `onFotosChange` actualiza el `fotosMap` del estado local → el badge se actualiza sin recargar la página
+- Multimedia > Fotos de productos sigue funcionando en paralelo; se puede ocultar cuando Gastón confirme que ya no lo usa
+
+### Múltiplos de cantidad por canal — panel admin — sesión 28/05
+- Migración aplicada en prod: `ALTER TABLE producto_canales ADD COLUMN IF NOT EXISTS multiplo integer NOT NULL DEFAULT 1`
+- Server action `actualizarMultiplo(productoId, canalId, multiplo)` en `src/app/actions/canales.ts`
+- `CanalesClient.tsx`: cada celda producto×canal tiene checkbox (arriba) + badge `×N` (abajo, solo si asignado)
+- Clic en el badge abre input inline → Enter o blur guarda el múltiplo con actualización optimista
+
+### Confirmación antes de asignación masiva por categoría — sesión 28/05
+- Los botones de fila de categoría ("Asignar todos" / "Quitar todos") mostraban antes un popover de confirmación inline
+- Primera clic: muestra "Asignar/Quitar X productos — Confirmar / Cancelar" con el color del canal
+- Segundo clic (Confirmar): ejecuta la acción; Cancelar o clic fuera descarta
+- Archivo: `src/app/dashboard/admin/productos/CanalesClient.tsx`
+
+### Múltiplos de cantidad cara al público — sesión 28/05
+- `getProductosDelCanal()` en `src/lib/tienda.ts` devuelve `{ ids, multiplos }` (antes solo `number[]`)
+- `CartItem` en `cartStore` agrega `multiplo?: number`; `add()` usa el múltiplo como cantidad inicial y como paso de re-clic
+- `ProductGridPublic`: badge "× X u. mín." visible debajo del precio cuando multiplo > 1
+- `PublicCartDrawer`: stepper −/+ por ítem que respeta el múltiplo; badge ×N junto al contador de cantidad
+- `tienda/[slug]/page.tsx`: `mapProducto` incluye `multiplo` desde el mapa del canal resuelto
+- `checkout.ts`: validación server-side — rechaza si `cantidad % multiplo !== 0`
+
+### Fix canal fallback para usuarios no registrados — sesión 28/05
+- **Bug:** el canal `publico` está oculto del panel admin (`.neq('slug', 'publico')`) → nadie podía asignarle productos → usuarios sin sesión veían catálogo vacío
+- **Fix:** el fallback en `resolverCanalTienda()` ahora usa `consumidor_final` en lugar de `publico` → mismos productos que un CF logueado, con `mostrarPrecios = false`
+- El canal `publico` en DB queda como referencia para el chatbot pero ya no afecta la tienda
+
+---
+
+## Pendiente (próximas sesiones)
+
+### Multimedia > Fotos de productos — evaluar ocultarlo
+- Ahora la gestión de fotos está disponible directamente desde el panel Productos (columna Fotos)
+- Queda duplicada la sección en Multimedia > Fotos de productos
+- **Acción:** confirmar con Gastón si la puede dejar de usar; luego ocultar del sidebar (no eliminar)
+
 <!-- END:feactures -->
