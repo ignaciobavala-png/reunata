@@ -37,7 +37,10 @@ const dmMono = DM_Mono({
   weight: ['400', '500'],
 })
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reunata.vercel.app'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: {
     default: 'Reunata — El mate que te une',
     template: '%s | Reunata',
@@ -45,16 +48,25 @@ export const metadata: Metadata = {
   applicationName: 'Reunata',
   description:
     'Reunata importa los mejores mates, termos y accesorios. Productos seleccionados, diseño renovado, entrega en todo el país.',
-  keywords: ['mate', 'mates', 'termos', 'yerbas', 'accesorios mate', 'reunata'],
+  keywords: ['mate', 'mates', 'termos', 'yerbas', 'accesorios mate', 'reunata', 'argentina'],
   openGraph: {
     title: 'Reunata — El mate que te une',
-    description: 'Los mejores mates, termos y accesorios importados.',
+    description: 'Los mejores mates, termos y accesorios importados. Entrega en todo el país.',
     siteName: 'Reunata',
     locale: 'es_AR',
     type: 'website',
+    url: BASE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Reunata — El mate que te une',
+    description: 'Los mejores mates, termos y accesorios importados.',
   },
   verification: {
     google: 'TR3zjqW_qNkWaGtgrn8JiqEQIHJ8flbPeWJhN8Oia2Y',
+  },
+  alternates: {
+    canonical: BASE_URL,
   },
 }
 

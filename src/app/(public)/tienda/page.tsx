@@ -1,6 +1,13 @@
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { Hero } from '@/components/sections/Hero'
+
+export const metadata: Metadata = {
+  title: 'Tienda — Mates, termos y accesorios',
+  description: 'Explorá el catálogo completo de Reunata: mates, termos, bombillas y accesorios importados. Envíos a todo el país.',
+  alternates: { canonical: '/tienda' },
+}
 import { CategoryGallery } from '@/components/sections/CategoryGallery'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'

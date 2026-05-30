@@ -1,3 +1,11 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Contacto',
+  description: 'Ponete en contacto con Reunata por WhatsApp, email o redes sociales. Respondemos consultas sobre productos, envíos y distribución.',
+  alternates: { canonical: '/contacto' },
+}
+
 const canales = [
   {
     label: 'WhatsApp',

@@ -4,7 +4,8 @@ import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera } from 'lucide-react'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
-import { ProductoFotosDrawer, type FotoItem } from '@/components/admin/ProductoFotosDrawer'
+import { asignarCanalMasivo } from '@/app/actions/canales'
+import { ProductoFichaDrawer, type FotoItem, type Canal } from '@/components/admin/ProductoFichaDrawer'
 
 interface Producto {
   id: number
@@ -19,11 +20,18 @@ interface Producto {
 }
 
 const TAGS = [
-  { key: 'ofertas' as const, label: 'Oferta',        color: '#f59e0b' },
-  { key: 'hotsale' as const, label: 'Hot Sale',       color: '#ef4444' },
-  { key: 'elegidos' as const, label: 'Más elegidos',  color: '#8b5cf6' },
-  { key: 'novedad' as const, label: 'Novedad',        color: '#0ea5e9' },
+  { key: 'ofertas' as const,   label: 'Oferta',       color: '#f59e0b' },
+  { key: 'hotsale' as const,   label: 'Hot Sale',      color: '#ef4444' },
+  { key: 'elegidos' as const,  label: 'Más elegidos',  color: '#8b5cf6' },
+  { key: 'novedad' as const,   label: 'Novedad',       color: '#0ea5e9' },
 ]
+
+const COLORES_CANAL: Record<string, string> = {
+  consumidor_final: '#6366f1',
+  distribuidor: '#0ea5e9',
+  local: '#10b981',
+  mercha: '#f59e0b',
+}
 
 function fmt(v: number | null) {
   return v ? `u$s ${v.toFixed(2)}` : '—'
@@ -37,6 +45,9 @@ export function ProductosListaClient({
   fotosIniciales,
   supabaseUrl,
   isMaster,
+  canalesIniciales,
+  asignacionesIniciales,
+  multiplosIniciales,
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>
@@ -45,6 +56,9 @@ export function ProductosListaClient({
   fotosIniciales: FotoItem[]
   supabaseUrl: string
   isMaster: boolean
+  canalesIniciales: Canal[]
+  asignacionesIniciales: Set<string>
+  multiplosIniciales: Record<string, number>
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -65,7 +79,13 @@ export function ProductosListaClient({
     }
     return map
   })
-  const [productoDrawer, setProductoDrawer] = useState<Producto | null>(null)
+  const [asignaciones, setAsignaciones] = useState<Set<string>>(new Set(asignacionesIniciales))
+  const [multiplos, setMultiplos] = useState<Record<string, number>>({ ...multiplosIniciales })
+  const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' } | null>(null)
+
+  // Asignaciones masivas por categoría
+  const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
+  const [guardandoCat, setGuardandoCat] = useState<string | null>(null)
 
   const filtrados = useMemo(() => {
     if (!busqueda) return productos
@@ -95,12 +115,51 @@ export function ProductosListaClient({
   const categoriasList = Object.keys(porCategoria).sort()
   const catExpandidas = busqueda ? new Set(categoriasList) : expandidas
 
+  function estadoCategoria(prods: Producto[], canalId: number): 'all' | 'some' | 'none' {
+    const n = prods.filter(p => asignaciones.has(`${p.id}-${canalId}`)).length
+    if (n === 0) return 'none'
+    if (n === prods.length) return 'all'
+    return 'some'
+  }
+
   function toggleExpand(cat: string) {
     if (busqueda) return
+    setConfirmandoCat(null)
     setExpandidas(prev => {
       const next = new Set(prev)
       next.has(cat) ? next.delete(cat) : next.add(cat)
       return next
+    })
+  }
+
+  function handleClickCatCanal(e: React.MouseEvent, cat: string, canalId: number) {
+    e.stopPropagation()
+    const key = `${cat}-${canalId}`
+    setConfirmandoCat(prev => prev === key ? null : key)
+  }
+
+  function toggleCategoria(cat: string, canalId: number) {
+    const prods = porCategoria[cat] ?? []
+    const nuevoValor = estadoCategoria(prods, canalId) !== 'all'
+    const catKey = `${cat}-${canalId}`
+    setConfirmandoCat(null)
+    setGuardandoCat(catKey)
+
+    const anterior = new Set(asignaciones)
+    const nuevo = new Set(asignaciones)
+    prods.forEach(p => {
+      const key = `${p.id}-${canalId}`
+      nuevoValor ? nuevo.add(key) : nuevo.delete(key)
+    })
+    setAsignaciones(nuevo)
+
+    startTransition(async () => {
+      try {
+        const res = await asignarCanalMasivo(prods.map(p => p.id), canalId, nuevoValor)
+        if (!res.ok) setAsignaciones(anterior)
+        else router.refresh()
+      } catch { setAsignaciones(anterior) }
+      finally { setGuardandoCat(null) }
     })
   }
 
@@ -156,6 +215,41 @@ export function ProductosListaClient({
     })
   }
 
+  function handleCanalesChange(productoId: number, asignadosIds: Set<number>, nuevosMultiplos: Record<number, number>) {
+    setAsignaciones(prev => {
+      const nuevo = new Set(prev)
+      for (const canal of canalesIniciales) {
+        const key = `${productoId}-${canal.id}`
+        if (asignadosIds.has(canal.id)) nuevo.add(key)
+        else nuevo.delete(key)
+      }
+      return nuevo
+    })
+    setMultiplos(prev => {
+      const nuevo = { ...prev }
+      for (const [canalId, val] of Object.entries(nuevosMultiplos)) {
+        nuevo[`${productoId}-${canalId}`] = val
+      }
+      return nuevo
+    })
+  }
+
+  const drawerAsignaciones = useMemo<Set<number>>(() => {
+    if (!drawerState) return new Set()
+    const pid = drawerState.producto.id
+    return new Set(canalesIniciales.filter(c => asignaciones.has(`${pid}-${c.id}`)).map(c => c.id))
+  }, [drawerState, asignaciones, canalesIniciales])
+
+  const drawerMultiplos = useMemo<Record<number, number>>(() => {
+    if (!drawerState) return {}
+    const pid = drawerState.producto.id
+    const result: Record<number, number> = {}
+    for (const canal of canalesIniciales) {
+      result[canal.id] = multiplos[`${pid}-${canal.id}`] ?? 1
+    }
+    return result
+  }, [drawerState, multiplos, canalesIniciales])
+
   return (
     <>
     <div>
@@ -200,6 +294,7 @@ export function ProductosListaClient({
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Canales</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
                 {TAGS.map(t => (
                   <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
@@ -225,6 +320,7 @@ export function ProductosListaClient({
                       style={{ background: 'var(--color-acero-brillo)', borderTop: '2px solid var(--color-acero-claro)' }}
                       onClick={() => toggleExpand(cat)}
                     >
+                      {/* Nombre + badges */}
                       <td className="px-4 py-3" colSpan={2}>
                         <div className="flex items-center gap-2">
                           {isExpanded
@@ -245,7 +341,86 @@ export function ProductosListaClient({
                           )}
                         </div>
                       </td>
-                      <td /><td /><td /><td /><td /><td /><td /><td /><td /><td />
+
+                      {/* Stock, L1, L2, L3, Estado — vacíos */}
+                      <td /><td /><td /><td /><td />
+
+                      {/* Canales — controles de asignación masiva */}
+                      <td className="px-3 py-2 text-center" style={{ position: 'relative' }}>
+                        <div className="inline-flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                          {canalesIniciales.map(canal => {
+                            const estado = estadoCategoria(prods, canal.id)
+                            const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
+                            const catKey = `${cat}-${canal.id}`
+                            const cargando = guardandoCat === catKey
+                            const confirmando = confirmandoCat === catKey
+
+                            return (
+                              <div key={canal.id} className="relative">
+                                <button
+                                  onClick={e => handleClickCatCanal(e, cat, canal.id)}
+                                  disabled={cargando}
+                                  title={`${canal.nombre}: ${estado === 'all' ? 'todos asignados' : estado === 'some' ? 'algunos asignados' : 'ninguno asignado'} — clic para asignar/quitar toda la categoría`}
+                                  className="w-4 h-4 rounded-sm flex items-center justify-center transition-all disabled:opacity-40"
+                                  style={{
+                                    background: estado === 'all' ? color : estado === 'some' ? color + '44' : 'transparent',
+                                    border: `2px solid ${estado === 'none' ? '#cbd5e1' : color}`,
+                                  }}
+                                >
+                                  {cargando
+                                    ? <Loader2 size={8} className="animate-spin" style={{ color: estado === 'none' ? '#cbd5e1' : color }} />
+                                    : estado === 'all'
+                                      ? <span className="text-white leading-none" style={{ fontSize: 9 }}>✓</span>
+                                      : estado === 'some'
+                                        ? <span className="leading-none font-bold" style={{ fontSize: 9, color }}>—</span>
+                                        : null
+                                  }
+                                </button>
+
+                                {/* Popover de confirmación */}
+                                {confirmando && (
+                                  <div
+                                    className="absolute top-full mt-1 z-30 bg-white rounded-lg shadow-xl border p-2.5 text-left"
+                                    style={{
+                                      borderColor: color,
+                                      borderWidth: 1.5,
+                                      left: '50%',
+                                      transform: 'translateX(-50%)',
+                                      minWidth: 140,
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <p className="text-xs font-medium mb-2 leading-snug" style={{ color: 'var(--foreground)' }}>
+                                      {estado === 'all' ? 'Quitar' : 'Asignar'}{' '}
+                                      <span style={{ color }}>{canal.nombre}</span>
+                                      {' '}a {prods.length} productos
+                                    </p>
+                                    <div className="flex gap-1.5">
+                                      <button
+                                        onClick={() => toggleCategoria(cat, canal.id)}
+                                        className="flex-1 py-1 rounded text-xs font-medium text-white"
+                                        style={{ background: color }}
+                                      >
+                                        Confirmar
+                                      </button>
+                                      <button
+                                        onClick={() => setConfirmandoCat(null)}
+                                        className="flex-1 py-1 rounded text-xs font-medium"
+                                        style={{ color: 'var(--color-acero-oscuro)', background: 'var(--color-acero-brillo)' }}
+                                      >
+                                        Cancelar
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </td>
+
+                      {/* Fotos + Tags — vacíos */}
+                      <td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -281,12 +456,39 @@ export function ProductosListaClient({
                             {p.activo ? 'Activo' : 'Inactivo'}
                           </span>
                         </td>
+
+                        {/* Canales — puntos de colores por producto */}
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            onClick={() => setDrawerState({ producto: p, tab: 'canales' })}
+                            className="inline-flex items-center gap-1 p-1 rounded hover:bg-gray-100 transition-colors"
+                            title="Gestionar canales de venta"
+                          >
+                            {canalesIniciales.map(canal => {
+                              const asignado = asignaciones.has(`${p.id}-${canal.id}`)
+                              const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
+                              return (
+                                <span
+                                  key={canal.id}
+                                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                  style={{
+                                    background: asignado ? color : 'transparent',
+                                    border: `2px solid ${asignado ? color : '#cbd5e1'}`,
+                                  }}
+                                  title={canal.nombre}
+                                />
+                              )
+                            })}
+                          </button>
+                        </td>
+
+                        {/* Fotos */}
                         <td className="px-4 py-2.5 text-center">
                           {(() => {
                             const count = fotosMap[p.id]?.length ?? 0
                             return (
                               <button
-                                onClick={() => setProductoDrawer(p)}
+                                onClick={() => setDrawerState({ producto: p, tab: 'fotos' })}
                                 title="Gestionar fotos"
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
                                 style={{
@@ -300,6 +502,7 @@ export function ProductosListaClient({
                             )
                           })()}
                         </td>
+
                         {TAGS.map(t => {
                           if (t.key === 'elegidos') {
                             const activo = destacadas.has(p.id)
@@ -378,7 +581,7 @@ export function ProductosListaClient({
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={13} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos. Ejecutá una sincronización desde el panel de Sync.'}
                   </td>
                 </tr>
@@ -389,16 +592,22 @@ export function ProductosListaClient({
       </div>
     </div>
 
-      {productoDrawer && (
-        <ProductoFotosDrawer
-          producto={productoDrawer}
-          fotosIniciales={fotosMap[productoDrawer.id] ?? []}
+      {drawerState && (
+        <ProductoFichaDrawer
+          key={drawerState.producto.id}
+          producto={drawerState.producto}
+          fotosIniciales={fotosMap[drawerState.producto.id] ?? []}
           supabaseUrl={supabaseUrl}
           isMaster={isMaster}
-          onClose={() => setProductoDrawer(null)}
+          initialTab={drawerState.tab}
+          canales={canalesIniciales}
+          asignacionesIniciales={drawerAsignaciones}
+          multiplosIniciales={drawerMultiplos}
+          onClose={() => setDrawerState(null)}
           onFotosChange={(productoId, fotos) =>
             setFotosMap(prev => ({ ...prev, [productoId]: fotos }))
           }
+          onCanalesChange={handleCanalesChange}
         />
       )}
     </>

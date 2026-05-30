@@ -99,7 +99,9 @@ export function CategoriasClient({
   const [nuevoForm, setNuevoForm] = useState({ nombre: '', descripcion: '', href: '', categoria_keys: [] as string[] })
   const [saving, setSaving] = useState(false)
   const [uploadingId, setUploadingId] = useState<number | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const editFileRef = useRef<HTMLInputElement | null>(null)
 
   async function toggleActivo(cat: CategoriaHome) {
     await fetch('/api/categorias-home', {
@@ -139,11 +141,16 @@ export function CategoriasClient({
 
   async function subirFoto(cat: CategoriaHome, file: File) {
     setUploadingId(cat.id)
+    setUploadError(null)
     const ext = file.name.split('.').pop() ?? 'jpg'
     const path = `categorias/${cat.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
     const { error } = await getSupabase().storage.from('multimedia').upload(path, file, { upsert: true })
-    if (error) { setUploadingId(null); return }
+    if (error) {
+      setUploadError('Error al subir la imagen. Intentá de nuevo.')
+      setUploadingId(null)
+      return
+    }
 
     if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
 
@@ -153,6 +160,7 @@ export function CategoriasClient({
       body: JSON.stringify({ id: cat.id, foto_url: path }),
     })
     setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url: path } : c))
+    setForm(f => ({ ...f, foto_url: path }))
     setUploadingId(null)
   }
 
@@ -192,7 +200,71 @@ export function CategoriasClient({
             style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
           >
             {editando === cat.id ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
+                {/* Foto de portada — dentro del formulario */}
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Foto de portada</p>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-20 h-24 rounded-lg overflow-hidden border-2 flex items-center justify-center flex-shrink-0 relative"
+                      style={{ borderColor: form.foto_url ? 'var(--color-granito)' : 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}
+                    >
+                      {form.foto_url ? (
+                        <Image
+                          src={supabaseImg(SUPABASE_URL, form.foto_url, 128, { height: 160 })}
+                          alt={cat.nombre}
+                          fill
+                          className="object-cover"
+                          sizes="80px"
+                        />
+                      ) : (
+                        <ImagePlus size={22} style={{ color: 'var(--color-acero-oscuro)' }} />
+                      )}
+                      {uploadingId === cat.id && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <span className="text-white text-xs">Subiendo…</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => editFileRef.current?.click()}
+                        disabled={uploadingId === cat.id}
+                        className="text-sm px-3 py-1.5 rounded-lg border flex items-center gap-1.5 disabled:opacity-50"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-granito-claro)' }}
+                      >
+                        <ImagePlus size={13} />
+                        {form.foto_url ? 'Cambiar foto' : 'Subir foto'}
+                      </button>
+                      {form.foto_url && (
+                        <button
+                          type="button"
+                          onClick={() => quitarFoto(cat)}
+                          className="text-sm px-3 py-1.5 rounded-lg border flex items-center gap-1.5"
+                          style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+                        >
+                          <Trash2 size={13} /> Quitar foto
+                        </button>
+                      )}
+                      {uploadError && (
+                        <p className="text-xs" style={{ color: '#dc2626' }}>{uploadError}</p>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={editFileRef}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) subirFoto(cat, file)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+
                 <input
                   value={form.nombre ?? ''}
                   onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
@@ -220,7 +292,7 @@ export function CategoriasClient({
                   onChange={keys => setForm(f => ({ ...f, categoria_keys: keys }))}
                 />
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => setEditando(null)}
+                  <button onClick={() => { setEditando(null); setUploadError(null) }}
                     className="text-sm px-3 py-1.5 rounded-lg border"
                     style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
                     Cancelar

@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
+
+export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente_pago:     'Pendiente de pago',
