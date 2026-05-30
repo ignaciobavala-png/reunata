@@ -594,6 +594,7 @@ export function ProductosListaClient({
 
       {drawerState && (
         <ProductoFichaDrawer
+          key={drawerState.producto.id}
           producto={drawerState.producto}
           fotosIniciales={fotosMap[drawerState.producto.id] ?? []}
           supabaseUrl={supabaseUrl}

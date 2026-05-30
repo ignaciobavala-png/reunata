@@ -81,6 +81,7 @@ export function ProductoFichaDrawer({
   const [multiplosTemp, setMultiplosTemp] = useState<Record<number, string>>({})
   const [guardandoCanal, setGuardandoCanal] = useState<number | null>(null)
   const [guardandoMultiplo, setGuardandoMultiplo] = useState<number | null>(null)
+  const procesandoMultiploRef = useRef<number | null>(null)
 
   function mostrarToast(msg: string) {
     setToast(msg)
@@ -241,10 +242,17 @@ export function ProductoFichaDrawer({
   }
 
   function confirmarMultiplo(canalId: number) {
+    // Guard against double-fire (Enter keydown → input unmounts → onBlur fires)
+    if (procesandoMultiploRef.current === canalId) return
+    procesandoMultiploRef.current = canalId
+
     const raw = multiplosTemp[canalId] ?? '1'
     const valor = Math.max(1, parseInt(raw) || 1)
     setEditandoMultiplo(null)
-    if (valor === (multiplos[canalId] ?? 1)) return
+    if (valor === (multiplos[canalId] ?? 1)) {
+      procesandoMultiploRef.current = null
+      return
+    }
 
     setGuardandoMultiplo(canalId)
     const anteriorMultiplos = { ...multiplos }
@@ -260,6 +268,7 @@ export function ProductoFichaDrawer({
         setMultiplos(anteriorMultiplos)
       } finally {
         setGuardandoMultiplo(null)
+        procesandoMultiploRef.current = null
       }
     })
   }
