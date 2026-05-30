@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
+
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente_pago:     'Pendiente de pago',

@@ -1,8 +1,15 @@
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import { CorporativosForm } from '@/components/sections/CorporativosForm'
+
+export const metadata: Metadata = {
+  title: 'Regalos corporativos',
+  description: 'Kits de mates y accesorios personalizados para empresas. Regalos corporativos con identidad de marca para eventos y celebraciones.',
+  alternates: { canonical: '/corporativos' },
+}
 import { createServiceClient } from '@/lib/supabase/server'
 
 async function getFotos(): Promise<{ izquierda: string | null; derecha: string | null }> {

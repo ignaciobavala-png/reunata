@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
@@ -9,6 +10,33 @@ import { PendingApproval } from '@/components/sections/PendingApproval'
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
   'mas-vendidos': { nombre: 'Más vendidos', subtitulo: 'Los productos más elegidos por nuestros clientes.' },
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+
+  if (SLUGS_ESPECIALES[slug]) {
+    const { nombre, subtitulo } = SLUGS_ESPECIALES[slug]
+    return {
+      title: nombre,
+      description: subtitulo,
+      alternates: { canonical: `/tienda/${slug}` },
+    }
+  }
+
+  const supabase = createServiceClient()
+  const { data: cat } = await supabase
+    .from('categorias_home')
+    .select('nombre')
+    .contains('categoria_keys', [slug])
+    .single()
+
+  const nombre = cat?.nombre ?? slug
+  return {
+    title: nombre,
+    description: `Explorá la categoría ${nombre} en Reunata. Mates, termos y accesorios importados con envío a todo el país.`,
+    alternates: { canonical: `/tienda/${slug}` },
+  }
 }
 
 export default async function CategoriaProductosPage({ params }: { params: Promise<{ slug: string }> }) {

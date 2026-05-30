@@ -1,8 +1,15 @@
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ImageIcon } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'Nosotros',
+  description: 'Conocé la historia de Reunata, empresa argentina especializada en la importación y distribución de mates, termos y accesorios.',
+  alternates: { canonical: '/nosotros' },
+}
 import { createServiceClient } from '@/lib/supabase/server'
 
 const categorias = [
