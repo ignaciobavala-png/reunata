@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/Header'
 import type { Metadata } from 'next'
 import { RegistroForm } from './RegistroForm'
 import { Check } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Crear cuenta' }
 
@@ -28,10 +29,22 @@ export default async function RegistroPage({
   const esMayorista = defaultTab === 'mayorista'
   const beneficios = esMayorista ? BENEFICIOS_MAYORISTA : BENEFICIOS_MINORISTA
 
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let headerUser: { nombre: string | null; rol: string } | null = null
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('nombre, rol')
+      .eq('id', user.id)
+      .single()
+    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol }
+  }
+
   if (confirmar) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
-        <Header variant="dark" />
+        <Header variant="dark" user={headerUser} />
         <main className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
           <div className="w-full max-w-sm text-center">
             <h1 className="text-3xl mb-4" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-acero-brillo)' }}>
@@ -48,7 +61,7 @@ export default async function RegistroPage({
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
-      <Header variant="dark" />
+      <Header variant="dark" user={headerUser} />
 
       <main className="flex flex-col lg:flex-row lg:items-start">
 
