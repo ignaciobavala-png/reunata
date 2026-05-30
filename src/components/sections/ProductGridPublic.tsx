@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { ImageIcon, Check } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
 import { useCartStore } from '@/stores/cartStore'
@@ -27,14 +28,15 @@ export function ProductGridPublic({
   mostrarPrecios?: boolean
   estaLogueado?: boolean
 }) {
-  const { add, items, setCartOpen } = useCartStore()
+  const { add, items } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
+  const router = useRouter()
 
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
     if (enCarrito(p.id)) {
-      setCartOpen(true)
+      router.push('/carrito')
       return
     }
     add({
@@ -47,7 +49,7 @@ export function ProductGridPublic({
     })
     setAgregados(prev => new Set(prev).add(p.id))
     setTimeout(() => {
-      setCartOpen(true)
+      router.push('/carrito')
       setAgregados(prev => { const s = new Set(prev); s.delete(p.id); return s })
     }, 600)
   }

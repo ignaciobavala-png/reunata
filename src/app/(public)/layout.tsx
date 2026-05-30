@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { PublicCartDrawer } from '@/components/cliente/PublicCartDrawer'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -32,7 +31,6 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer />
-      <PublicCartDrawer user={headerUser} />
     </div>
   )
 }
