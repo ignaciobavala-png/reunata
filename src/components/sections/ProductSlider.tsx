@@ -69,10 +69,10 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                     {/* Cinta diagonal */}
                     <div
                       className="absolute top-[28px] left-[-42px] w-[160px] flex items-center justify-center py-1.5 rotate-[-45deg]"
-                      style={{ background: 'var(--color-granito-oscuro)' }}
+                      style={{ background: 'linear-gradient(90deg, #3A5248, #5E8070, #3A5248)', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}
                     >
-                      <span className="text-[10px] tracking-widest uppercase font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
-                        Más vendido
+                      <span className="text-[10px] tracking-widest uppercase font-semibold" style={{ color: '#ECEEF1', letterSpacing: '0.15em' }}>
+                        Más elegido
                       </span>
                     </div>
                   </div>

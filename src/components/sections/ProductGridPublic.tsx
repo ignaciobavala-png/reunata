@@ -41,7 +41,7 @@ export function ProductGridPublic({
       productoId: p.id,
       codigo_interno: p.codigo_interno,
       titulo: p.titulo,
-      precio: 0,
+      precio: p.precio ?? 0,
       multiplo: p.multiplo ?? 1,
       foto_url: p.foto_url ? supabaseImg(p.supabaseUrl, p.foto_url, 200) : null,
     })
