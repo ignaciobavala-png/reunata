@@ -28,9 +28,9 @@ const tiendaLinks = [
   { label: 'Vistos recientemente', href: '/historial' },
 ]
 
-export function Header({ user, categorias = [] }: { user?: HeaderUser | null; categorias?: HeaderCategoria[] }) {
+export function Header({ user, categorias = [], variant = 'light' }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark' }) {
   const pathname = usePathname()
-  const isHome = pathname === '/'
+  const isHome = pathname === '/' && variant === 'light'
 
   const [open, setOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -69,21 +69,24 @@ export function Header({ user, categorias = [] }: { user?: HeaderUser | null; ca
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const lightBgStart = isHome ? 'rgba(240,241,243,0)' : 'rgba(255,255,255,0.97)'
   const bg = useTransform(
     scrollY,
     [0, 60],
-    isHome
-      ? ['rgba(240,241,243,0)', 'rgba(255,255,255,0.97)']
-      : ['rgba(255,255,255,0.97)', 'rgba(255,255,255,0.97)']
+    variant === 'dark'
+      ? ['rgba(15,18,16,0.6)', 'rgba(15,18,16,0.85)']
+      : [lightBgStart, 'rgba(255,255,255,0.97)']
   )
   const borderOpacity = useTransform(scrollY, [0, 60], isHome ? [0, 1] : [1, 1])
 
-  const textClass = scrolled
-    ? 'text-[var(--color-granito)] hover:text-[var(--foreground)]'
-    : 'text-white/80 hover:text-white'
+  const textClass = variant === 'dark'
+    ? 'text-white/80 hover:text-white'
+    : scrolled
+      ? 'text-[var(--color-granito)] hover:text-[var(--foreground)]'
+      : 'text-white/80 hover:text-white'
 
-  const iconColor = scrolled ? 'text-[var(--foreground)]' : 'text-white'
-  const logoFilter = scrolled ? 'brightness-0' : 'brightness-0 invert'
+  const iconColor = (variant === 'dark' || !scrolled) ? 'text-white' : 'text-[var(--foreground)]'
+  const logoFilter = (variant === 'dark' || !scrolled) ? 'brightness-0 invert' : 'brightness-0'
 
   return (
     <>

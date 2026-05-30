@@ -100,7 +100,7 @@ export function ProductGridPublic({
                 {/* Barra hover slide-up */}
                 {!agregado && (
                   <div
-                    className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-[10px] tracking-[0.2em] uppercase"
+                    className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
                     style={{ background: yaEsta ? '#10b981' : 'var(--color-granito-oscuro)', color: 'white' }}
                   >
                     {yaEsta ? '✓ Ver carrito' : '+ Agregar'}
@@ -115,10 +115,10 @@ export function ProductGridPublic({
                 )}
               </button>
 
-              <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
                 {p.titulo}
               </p>
-              <p className="text-[10px] font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
                 {p.codigo_interno}
               </p>
               {p.precio != null && (
@@ -128,7 +128,7 @@ export function ProductGridPublic({
               )}
               {(p.multiplo ?? 1) > 1 && (
                 <span
-                  className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-medium tracking-wide rounded"
+                  className="inline-block mt-1 px-1.5 py-0.5 text-xs font-medium tracking-wide rounded"
                   style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
                 >
                   × {p.multiplo} u. mín.

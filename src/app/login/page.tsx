@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
-      <Header />
+      <Header variant="dark" />
       <main className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
         <div className="w-full max-w-sm">
 
