@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Search, Menu, X, ChevronDown, User } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
@@ -30,6 +30,7 @@ const tiendaLinks = [
 
 export function Header({ user, categorias = [], variant = 'light' }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark' }) {
   const pathname = usePathname()
+  const router = useRouter()
   const isHome = pathname === '/' && variant === 'light'
 
   const [open, setOpen] = useState(false)
@@ -37,6 +38,9 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
   const [corporativosOpen, setCorporativosOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const [scrolled, setScrolled] = useState(!isHome)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const { totalItems } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -68,6 +72,29 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSearchOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+      setSearchQuery('')
+    }
+  }, [searchOpen])
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (!q) return
+    router.push(`/tienda?q=${encodeURIComponent(q)}`)
+    setSearchOpen(false)
+  }
 
   const lightBgStart = isHome ? 'rgba(240,241,243,0)' : 'rgba(255,255,255,0.97)'
   const bg = useTransform(
@@ -252,7 +279,11 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <button aria-label="Buscar" className={`transition-colors duration-300 ${iconColor}`}>
+          <button
+            aria-label="Buscar"
+            onClick={() => setSearchOpen(true)}
+            className={`transition-colors duration-300 ${iconColor}`}
+          >
             <Search size={20} strokeWidth={1.5} />
           </button>
 
@@ -502,6 +533,45 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           </Link>
         )}
       </motion.div>
+
+      {/* Overlay de búsqueda */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center"
+            style={{ background: 'rgba(13,15,17,0.93)' }}
+            onClick={() => setSearchOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.25, delay: 0.05 }}
+              className="w-full max-w-2xl px-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <form onSubmit={handleSearchSubmit}>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Buscar productos..."
+                  className="w-full bg-transparent text-white text-2xl md:text-4xl border-b border-white/30 pb-4 outline-none placeholder:text-white/30"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                />
+                <p className="mt-4 text-[10px] tracking-[0.3em] uppercase text-white/30">
+                  Enter para buscar · Esc para cerrar
+                </p>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </>
   )
