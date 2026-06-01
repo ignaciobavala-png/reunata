@@ -30,6 +30,7 @@ const FALLBACK = {
 
 export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; supabaseUrl: string }) {
   const getPublicUrl = (url: string) => supabaseImg(supabaseUrl, url, 1920)
+  const firstImageUrl = assets.find(a => a.tipo === 'imagen') ? getPublicUrl(assets.find(a => a.tipo === 'imagen')!.url) : null
   const [current, setCurrent] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
@@ -57,7 +58,10 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
   const boton_url = asset.boton_url || FALLBACK.boton_url
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-[var(--color-granito-oscuro)]">
+    <section
+      className="relative h-screen w-full overflow-hidden bg-[var(--color-granito-oscuro)]"
+      style={firstImageUrl ? { backgroundImage: `url(${firstImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={asset.id}
@@ -83,6 +87,7 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
               muted
               loop
               playsInline
+              poster={firstImageUrl ?? undefined}
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
@@ -192,7 +197,6 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
         transition={{ delay: 1.2, duration: 0.8 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
       >
-        <span className="text-[9px] tracking-[0.4em] uppercase text-white/40">Scroll</span>
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
