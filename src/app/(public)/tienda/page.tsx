@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Hero } from '@/components/sections/Hero'
 
 export const metadata: Metadata = {
@@ -58,7 +59,11 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
     return (
       <main style={{ background: 'var(--background)' }}>
         <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Búsqueda</p>
+          <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+            <Link href="/tienda" className="hover:underline">Tienda</Link>
+            <span>/</span>
+            <span style={{ color: 'var(--foreground)' }}>Búsqueda</span>
+          </nav>
           <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             "{busqueda}"
           </h1>
