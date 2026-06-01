@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -8,7 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
-import { supabaseImg } from '@/lib/images'
+import { ProductGallery } from '@/components/sections/ProductGallery'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -86,31 +85,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-start">
 
           {/* Galería de fotos */}
-          <div className="flex flex-col gap-3">
-            {fotos.length > 0 ? fotos.map((f, i) => (
-              <div
-                key={i}
-                className="aspect-[3/4] relative overflow-hidden"
-                style={{ border: '1px solid var(--border)' }}
-              >
-                <Image
-                  src={supabaseImg(supabaseUrl, f.url)}
-                  alt={`${producto.titulo}${fotos.length > 1 ? ` — foto ${i + 1}` : ''}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  priority={i === 0}
-                />
-              </div>
-            )) : (
-              <div
-                className="aspect-[3/4] flex items-center justify-center"
-                style={{ background: 'var(--color-acero-claro)', border: '1px solid var(--border)' }}
-              >
-                <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Sin foto</span>
-              </div>
-            )}
-          </div>
+          <ProductGallery fotos={fotos} titulo={producto.titulo} supabaseUrl={supabaseUrl} />
 
           {/* Info del producto */}
           <div className="md:sticky md:top-24">
