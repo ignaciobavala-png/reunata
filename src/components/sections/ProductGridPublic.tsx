@@ -3,11 +3,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ImageIcon, Check } from 'lucide-react'
+import { ImageIcon, Check, Heart } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
 import { useCartStore } from '@/stores/cartStore'
 import { formatPrecio } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { toggleFavorito } from '@/app/actions/favoritos'
 
 interface ProductoPublico {
   id: number
@@ -32,7 +34,52 @@ export function ProductGridPublic({
 }) {
   const { add, items } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
+  const [favoritos, setFavoritos] = useState<Set<number>>(new Set())
+  const [loginHint, setLoginHint] = useState<number | null>(null)
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const router = useRouter()
+
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
+
+  useEffect(() => {
+    if (!estaLogueado) return
+    getSupabase()
+      .from('favoritos')
+      .select('producto_id')
+      .then(({ data }) => {
+        if (data) setFavoritos(new Set(data.map(f => f.producto_id as number)))
+      })
+  }, [estaLogueado])
+
+  async function handleToggleFavorito(e: React.MouseEvent, productoId: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!estaLogueado) {
+      setLoginHint(productoId)
+      setTimeout(() => setLoginHint(null), 2500)
+      return
+    }
+    // Optimistic update
+    setFavoritos(prev => {
+      const next = new Set(prev)
+      if (next.has(productoId)) next.delete(productoId)
+      else next.add(productoId)
+      return next
+    })
+    const res = await toggleFavorito(productoId)
+    if (!res.ok) {
+      // Revert on error
+      setFavoritos(prev => {
+        const next = new Set(prev)
+        if (next.has(productoId)) next.delete(productoId)
+        else next.add(productoId)
+        return next
+      })
+    }
+  }
 
   if (productos.length === 0) return null
 
@@ -101,6 +148,24 @@ export function ProductGridPublic({
                   )}
                 </Link>
 
+                {/* Corazón favorito — esquina superior izquierda */}
+                <button
+                  onClick={(e) => handleToggleFavorito(e, p.id)}
+                  className="absolute top-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
+                  style={{
+                    background: favoritos.has(p.id) ? '#ef4444' : 'rgba(255,255,255,0.85)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                  aria-label={favoritos.has(p.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                >
+                  <Heart
+                    size={14}
+                    strokeWidth={2}
+                    style={{ color: favoritos.has(p.id) ? 'white' : 'var(--color-granito-oscuro)' }}
+                    fill={favoritos.has(p.id) ? 'white' : 'none'}
+                  />
+                </button>
+
                 {/* Barra hover slide-up — separada del Link para evitar anidado inválido */}
                 {!agregado && (
                   <button
@@ -127,6 +192,11 @@ export function ProductGridPublic({
                   </p>
                 )}
               </Link>
+              {loginHint === p.id && (
+                <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
+                  <Link href="/login" className="underline">Iniciá sesión</Link> para guardar favoritos
+                </p>
+              )}
               {(p.multiplo ?? 1) > 1 && (
                 <span
                   className="inline-block mt-1 px-1.5 py-0.5 text-xs font-medium tracking-wide rounded"
