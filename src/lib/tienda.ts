@@ -93,14 +93,18 @@ export async function resolverCanalTienda(): Promise<{
     }
   }
 
-  // Fallback: sin sesión o sin canal resuelto → usar consumidor_final (catálogo público sin precios)
+  // Fallback: sin sesión o sin canal resuelto → precios de consumidor_final visibles públicamente
   if (!canalId) {
     const { data: canalCF } = await service
       .from('canales')
-      .select('id')
+      .select('id, lista_precios')
       .eq('slug', 'consumidor_final')
       .single()
-    canalId = canalCF?.id ?? null
+    if (canalCF) {
+      canalId = canalCF.id
+      listaPrecio = canalCF.lista_precios
+      mostrarPrecios = true
+    }
   }
 
   return {

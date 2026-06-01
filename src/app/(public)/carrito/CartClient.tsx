@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingBag, Loader2, Minus, Plus } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
+import { formatPrecio } from '@/lib/utils'
 
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
@@ -15,6 +16,11 @@ interface PageUser {
   rol: string
 }
 
+interface Props {
+  user: PageUser | null
+  mostrarPrecios: boolean
+}
+
 function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items']) {
   const lineas = items.map(i =>
     `• ${i.titulo} (${i.codigo_interno}) × ${i.cantidad}`
@@ -22,7 +28,7 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
-export function CartClient({ user }: { user: PageUser | null }) {
+export function CartClient({ user, mostrarPrecios }: Props) {
   const { items, remove, updateCantidad, clear, total } = useCartStore()
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -146,9 +152,9 @@ export function CartClient({ user }: { user: PageUser | null }) {
                       <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
-                      {item.precio > 0 && (
+                      {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          u$s {item.precio.toFixed(2)} c/u
+                          {formatPrecio(item.precio)} c/u
                         </p>
                       )}
                     </div>
@@ -204,9 +210,9 @@ export function CartClient({ user }: { user: PageUser | null }) {
 
                   {/* Subtotal */}
                   <div className="flex-shrink-0 flex flex-col items-end justify-between">
-                    {item.precio > 0 && (
+                    {mostrarPrecios && item.precio > 0 && (
                       <p className="text-base font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        u$s {subtotal.toFixed(2)}
+                        {formatPrecio(subtotal)}
                       </p>
                     )}
                   </div>
@@ -237,20 +243,31 @@ export function CartClient({ user }: { user: PageUser | null }) {
               <span>{totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'}</span>
             </div>
 
-            {totalGeneral > 0 && (
+            {mostrarPrecios && totalGeneral > 0 && (
               <>
                 <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                   <span>Subtotal</span>
-                  <span>u$s {totalGeneral.toFixed(2)}</span>
+                  <span>{formatPrecio(totalGeneral)}</span>
                 </div>
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
-                  <span>u$s {totalGeneral.toFixed(2)}</span>
+                  <span>{formatPrecio(totalGeneral)}</span>
                 </div>
               </>
             )}
           </div>
+
+          {!mostrarPrecios && (
+            <div
+              className="rounded-lg px-4 py-3 text-xs leading-relaxed"
+              style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}
+            >
+              {user
+                ? 'Los precios se confirman con tu ejecutivo comercial antes de procesar el pedido.'
+                : 'Iniciá sesión o registrate para ver precios y finalizar tu pedido.'}
+            </div>
+          )}
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 
@@ -293,7 +310,7 @@ export function CartClient({ user }: { user: PageUser | null }) {
           ) : (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Iniciá sesión para ver precios y hacer tu pedido.
+                Para finalizar tu compra, iniciá sesión o creá tu cuenta.
               </p>
               <Link
                 href="/login?next=/carrito"

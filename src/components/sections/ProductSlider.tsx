@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseImg } from '@/lib/images'
+import { formatPrecio } from '@/lib/utils'
 
 export interface FotoDestacada {
   id: number
@@ -84,7 +85,7 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                   </p>
                   {foto.precio != null && (
                     <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
-                      u$s {foto.precio.toFixed(2)}
+                      {formatPrecio(foto.precio)}
                     </p>
                   )}
                 </button>

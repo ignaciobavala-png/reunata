@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ImageIcon, Check } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
 import { useCartStore } from '@/stores/cartStore'
+import { formatPrecio } from '@/lib/utils'
 import { useState } from 'react'
 
 interface ProductoPublico {
@@ -114,7 +115,7 @@ export function ProductGridPublic({
               </div>
 
               <Link href={`/tienda/p/${p.id}`} className="block">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                <p className="text-sm font-medium leading-snug" style={{ color: 'var(--foreground)' }}>
                   {p.titulo}
                 </p>
                 <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -122,7 +123,7 @@ export function ProductGridPublic({
                 </p>
                 {p.precio != null && (
                   <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                    u$s {p.precio.toFixed(2)}
+                    {formatPrecio(p.precio)}
                   </p>
                 )}
               </Link>

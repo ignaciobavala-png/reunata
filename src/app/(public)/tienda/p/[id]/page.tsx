@@ -8,6 +8,7 @@ import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
+import { formatPrecio } from '@/lib/utils'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -101,7 +102,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
             {precio != null && (
               <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                u$s {precio.toFixed(2)}
+                {formatPrecio(precio)}
               </p>
             )}
 
