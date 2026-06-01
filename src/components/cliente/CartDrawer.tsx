@@ -179,17 +179,12 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
             ) : (
               <>
                 <a
-                  href={buildWhatsAppLink(items)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/carrito"
                   className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
-                  style={{ background: '#25d366', color: 'white' }}
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
                 >
-                  Pedir por WhatsApp
+                  Ver carrito y finalizar
                 </a>
-                <p className="text-xs text-center mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Los precios se confirman al procesar tu pedido.
-                </p>
               </>
             )}
           </div>
