@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ImageIcon, Check } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
@@ -35,10 +36,6 @@ export function ProductGridPublic({
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
-    if (enCarrito(p.id)) {
-      router.push('/carrito')
-      return
-    }
     add({
       productoId: p.id,
       codigo_interno: p.codigo_interno,
@@ -49,9 +46,8 @@ export function ProductGridPublic({
     })
     setAgregados(prev => new Set(prev).add(p.id))
     setTimeout(() => {
-      router.push('/carrito')
       setAgregados(prev => { const s = new Set(prev); s.delete(p.id); return s })
-    }, 600)
+    }, 1200)
   }
 
   const enCarrito = (id: number) => items.some(i => i.productoId === id)
@@ -64,68 +60,72 @@ export function ProductGridPublic({
           const yaEsta = enCarrito(p.id)
           return (
             <div key={p.id} className="group">
-              <button
-                onClick={() => handleAgregar(p)}
-                className="w-full aspect-[3/4] mb-3 relative overflow-hidden block"
+              {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
+              <div
+                className="w-full aspect-[3/4] mb-3 relative overflow-hidden"
                 style={{
                   border: yaEsta ? '2px solid #10b981' : '1px solid var(--border)',
                   transition: 'border-color 0.3s',
                 }}
-                aria-label={yaEsta ? 'Ver carrito' : `Agregar ${p.titulo}`}
               >
-                {/* Foto */}
-                {p.foto_url ? (
-                  <Image
-                    src={supabaseImg(p.supabaseUrl, p.foto_url, 400, { height: 533 })}
-                    alt={p.titulo}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-acero-claro)' }}>
-                    <ImageIcon size={24} style={{ color: 'var(--color-acero-oscuro)' }} />
-                  </div>
-                )}
+                <Link href={`/tienda/p/${p.id}`} className="block absolute inset-0">
+                  {p.foto_url ? (
+                    <Image
+                      src={supabaseImg(p.supabaseUrl, p.foto_url, 400, { height: 533 })}
+                      alt={p.titulo}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-acero-claro)' }}>
+                      <ImageIcon size={24} style={{ color: 'var(--color-acero-oscuro)' }} />
+                    </div>
+                  )}
 
-                {/* Overlay de feedback "Agregado ✓" */}
-                {agregado && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <span className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center">
-                      <Check size={20} className="text-white" strokeWidth={2.5} />
+                  {/* Overlay de feedback "Agregado ✓" */}
+                  {agregado && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <span className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center">
+                        <Check size={20} className="text-white" strokeWidth={2.5} />
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Badge "en carrito" esquina superior derecha */}
+                  {yaEsta && !agregado && (
+                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
+                      <Check size={11} className="text-white" strokeWidth={3} />
                     </span>
-                  </div>
-                )}
+                  )}
+                </Link>
 
-                {/* Barra hover slide-up */}
+                {/* Barra hover slide-up — separada del Link para evitar anidado inválido */}
                 {!agregado && (
-                  <div
-                    className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
+                  <button
+                    onClick={() => yaEsta ? router.push('/carrito') : handleAgregar(p)}
+                    className="absolute inset-x-0 bottom-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
                     style={{ background: yaEsta ? '#10b981' : 'var(--color-granito-oscuro)', color: 'white' }}
+                    aria-label={yaEsta ? 'Ver carrito' : `Agregar ${p.titulo}`}
                   >
                     {yaEsta ? '✓ Ver carrito' : '+ Agregar'}
-                  </div>
+                  </button>
                 )}
+              </div>
 
-                {/* Badge "en carrito" esquina superior derecha */}
-                {yaEsta && !agregado && (
-                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
-                    <Check size={11} className="text-white" strokeWidth={3} />
-                  </span>
-                )}
-              </button>
-
-              <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
-                {p.titulo}
-              </p>
-              <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                {p.codigo_interno}
-              </p>
-              {p.precio != null && (
-                <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                  u$s {p.precio.toFixed(2)}
+              <Link href={`/tienda/p/${p.id}`} className="block">
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                  {p.titulo}
                 </p>
-              )}
+                <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  {p.codigo_interno}
+                </p>
+                {p.precio != null && (
+                  <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                    u$s {p.precio.toFixed(2)}
+                  </p>
+                )}
+              </Link>
               {(p.multiplo ?? 1) > 1 && (
                 <span
                   className="inline-block mt-1 px-1.5 py-0.5 text-xs font-medium tracking-wide rounded"
