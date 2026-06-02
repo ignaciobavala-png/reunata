@@ -55,3 +55,14 @@ export async function toggleCatalogoActivo(id: number, activo: boolean) {
   revalidatePath('/dashboard/admin/catalogos')
   return { ok: true }
 }
+
+export async function guardarConfigCatalogo(config: { mostrarCodigo: boolean; columnas: string }) {
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('configuracion').upsert([
+    { clave: 'catalogo_mostrar_codigo', valor: config.mostrarCodigo ? 'true' : 'false' },
+    { clave: 'catalogo_columnas',       valor: config.columnas },
+  ], { onConflict: 'clave' })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/dashboard/admin/catalogos')
+  return { ok: true }
+}
