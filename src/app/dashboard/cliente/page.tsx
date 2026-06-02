@@ -138,7 +138,7 @@ export default async function ClienteDashboardPage() {
       {/* Accesos rápidos */}
       <div className="grid grid-cols-2 gap-4 mb-8 max-w-md">
         <Link
-          href="/dashboard/cliente/catalogo"
+          href="/catalogo"
           className="rounded-xl p-5 border flex flex-col gap-2 transition-colors duration-150"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >

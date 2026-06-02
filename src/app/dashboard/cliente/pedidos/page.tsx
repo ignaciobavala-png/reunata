@@ -88,7 +88,7 @@ export default async function MisPedidosPage() {
             Todavía no realizaste ningún pedido.
           </p>
           <Link
-            href="/dashboard/cliente/catalogo"
+            href="/catalogo"
             className="text-sm px-4 py-2 rounded-lg"
             style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}
           >
