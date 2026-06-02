@@ -8,34 +8,45 @@ import { CatalogoView } from './CatalogoView'
 
 export const metadata: Metadata = { title: 'Catálogo — Reunata' }
 
+const ROLES_ADMIN = ['master', 'empleado']
+
 async function resolverCanal(preview: string | undefined) {
   const service = createServiceClient()
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
 
-  if (preview) {
-    const authClient = await createClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (user) {
-      const { data: profile } = await service.from('profiles').select('rol').eq('id', user.id).single()
-      if (['master', 'empleado'].includes(profile?.rol ?? '')) {
-        const { data: canal } = await service
-          .from('canales')
-          .select('id, nombre, slug, lista_precios')
-          .eq('slug', preview)
-          .single()
-        if (canal) {
-          return {
-            canalId: canal.id as number,
-            listaPrecio: canal.lista_precios as string,
-            mostrarPrecios: true,
-            nombreCanal: canal.nombre as string,
-            pendienteAprobacion: false,
-            isAdminPreview: true,
-          }
-        }
+  // Detectar si es admin
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await service.from('profiles').select('rol').eq('id', user.id).single()
+    isAdmin = ROLES_ADMIN.includes(profile?.rol ?? '')
+  }
+
+  // Admin sin ?preview → redirigir a consumidor_final por defecto
+  if (isAdmin && !preview) {
+    return { redirectTo: '/catalogo?preview=consumidor_final' as string }
+  }
+
+  // Admin con ?preview → mostrar ese canal
+  if (isAdmin && preview) {
+    const { data: canal } = await service
+      .from('canales')
+      .select('id, nombre, slug, lista_precios')
+      .eq('slug', preview)
+      .single()
+    if (canal) {
+      return {
+        canalId: canal.id as number,
+        listaPrecio: canal.lista_precios as string,
+        mostrarPrecios: true,
+        nombreCanal: canal.nombre as string,
+        pendienteAprobacion: false,
+        isAdminPreview: true,
       }
     }
   }
 
+  // Usuario normal → su canal real
   const canalInfo = await resolverCanalTienda()
   const { data: canal } = await service
     .from('canales')
@@ -69,6 +80,7 @@ export default async function CatalogoPage({
       .in('clave', ['catalogo_mostrar_codigo', 'catalogo_columnas']),
   ])
 
+  if ('redirectTo' in canalData) redirect(canalData.redirectTo!)
   if (canalData.pendienteAprobacion) redirect('/')
 
   const configMap = Object.fromEntries((configRows ?? []).map(r => [r.clave, r.valor]))
