@@ -557,6 +557,25 @@ Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en e
 - **Fix:** el fallback en `resolverCanalTienda()` ahora usa `consumidor_final` en lugar de `publico` → mismos productos que un CF logueado, con `mostrarPrecios = false`
 - El canal `publico` en DB queda como referencia para el chatbot pero ya no afecta la tienda
 
+### Precios en ARS — limpieza de moneda — sesión 03/06
+- Confirmado: los precios de Gesu vienen en pesos argentinos (ARS), no en USD
+- Sync (`route.ts`): `moneda` default corregido de `'u$s'` a `'$'`
+- Todos los `u$s X.XX` y `USD X.XX` del frontend reemplazados por `formatPrecio()` (formato `$ X.XXX` con separador de miles `es-AR`)
+- Archivos corregidos: historial de pedidos, detalle de pedido, instrucciones de pago (transferencia/efectivo/e-cheq/cheque), tabla de pedidos admin, panel de productos admin (función `fmt`), dashboard cliente
+- `PagoInstrucciones` aparece duplicado en `(public)` y `dashboard/cliente/pedidos/[id]` — ambos corregidos
+- Label "Monto mínimo de pedido (USD)" → "(ARS)" en configuración
+- La columna en DB sigue llamándose `total_usd` (cosmético; renombrar requiere migración, no es urgente)
+- `currency_id: 'ARS'` en Mercado Pago ya estaba correcto
+
+### Banco de imágenes con gate de mayorista — sesión 03/06
+- `/banco-imagenes` reemplaza la página provisoria con lógica de acceso completa
+- Gate server-side con tres estados:
+  - **Sin sesión / consumidor_final:** "Exclusivo para revendedores" + botón registro mayorista + link "Ya tengo cuenta" (`?next=/banco-imagenes`)
+  - **Mayorista pendiente de aprobación:** badge amarillo + mensaje + WhatsApp
+  - **Mayorista aprobado:** botón "Abrir banco de imágenes" → Drive URL (o msg "en breve" si no está configurada)
+- URL del Drive configurable desde **Panel → Configuración → Banco de imágenes** (clave `banco_imagenes_drive_url`)
+- `configuracion/page.tsx`: nueva sección con input `type="url"` incluida en el upsert del form
+
 ---
 
 ## Pendiente (próximas sesiones)
@@ -565,5 +584,9 @@ Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en e
 - Ahora la gestión de fotos está disponible directamente desde el panel Productos (columna Fotos)
 - Queda duplicada la sección en Multimedia > Fotos de productos
 - **Acción:** confirmar con Gastón si la puede dejar de usar; luego ocultar del sidebar (no eliminar)
+
+### #35 — Filtros en tienda (sesión aparte)
+- Auditar atributos disponibles en tabla `productos`
+- Posiblemente requiere columnas nuevas o tabla `atributos`
 
 <!-- END:feactures -->
