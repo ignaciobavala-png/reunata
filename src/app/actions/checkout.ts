@@ -12,44 +12,60 @@ interface CheckoutItem {
   cantidad: number
 }
 
+interface GuestData {
+  nombre: string
+  email: string
+  telefono?: string
+}
+
 export async function iniciarCheckoutMP(
-  items: CheckoutItem[]
+  items: CheckoutItem[],
+  guestData?: GuestData
 ): Promise<{ ok: boolean; init_point?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Necesitás iniciar sesión para continuar.' }
 
-  const { data: perfil } = await supabase
-    .from('profiles')
-    .select('rol')
-    .eq('id', user.id)
-    .single()
+  // Usuarios registrados: solo consumidor_final puede pagar con MP
+  if (user) {
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('rol')
+      .eq('id', user.id)
+      .single()
 
-  if (perfil?.rol !== 'consumidor_final') {
-    return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+    if (perfil?.rol !== 'consumidor_final') {
+      return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+    }
+  } else {
+    // Guest: requiere datos del comprador
+    if (!guestData?.nombre?.trim() || !guestData?.email?.trim()) {
+      return { ok: false, error: 'Completá tu nombre y email para continuar.' }
+    }
   }
 
   const service = createServiceClient()
 
-  // Validar múltiplos: leer canal del usuario y verificar cantidades
-  const { data: profileCanal } = await supabase
-    .from('profiles')
-    .select('canal_id')
-    .eq('id', user.id)
-    .single()
+  // Validar múltiplos solo para usuarios registrados con canal asignado
+  if (user) {
+    const { data: profileCanal } = await supabase
+      .from('profiles')
+      .select('canal_id')
+      .eq('id', user.id)
+      .single()
 
-  if (profileCanal?.canal_id) {
-    const { data: multiplosDb } = await service
-      .from('producto_canales')
-      .select('producto_id, multiplo')
-      .eq('canal_id', profileCanal.canal_id)
-      .in('producto_id', items.map(i => i.productoId))
+    if (profileCanal?.canal_id) {
+      const { data: multiplosDb } = await service
+        .from('producto_canales')
+        .select('producto_id, multiplo')
+        .eq('canal_id', profileCanal.canal_id)
+        .in('producto_id', items.map(i => i.productoId))
 
-    for (const item of items) {
-      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
-      const multiplo = row?.multiplo ?? 1
-      if (multiplo > 1 && item.cantidad % multiplo !== 0) {
-        return { ok: false, error: `La cantidad de un producto debe ser múltiplo de ${multiplo}.` }
+      for (const item of items) {
+        const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+        const multiplo = row?.multiplo ?? 1
+        if (multiplo > 1 && item.cantidad % multiplo !== 0) {
+          return { ok: false, error: `La cantidad de un producto debe ser múltiplo de ${multiplo}.` }
+        }
       }
     }
   }
@@ -72,9 +88,23 @@ export async function iniciarCheckoutMP(
 
   const total = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
+  const pedidoInsert: Record<string, unknown> = {
+    estado: 'pendiente_pago',
+    total_usd: total,
+    medio_pago: 'mercadopago',
+  }
+
+  if (user) {
+    pedidoInsert.cliente_id = user.id
+  } else {
+    pedidoInsert.guest_nombre   = guestData!.nombre.trim()
+    pedidoInsert.guest_email    = guestData!.email.trim().toLowerCase()
+    pedidoInsert.guest_telefono = guestData!.telefono?.trim() ?? null
+  }
+
   const { data: pedido, error: pedidoError } = await service
     .from('pedidos')
-    .insert({ cliente_id: user.id, estado: 'pendiente_pago', total_usd: total, medio_pago: 'mercadopago' })
+    .insert(pedidoInsert)
     .select('id')
     .single()
 
@@ -89,6 +119,8 @@ export async function iniciarCheckoutMP(
     }))
   )
 
+  const payerEmail = user?.email ?? guestData!.email.trim().toLowerCase()
+
   try {
     const preference = getMPPreference()
     const response = await preference.create({
@@ -100,7 +132,7 @@ export async function iniciarCheckoutMP(
           unit_price: l.precioUnit,
           currency_id: 'ARS',
         })),
-        payer: { email: user.email ?? undefined },
+        payer: { email: payerEmail },
         back_urls: {
           success: `${APP_URL}/checkout/exito`,
           failure: `${APP_URL}/checkout/fallo`,

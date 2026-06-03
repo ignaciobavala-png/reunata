@@ -36,6 +36,7 @@ export default async function PedidosPage({
     .from('pedidos')
     .select(`
       id, estado, medio_pago, total_usd, created_at,
+      guest_nombre, guest_email,
       cliente:cliente_id ( nombre, email ),
       empleado:empleado_id ( nombre )
     `)
@@ -103,6 +104,9 @@ export default async function PedidosPage({
               {(pedidos ?? []).map((p, i) => {
                 const col = COLOR_ESTADO[p.estado] ?? { bg: '#88888822', text: '#888888' }
                 const cliente = p.cliente as { nombre?: string; email?: string } | null
+                const nombreMostrado = cliente?.nombre || (p as any).guest_nombre || '—'
+                const emailMostrado  = cliente?.email  || (p as any).guest_email  || ''
+                const esGuest = !cliente && !!(p as any).guest_email
                 return (
                   <tr
                     key={p.id}
@@ -115,8 +119,15 @@ export default async function PedidosPage({
                       {p.id.slice(0, 8).toUpperCase()}
                     </td>
                     <td className="px-4 py-3">
-                      <p style={{ color: 'var(--foreground)' }}>{cliente?.nombre || '—'}</p>
-                      <p style={{ color: 'var(--color-acero-oscuro)' }}>{cliente?.email}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p style={{ color: 'var(--foreground)' }}>{nombreMostrado}</p>
+                        {esGuest && (
+                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f59e0b22', color: '#f59e0b' }}>
+                            Invitado
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ color: 'var(--color-acero-oscuro)' }}>{emailMostrado}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full" style={{ background: col.bg, color: col.text }}>

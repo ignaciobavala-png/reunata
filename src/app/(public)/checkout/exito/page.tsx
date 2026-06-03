@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Pago confirmado — Reunata' }
 
@@ -10,6 +11,8 @@ export default async function CheckoutExitoPage({
   searchParams: Promise<{ external_reference?: string; payment_id?: string }>
 }) {
   const { external_reference: pedidoId } = await searchParams
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--background)' }}>
@@ -21,8 +24,10 @@ export default async function CheckoutExitoPage({
             ¡Pago confirmado!
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Tu pedido fue recibido y el pago procesado correctamente.
-            Te vamos a avisar cuando esté en camino.
+            {user
+              ? 'Tu pedido fue recibido y el pago procesado correctamente. Te vamos a avisar cuando esté en camino.'
+              : 'Tu pedido fue recibido. Mercado Pago te enviará la confirmación a tu email.'
+            }
           </p>
         </div>
 
@@ -33,7 +38,7 @@ export default async function CheckoutExitoPage({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 w-full">
-          {pedidoId && (
+          {user && pedidoId && (
             <Link
               href={`/pedidos/${pedidoId}`}
               className="flex-1 py-3 rounded-lg text-sm font-medium text-center transition-opacity hover:opacity-80"

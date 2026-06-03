@@ -3,7 +3,6 @@ import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
 import { formatPrecio } from '@/lib/utils'
-import { formatPrecio } from '@/lib/utils'
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente_pago:     'Pendiente de pago',
