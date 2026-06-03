@@ -24,7 +24,7 @@ async function ListaContent() {
   const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, codigo_interno, titulo, categoria, stock, stock_visible, precio_lista1, precio_lista2, precio_lista3, activo')
+      .select('id, codigo_interno, titulo, categoria, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, activo')
       .order('categoria')
       .order('titulo'),
     supabase
@@ -75,6 +75,10 @@ async function ListaContent() {
     if (p.stock_visible !== undefined) stockVisiblesMap[p.id] = p.stock_visible
   }
 
+  const mostrarStockSet = new Set<number>(
+    (productos ?? []).filter(p => p.mostrar_stock).map(p => p.id)
+  )
+
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -92,6 +96,7 @@ async function ListaContent() {
         asignacionesIniciales={asignacionesSet}
         multiplosIniciales={multiplosMap}
         stockVisiblesIniciales={stockVisiblesMap}
+        mostrarStockIniciales={mostrarStockSet}
       />
     </div>
   )

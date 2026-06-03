@@ -146,6 +146,16 @@ export async function guardarStockVisible(productoId: number, valor: number | nu
   return { ok: true }
 }
 
+export async function toggleMostrarStock(productoId: number, activo: boolean) {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('productos')
+    .update({ mostrar_stock: activo })
+    .eq('id', productoId)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
 export async function actualizarOferta(
   id: number,
   data: {

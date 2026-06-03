@@ -41,7 +41,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, moneda, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -104,6 +104,18 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             {precio != null && (
               <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                 {formatPrecio(precio, monedaFinal)}
+              </p>
+            )}
+
+            {producto.mostrar_stock && (
+              <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                {(() => {
+                  const cantidad = producto.stock_visible ?? producto.stock
+                  if (cantidad === null) return null
+                  if (cantidad === 0) return <span style={{ color: '#ef4444' }}>Sin stock</span>
+                  if (cantidad <= 5) return <span style={{ color: '#f59e0b' }}>{cantidad} disponibles</span>
+                  return <span>{cantidad} disponibles</span>
+                })()}
               </p>
             )}
 
