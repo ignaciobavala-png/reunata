@@ -8,7 +8,7 @@ import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
-import { formatPrecio } from '@/lib/utils'
+import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -34,7 +34,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const supabase = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = await resolverCanalTienda()
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -52,9 +52,10 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const fotos = ((producto.producto_fotos ?? []) as { url: string; orden: number }[])
     .sort((a, b) => a.orden - b.orden)
 
-  const precio: number | null = mostrarPrecios && listaPrecio
+  const precioRaw: number | null = mostrarPrecios && listaPrecio
     ? ((producto as Record<string, unknown>)[listaPrecio] as number | null) ?? null
     : null
+  const { precio, moneda: monedaFinal } = aplicarTipoCambio(precioRaw, producto.moneda ?? null, tipoCambioUsd)
 
   const multiplo = multiplos[producto.id] ?? 1
 
@@ -102,7 +103,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
             {precio != null && (
               <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                {formatPrecio(precio, producto.moneda)}
+                {formatPrecio(precio, monedaFinal)}
               </p>
             )}
 

@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { PendingApproval } from '@/components/sections/PendingApproval'
+import { aplicarTipoCambio } from '@/lib/utils'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
@@ -45,7 +46,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabase = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = await resolverCanalTienda()
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -70,13 +71,14 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null
   }) {
     const fotos = (p.producto_fotos ?? []).sort((a, b) => a.orden - b.orden)
+    const { precio, moneda } = aplicarTipoCambio(extraerPrecio(p as Record<string, unknown>), p.moneda ?? null, tipoCambioUsd)
     return {
       id: p.id,
       titulo: p.titulo,
       codigo_interno: p.codigo_interno,
       foto_url: fotos[0]?.url ?? null,
-      precio: extraerPrecio(p as Record<string, unknown>),
-      moneda: p.moneda ?? null,
+      precio,
+      moneda,
       multiplo: multiplos[p.id] ?? 1,
       supabaseUrl,
     }

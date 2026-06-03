@@ -18,6 +18,7 @@ import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { PendingApproval } from '@/components/sections/PendingApproval'
+import { aplicarTipoCambio } from '@/lib/utils'
 
 export default async function TiendaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
@@ -31,7 +32,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
     supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
   ])
 
-  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = canalInfo
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -50,10 +51,11 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
 
     const productosGrid = (resultados ?? []).map(p => {
       const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
-      const precio = mostrarPrecios && listaPrecio
+      const precioRaw = mostrarPrecios && listaPrecio
         ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
         : null
-      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: fotos[0]?.url ?? null, precio, moneda: p.moneda ?? null, multiplo: multiplos[p.id] ?? 1, supabaseUrl }
+      const { precio, moneda } = aplicarTipoCambio(precioRaw, p.moneda ?? null, tipoCambioUsd)
+      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: fotos[0]?.url ?? null, precio, moneda, multiplo: multiplos[p.id] ?? 1, supabaseUrl }
     })
 
     return (
@@ -96,9 +98,10 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
 
   const fotos = (fotosDestacadas ?? []).map((f) => {
     const producto = Array.isArray(f.productos) ? f.productos[0] : null
-    const precio = mostrarPrecios && listaPrecio && producto
+    const precioRaw = mostrarPrecios && listaPrecio && producto
       ? (producto[listaPrecio as keyof typeof producto] as number | null) ?? null
       : null
+    const { precio, moneda } = aplicarTipoCambio(precioRaw, producto?.moneda ?? null, tipoCambioUsd)
     return {
       id: f.id,
       url: f.url,
@@ -106,7 +109,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
       titulo: producto?.titulo ?? '',
       codigo_interno: producto?.codigo_interno ?? '',
       precio,
-      moneda: producto?.moneda ?? null,
+      moneda,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })

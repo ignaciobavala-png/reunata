@@ -47,6 +47,7 @@ export default async function ConfiguracionPage({
             'banco_razon_social', 'banco_cuit',
             'pedido_monto_minimo', 'pedido_dias_vencimiento',
             'banco_imagenes_drive_url',
+            'tipo_cambio_usd',
           ]
           const rows = claves.map(clave => ({ clave, valor: (formData.get(clave) as string) ?? '' }))
           await sb.from('configuracion').upsert(rows, { onConflict: 'clave' })
@@ -118,6 +119,47 @@ export default async function ConfiguracionPage({
                 className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Tipo de cambio */}
+        <section
+          className="rounded-xl border p-6 mb-6"
+          style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+        >
+          <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            Tipo de cambio
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Cotización del dólar en pesos argentinos. Los productos cargados en USD se convierten automáticamente a ARS en la tienda.
+          </p>
+          <div className="max-w-xs">
+            <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              USD → ARS
+            </label>
+            <div className="relative">
+              <span
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
+                style={{ color: 'var(--color-acero-oscuro)' }}
+              >
+                1 USD =
+              </span>
+              <input
+                name="tipo_cambio_usd"
+                type="number"
+                min="1"
+                step="0.01"
+                defaultValue={cfg['tipo_cambio_usd'] ?? '1'}
+                className="w-full pl-16 pr-12 py-2 text-sm rounded-lg border outline-none"
+                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              />
+              <span
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
+                style={{ color: 'var(--color-acero-oscuro)' }}
+              >
+                ARS
+              </span>
             </div>
           </div>
         </section>

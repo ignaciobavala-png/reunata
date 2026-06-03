@@ -10,6 +10,7 @@ import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { aplicarTipoCambio } from '@/lib/utils'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 
 export default async function Home() {
@@ -22,7 +23,7 @@ export default async function Home() {
     supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
   ])
 
-  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion } = canalInfo
+  const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = canalInfo
   const { ids: idsCanal } = await getProductosDelCanal(canalId)
 
   const { data: fotosDestacadas } = await supabase
@@ -42,9 +43,10 @@ export default async function Home() {
 
   const fotos = (fotosDestacadas ?? []).map((f) => {
     const producto = Array.isArray(f.productos) ? f.productos[0] : null
-    const precio = mostrarPrecios && listaPrecio && producto
+    const precioRaw = mostrarPrecios && listaPrecio && producto
       ? (producto[listaPrecio as keyof typeof producto] as number | null) ?? null
       : null
+    const { precio, moneda } = aplicarTipoCambio(precioRaw, producto?.moneda ?? null, tipoCambioUsd)
     return {
       id: f.id,
       url: f.url,
@@ -52,7 +54,7 @@ export default async function Home() {
       titulo: producto?.titulo ?? '',
       codigo_interno: producto?.codigo_interno ?? '',
       precio,
-      moneda: producto?.moneda ?? null,
+      moneda,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })
