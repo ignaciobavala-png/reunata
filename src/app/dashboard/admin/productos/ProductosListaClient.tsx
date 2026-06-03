@@ -4,7 +4,7 @@ import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
-import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
+import { toggleOferta, toggleDestacada, toggleNovedad, guardarStockVisible } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
 import { ProductoFichaDrawer, type FotoItem, type Canal } from '@/components/admin/ProductoFichaDrawer'
 
@@ -14,6 +14,7 @@ interface Producto {
   titulo: string
   categoria: string | null
   stock: number | null
+  stock_visible: number | null
   precio_lista1: number | null
   precio_lista2: number | null
   precio_lista3: number | null
@@ -49,6 +50,7 @@ export function ProductosListaClient({
   canalesIniciales,
   asignacionesIniciales,
   multiplosIniciales,
+  stockVisiblesIniciales,
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>
@@ -60,6 +62,7 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
+  stockVisiblesIniciales: Record<number, number | null>
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -82,6 +85,8 @@ export function ProductosListaClient({
   })
   const [asignaciones, setAsignaciones] = useState<Set<string>>(new Set(asignacionesIniciales))
   const [multiplos, setMultiplos] = useState<Record<string, number>>({ ...multiplosIniciales })
+  const [stockVisibles, setStockVisibles] = useState<Record<number, number | null>>({ ...stockVisiblesIniciales })
+  const [guardandoStock, setGuardandoStock] = useState<number | null>(null)
   const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' } | null>(null)
 
   // Asignaciones masivas por categoría
@@ -198,6 +203,22 @@ export function ProductosListaClient({
     })
   }
 
+  function handleStockVisibleBlur(p: Producto, rawValue: string) {
+    const parsed = rawValue === '' ? null : parseInt(rawValue)
+    const clamped = parsed !== null && p.stock !== null ? Math.min(parsed, p.stock) : parsed
+    const anterior = stockVisibles[p.id] ?? null
+    if (clamped === anterior) return
+    setStockVisibles(prev => ({ ...prev, [p.id]: clamped }))
+    setGuardandoStock(p.id)
+    startTransition(async () => {
+      try {
+        const res = await guardarStockVisible(p.id, clamped)
+        if (!res.ok) setStockVisibles(prev => ({ ...prev, [p.id]: anterior }))
+      } catch { setStockVisibles(prev => ({ ...prev, [p.id]: anterior })) }
+      finally { setGuardandoStock(null) }
+    })
+  }
+
   function handleToggleOferta(canal: 'ofertas' | 'hotsale', p: Producto) {
     const key = `${canal}-${p.id}`
     const nuevoValor = !ofertas.has(key)
@@ -290,7 +311,12 @@ export function ProductosListaClient({
                   Categoría / Producto
                 </th>
                 <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Código</th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Stock</th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>
+                  <div className="flex flex-col items-end leading-tight">
+                    <span>Stock</span>
+                    <span className="text-xs font-normal opacity-60">Gesu / Visible</span>
+                  </div>
+                </th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 1</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
@@ -440,8 +466,29 @@ export function ProductosListaClient({
                         <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
                           {p.codigo_interno ?? '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: p.stock === 0 ? '#ef4444' : 'var(--foreground)' }}>
-                          {p.stock ?? '—'}
+                        <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
+                          {/* Stock Gesu (solo lectura) */}
+                          <div className="text-xs mb-1" style={{ color: p.stock === 0 ? '#ef4444' : 'var(--color-acero-oscuro)' }}>
+                            {p.stock ?? '—'}
+                          </div>
+                          {/* Stock visible (editable) */}
+                          <div className="relative flex justify-end">
+                            <input
+                              type="number"
+                              min={0}
+                              max={p.stock ?? undefined}
+                              defaultValue={stockVisibles[p.id] ?? ''}
+                              placeholder={p.stock !== null ? String(p.stock) : '—'}
+                              onBlur={e => handleStockVisibleBlur(p, e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                              className="w-16 text-right px-2 py-0.5 text-xs rounded border outline-none"
+                              style={{
+                                borderColor: 'var(--color-acero-claro)',
+                                color: 'var(--foreground)',
+                                background: guardandoStock === p.id ? 'var(--color-acero-brillo)' : 'white',
+                              }}
+                            />
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista1)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista2)}</td>
