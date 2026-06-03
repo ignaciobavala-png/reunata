@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
+import { formatPrecio } from '@/lib/utils'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 
@@ -101,10 +102,10 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                   </td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--foreground)' }}>{item.cantidad}</td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    u$s {Number(item.precio_unit).toFixed(2)}
+                    {formatPrecio(Number(item.precio_unit))}
                   </td>
                   <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--foreground)' }}>
-                    u$s {(Number(item.precio_unit) * item.cantidad).toFixed(2)}
+                    {formatPrecio(Number(item.precio_unit) * item.cantidad)}
                   </td>
                 </tr>
               )
@@ -114,7 +115,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                 Total
               </td>
               <td className="px-4 py-3 text-right font-medium text-base" style={{ color: 'var(--foreground)' }}>
-                u$s {Number(pedido.total_usd).toFixed(2)}
+                {formatPrecio(Number(pedido.total_usd))}
               </td>
             </tr>
           </tbody>

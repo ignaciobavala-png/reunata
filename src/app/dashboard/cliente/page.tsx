@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ShoppingCart, Store, Tag } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
 
 const LABEL_ROL: Record<string, string> = {
@@ -188,7 +189,7 @@ export default async function ClienteDashboardPage() {
                   </span>
                   {p.total_usd && (
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                      u$s {p.total_usd.toFixed(2)}
+                      {formatPrecio(p.total_usd)}
                     </span>
                   )}
                 </div>

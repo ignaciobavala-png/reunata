@@ -93,7 +93,7 @@ export default async function ConfiguracionPage({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Monto mínimo de pedido (USD)
+                Monto mínimo de pedido (ARS)
               </label>
               <input
                 name="pedido_monto_minimo"

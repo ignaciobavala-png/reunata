@@ -170,7 +170,7 @@ async function syncProductos(desactivarNoReunata = false) {
       proveedor:       item.proveedor || null,
       stock:           int(item.stock),
       stock_minimo:    int(item.stockMinimo),
-      moneda:          item.monedaPrecioCompra || 'u$s',
+      moneda:          item.monedaPrecioCompra || '$',
       precio_compra:   num(item.precioFinalCompra),
       precio_lista1:   num(item.precioFinalLista1),
       precio_lista2:   num(item.precioFinalLista2),

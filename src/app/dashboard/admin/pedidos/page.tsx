@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { ShoppingCart } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 
 const LABEL_ESTADO: Record<string, string> = {
   borrador:           'Borrador',
@@ -126,7 +127,7 @@ export default async function PedidosPage({
                       {p.medio_pago?.replace('_', ' ') ?? '—'}
                     </td>
                     <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
-                      {p.total_usd != null ? `USD ${Number(p.total_usd).toFixed(2)}` : '—'}
+                      {p.total_usd != null ? formatPrecio(Number(p.total_usd)) : '—'}
                     </td>
                     <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
                       {new Date(p.created_at).toLocaleDateString('es-AR')}
