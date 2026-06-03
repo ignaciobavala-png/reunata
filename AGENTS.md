@@ -576,6 +576,26 @@ Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en e
 - URL del Drive configurable desde **Panel → Configuración → Banco de imágenes** (clave `banco_imagenes_drive_url`)
 - `configuracion/page.tsx`: nueva sección con input `type="url"` incluida en el upsert del form
 
+### Checkout de invitados (guest checkout) — sesión 03/06
+- Migración: `cliente_id` nullable + columnas `guest_nombre`, `guest_email`, `guest_telefono` en `pedidos`
+- `src/app/actions/checkout.ts`: acepta `guestData?: { nombre, email, telefono }` como segundo parámetro
+  - Usuarios registrados: mismo flujo de antes (solo `consumidor_final`)
+  - Invitados: validación de nombre y email, inserción con `service client` (bypasa RLS), `cliente_id: null`
+- `src/app/(public)/carrito/CartClient.tsx`: cuando no hay sesión, muestra formulario inline (nombre, email, teléfono) en lugar de los botones de login
+- `/checkout/exito`: botón "Ver mi pedido" visible solo si hay sesión; mensaje diferenciado para invitados
+- Admin pedidos: selecciona `guest_nombre` y `guest_email`; badge naranja "Invitado" cuando `cliente_id` es null
+- Fix: import duplicado de `formatPrecio` en `dashboard/cliente/pedidos/[id]/page.tsx`
+
+### Hero carousel — soporte de YouTube y Vimeo — sesión 03/06
+- **Motivación:** videos en Supabase Storage quemaban el egress del plan Free (5 GB/mes); un video de 40 MB × 100 visitas = 4 GB
+- `src/components/sections/HeroCarousel.tsx`: función `getEmbedUrl()` detecta URLs de YouTube/Vimeo y retorna la URL de embed; renderiza `<iframe>` con técnica CSS cover en lugar de `<video>` para URLs externas
+- `src/app/dashboard/admin/multimedia/HeroClient.tsx`:
+  - Sección "Agregar video de YouTube o Vimeo" con input URL y validación
+  - Badge "YT/Vimeo" en la grilla para distinguir assets externos de Storage
+  - `confirmarEliminar`: omite la llamada a Supabase Storage si `url.startsWith('http')` (URL externa)
+- El campo `url` en `hero_assets` ahora puede contener tanto paths de Storage (`hero/archivo.mp4`) como URLs completas (`https://youtube.com/...`)
+- **Flujo para Gastón:** subir video a YouTube (sin listar) → Panel → Multimedia → Hero → "Agregar video de YouTube" → pegar URL → Agregar → eliminar el video viejo de Storage
+
 ---
 
 ## Pendiente (próximas sesiones)
@@ -588,5 +608,14 @@ Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en e
 ### #35 — Filtros en tienda (sesión aparte)
 - Auditar atributos disponibles en tabla `productos`
 - Posiblemente requiere columnas nuevas o tabla `atributos`
+
+### Variables de entorno — configurar en Vercel antes de lanzar
+- `MP_ACCESS_TOKEN` → reemplazar con token real de Mercado Pago (producción o sandbox)
+- `NEXT_PUBLIC_APP_URL` → URL de producción (`https://reunata.vercel.app` o dominio propio)
+- Sin esto el checkout MP no funciona y el webhook no recibe notificaciones
+
+### Email de confirmación de Supabase
+- Verificar template en Supabase Dashboard → Authentication → Email Templates → Confirm signup
+- El link de confirmación debe apuntar al dominio de producción, no a localhost
 
 <!-- END:feactures -->
