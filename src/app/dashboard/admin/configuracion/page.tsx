@@ -46,6 +46,7 @@ export default async function ConfiguracionPage({
             'banco_cbu', 'banco_alias', 'banco_nombre',
             'banco_razon_social', 'banco_cuit',
             'pedido_monto_minimo', 'pedido_dias_vencimiento',
+            'banco_imagenes_drive_url',
           ]
           const rows = claves.map(clave => ({ clave, valor: (formData.get(clave) as string) ?? '' }))
           await sb.from('configuracion').upsert(rows, { onConflict: 'clave' })
@@ -93,7 +94,7 @@ export default async function ConfiguracionPage({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Monto mínimo de pedido (USD)
+                Monto mínimo de pedido (ARS)
               </label>
               <input
                 name="pedido_monto_minimo"
@@ -118,6 +119,32 @@ export default async function ConfiguracionPage({
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               />
             </div>
+          </div>
+        </section>
+
+        {/* Banco de imágenes */}
+        <section
+          className="rounded-xl border p-6 mb-6"
+          style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+        >
+          <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            Banco de imágenes
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            URL del Google Drive u otro enlace compartido. Solo mayoristas aprobados lo ven.
+          </p>
+          <div>
+            <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Enlace al banco de imágenes
+            </label>
+            <input
+              name="banco_imagenes_drive_url"
+              type="url"
+              placeholder="https://drive.google.com/drive/folders/..."
+              defaultValue={cfg['banco_imagenes_drive_url'] ?? ''}
+              className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+              style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+            />
           </div>
         </section>
 

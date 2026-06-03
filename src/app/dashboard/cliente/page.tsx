@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ShoppingCart, Store, Tag } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
 
 const LABEL_ROL: Record<string, string> = {
@@ -138,7 +139,7 @@ export default async function ClienteDashboardPage() {
       {/* Accesos rápidos */}
       <div className="grid grid-cols-2 gap-4 mb-8 max-w-md">
         <Link
-          href="/dashboard/cliente/catalogo"
+          href="/catalogo"
           className="rounded-xl p-5 border flex flex-col gap-2 transition-colors duration-150"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
@@ -188,7 +189,7 @@ export default async function ClienteDashboardPage() {
                   </span>
                   {p.total_usd && (
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                      u$s {p.total_usd.toFixed(2)}
+                      {formatPrecio(p.total_usd)}
                     </span>
                   )}
                 </div>

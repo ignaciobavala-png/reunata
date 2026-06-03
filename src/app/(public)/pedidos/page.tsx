@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
@@ -75,7 +76,7 @@ export default async function MisPedidosPage() {
                   </span>
                   {p.total_usd != null && (
                     <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
-                      u$s {Number(p.total_usd).toFixed(2)}
+                      {formatPrecio(Number(p.total_usd))}
                     </span>
                   )}
                   <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />

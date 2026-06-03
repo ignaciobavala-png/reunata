@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
@@ -50,7 +51,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista5'
+  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista5, moneda'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -61,6 +62,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     id: number
     titulo: string
     codigo_interno: string
+    moneda?: string | null
     precio_lista1?: number | null
     precio_lista2?: number | null
     precio_lista3?: number | null
@@ -74,6 +76,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       codigo_interno: p.codigo_interno,
       foto_url: fotos[0]?.url ?? null,
       precio: extraerPrecio(p as Record<string, unknown>),
+      moneda: p.moneda ?? null,
       multiplo: multiplos[p.id] ?? 1,
       supabaseUrl,
     }
@@ -111,7 +114,11 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     return (
       <main style={{ background: 'var(--background)' }}>
         <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Catálogo</p>
+          <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+            <Link href="/tienda" className="hover:underline">Tienda</Link>
+            <span>/</span>
+            <span style={{ color: 'var(--foreground)' }}>{meta.nombre}</span>
+          </nav>
           <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             {meta.nombre}
           </h1>
@@ -152,7 +159,11 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     return (
       <main style={{ background: 'var(--background)' }}>
         <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Catálogo</p>
+          <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+            <Link href="/tienda" className="hover:underline">Tienda</Link>
+            <span>/</span>
+            <span style={{ color: 'var(--foreground)' }}>{categoriaHome.nombre}</span>
+          </nav>
           <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
             {categoriaHome.nombre}
           </h1>
@@ -167,7 +178,11 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   return (
     <main style={{ background: 'var(--background)' }}>
       <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
-        <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>Catálogo</p>
+        <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+          <Link href="/tienda" className="hover:underline">Tienda</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--foreground)' }}>{categoriaHome.nombre}</span>
+        </nav>
         <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           {categoriaHome.nombre}
         </h1>

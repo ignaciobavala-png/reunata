@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { resolverCanalTienda } from '@/lib/tienda'
 import { CartClient } from './CartClient'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -18,5 +19,7 @@ export default async function CarritoPage() {
     if (profile) pageUser = { nombre: profile.nombre, rol: profile.rol }
   }
 
-  return <CartClient user={pageUser} />
+  const { mostrarPrecios } = await resolverCanalTienda()
+
+  return <CartClient user={pageUser} mostrarPrecios={mostrarPrecios} />
 }

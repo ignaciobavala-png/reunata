@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, ImageIcon, Pencil, ArrowLeft } from 'lucide-react'
+import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, Pencil, ArrowLeft, Video } from 'lucide-react'
 import Image from 'next/image'
 import { BannerClient } from './BannerClient'
 
@@ -41,6 +41,8 @@ export function HeroClient({
   const [subiendo, setSubiendo] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [assetAEliminar, setAssetAEliminar] = useState<HeroAsset | null>(null)
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [agregandoYt, setAgregandoYt] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<HeroAsset | null>(null)
   const [guardando, setGuardando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -48,7 +50,15 @@ export function HeroClient({
   const activos = assets.filter(a => a.activo).length
   const sorted = [...assets].sort((a, b) => a.orden - b.orden)
 
+  const [showYtInput, setShowYtInput] = useState(false)
+
   const getPublicUrl = (url: string) => `${supabaseUrl}/storage/v1/object/public/multimedia/${url}`
+
+  function getVideoThumbnail(url: string): string | null {
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+    if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`
+    return null
+  }
 
   function mostrarToast(msg: string) {
     setToast(msg)
@@ -156,9 +166,34 @@ export function HeroClient({
     setAssetAEliminar(asset)
   }
 
+  async function agregarYoutube() {
+    const url = youtubeUrl.trim()
+    if (!url) return
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+    const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+    if (!ytMatch && !vimeoMatch) {
+      mostrarToast('URL no reconocida. Usá un link de YouTube o Vimeo.')
+      return
+    }
+    setAgregandoYt(true)
+    const maxOrden = assets.reduce((max, a) => Math.max(max, a.orden), 0)
+    const { data } = await supabase
+      .from('hero_assets')
+      .insert({ tipo: 'video', url, orden: maxOrden + 1 })
+      .select()
+      .single()
+    if (data) setAssets(prev => [...prev, data])
+    setYoutubeUrl('')
+    setShowYtInput(false)
+    setAgregandoYt(false)
+    mostrarToast('Video agregado al carrusel')
+  }
+
   async function confirmarEliminar() {
     if (!assetAEliminar) return
-    await supabase.storage.from('multimedia').remove([assetAEliminar.url])
+    // Solo borrar de Storage si es un path local (no URL externa)
+    const esExterno = assetAEliminar.url.startsWith('http')
+    if (!esExterno) await supabase.storage.from('multimedia').remove([assetAEliminar.url])
     await supabase.from('hero_assets').delete().eq('id', assetAEliminar.id)
     setAssets(prev => prev.filter(a => a.id !== assetAEliminar.id))
     setAssetAEliminar(null)
@@ -266,11 +301,24 @@ export function HeroClient({
                   style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}>
                   {a.tipo === 'imagen' ? (
                     <Image src={getPublicUrl(a.url)} alt="" fill className="object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-black/80">
-                      <Play size={32} className="text-white/60" />
-                    </div>
-                  )}
+                  ) : (() => {
+                    const thumb = getVideoThumbnail(a.url)
+                    return thumb ? (
+                      <>
+                        <Image src={thumb} alt="" fill className="object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <div className="bg-black/60 rounded-full p-2">
+                            <Play size={22} className="text-white" fill="white" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-black/80">
+                        <Play size={28} className="text-white/60" />
+                        <span className="text-xs text-white/40">Vimeo</span>
+                      </div>
+                    )
+                  })()}
 
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <div className="flex items-center gap-1.5">
@@ -302,7 +350,9 @@ export function HeroClient({
 
                   <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
                   {a.tipo === 'video' && (
-                    <span className="absolute top-2 right-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded">video</span>
+                    <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-1.5 py-0.5 rounded">
+                      {a.url.startsWith('http') ? 'YT/Vimeo' : 'video'}
+                    </span>
                   )}
                   {a.activo && (
                     <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
@@ -323,14 +373,64 @@ export function HeroClient({
             )
           })}
 
+          {/* Card — Subir archivo */}
           <button
             onClick={() => inputRef.current?.click()}
             className="aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:border-[var(--color-granito)]"
             style={{ borderColor: 'var(--color-acero-claro)' }}
           >
             <Upload size={20} style={{ color: 'var(--color-acero-oscuro)' }} />
-            <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Subir imagen o video</span>
+            <span className="text-sm text-center px-2" style={{ color: 'var(--color-acero-oscuro)' }}>Subir imagen</span>
           </button>
+
+          {/* Card — Agregar YT/Vimeo */}
+          <div
+            className="aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors"
+            style={{ borderColor: showYtInput ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}
+          >
+            {showYtInput ? (
+              <div className="w-full px-3 flex flex-col gap-2">
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={e => setYoutubeUrl(e.target.value)}
+                  placeholder="youtube.com/watch?v=..."
+                  autoFocus
+                  className="w-full px-2 py-1.5 text-xs rounded border outline-none"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') agregarYoutube()
+                    if (e.key === 'Escape') { setShowYtInput(false); setYoutubeUrl('') }
+                  }}
+                />
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={agregarYoutube}
+                    disabled={agregandoYt || !youtubeUrl.trim()}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-medium disabled:opacity-50"
+                    style={{ background: 'var(--color-granito)', color: 'white' }}
+                  >
+                    {agregandoYt ? <Loader2 size={11} className="animate-spin" /> : 'Agregar'}
+                  </button>
+                  <button
+                    onClick={() => { setShowYtInput(false); setYoutubeUrl('') }}
+                    className="px-2 py-1.5 rounded text-xs"
+                    style={{ color: 'var(--color-acero-oscuro)', background: 'var(--color-acero-brillo)' }}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowYtInput(true)}
+                className="flex flex-col items-center gap-2 w-full h-full justify-center"
+              >
+                <Video size={20} style={{ color: '#ff0000' }} />
+                <span className="text-sm text-center px-2" style={{ color: 'var(--color-acero-oscuro)' }}>YouTube / Vimeo</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div
@@ -423,11 +523,24 @@ export function HeroClient({
               <div className="relative aspect-video rounded-lg overflow-hidden bg-black/5">
                 {selectedAsset.tipo === 'imagen' ? (
                   <Image src={getPublicUrl(selectedAsset.url)} alt="" fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-black/80">
-                    <Play size={32} className="text-white/60" />
-                  </div>
-                )}
+                ) : (() => {
+                  const thumb = getVideoThumbnail(selectedAsset.url)
+                  return thumb ? (
+                    <>
+                      <Image src={thumb} alt="" fill className="object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="bg-black/60 rounded-full p-3">
+                          <Play size={28} className="text-white" fill="white" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-black/80">
+                      <Play size={32} className="text-white/60" />
+                      <span className="text-xs text-white/40">Vimeo</span>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Etiqueta */}

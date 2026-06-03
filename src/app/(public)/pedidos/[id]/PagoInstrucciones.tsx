@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Copy, Check, MessageCircle } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 
 const METODOS = [
   { key: 'transferencia_blanco', label: 'Transferencia' },
@@ -47,7 +48,7 @@ export function PagoInstrucciones({
   const ref = pedidoId.slice(-8).toUpperCase()
 
   const waText = encodeURIComponent(
-    `Hola Reunata! Quiero avisar que pagué el pedido #${ref} por u$s ${total.toFixed(2)}. Medio: ${metodo.replace('_', ' ')}.`
+    `Hola Reunata! Quiero avisar que pagué el pedido #${ref} por ${formatPrecio(total)}. Medio: ${metodo.replace('_', ' ')}.`
   )
   const waLink = `https://wa.me/549${cfg['whatsapp_ventas'] ?? ''}?text=${waText}`
 
@@ -81,14 +82,14 @@ export function PagoInstrucciones({
           <Copiable label="Banco"         value={cfg['banco_nombre'] ?? ''} />
           <Copiable label="Titular"       value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"          value={cfg['banco_cuit'] ?? ''} />
-          <Copiable label="Monto exacto"  value={`u$s ${total.toFixed(2)}`} />
+          <Copiable label="Monto exacto"  value={formatPrecio(total)} />
           <Copiable label="Referencia"    value={`Pedido #${ref}`} />
         </div>
       )}
 
       {metodo === 'efectivo' && (
         <p className="text-sm py-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Coordiná la entrega del efectivo con tu vendedor. Monto: <strong>u$s {total.toFixed(2)}</strong>
+          Coordiná la entrega del efectivo con tu vendedor. Monto: <strong>{formatPrecio(total)}</strong>
         </p>
       )}
 
@@ -96,7 +97,7 @@ export function PagoInstrucciones({
         <div>
           <Copiable label="A nombre de" value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"        value={cfg['banco_cuit'] ?? ''} />
-          <Copiable label="Monto"       value={`u$s ${total.toFixed(2)}`} />
+          <Copiable label="Monto"       value={formatPrecio(total)} />
           <p className="text-sm mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
             Emití el e-cheq a nombre de Reunata y coordiná el envío con tu vendedor.
           </p>
@@ -107,7 +108,7 @@ export function PagoInstrucciones({
         <div>
           <Copiable label="A la orden de" value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"          value={cfg['banco_cuit'] ?? ''} />
-          <Copiable label="Monto"         value={`u$s ${total.toFixed(2)}`} />
+          <Copiable label="Monto"         value={formatPrecio(total)} />
           <p className="text-sm mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
             El cheque debe llegar a Reunata antes de que procesemos tu pedido. Coordiná el envío con tu vendedor.
           </p>

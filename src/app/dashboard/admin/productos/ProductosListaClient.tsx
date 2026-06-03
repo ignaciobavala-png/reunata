@@ -3,6 +3,7 @@
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera } from 'lucide-react'
+import { formatPrecio } from '@/lib/utils'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
 import { ProductoFichaDrawer, type FotoItem, type Canal } from '@/components/admin/ProductoFichaDrawer'
@@ -34,7 +35,7 @@ const COLORES_CANAL: Record<string, string> = {
 }
 
 function fmt(v: number | null) {
-  return v ? `u$s ${v.toFixed(2)}` : '—'
+  return v ? formatPrecio(v) : '—'
 }
 
 export function ProductosListaClient({

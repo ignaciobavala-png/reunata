@@ -85,7 +85,7 @@ const navComisionista: NavItem[] = [
 
 const navCliente: NavItem[] = [
   { label: 'Inicio',      href: '/dashboard/cliente',          icon: LayoutDashboard },
-  { label: 'Catálogo',    href: '/dashboard/cliente/catalogo', icon: Store },
+  { label: 'Catálogo',    href: '/catalogo', icon: Store },
   { label: 'Mis pedidos', href: '/dashboard/cliente/pedidos',  icon: ShoppingCart },
   { label: 'Mi cuenta',   href: '/dashboard/cliente/cuenta',   icon: UserCog },
 ]

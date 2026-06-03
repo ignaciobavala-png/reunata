@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Search, Menu, X, ChevronDown, User } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
@@ -30,6 +30,7 @@ const tiendaLinks = [
 
 export function Header({ user, categorias = [], variant = 'light' }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark' }) {
   const pathname = usePathname()
+  const router = useRouter()
   const isHome = pathname === '/' && variant === 'light'
 
   const [open, setOpen] = useState(false)
@@ -37,6 +38,9 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
   const [corporativosOpen, setCorporativosOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const [scrolled, setScrolled] = useState(!isHome)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const { totalItems } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -68,6 +72,29 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSearchOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+      setSearchQuery('')
+    }
+  }, [searchOpen])
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (!q) return
+    router.push(`/tienda?q=${encodeURIComponent(q)}`)
+    setSearchOpen(false)
+  }
 
   const lightBgStart = isHome ? 'rgba(240,241,243,0)' : 'rgba(255,255,255,0.97)'
   const bg = useTransform(
@@ -252,9 +279,40 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <button aria-label="Buscar" className={`transition-colors duration-300 ${iconColor}`}>
-            <Search size={20} strokeWidth={1.5} />
-          </button>
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.form
+                  onSubmit={handleSearchSubmit}
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 200, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Buscar..."
+                    className="w-full bg-transparent text-sm outline-none pb-0.5 px-1"
+                    style={{
+                      borderBottom: `1px solid ${variant === 'dark' || !scrolled ? 'rgba(255,255,255,0.5)' : 'var(--color-granito-claro)'}`,
+                      color: variant === 'dark' || !scrolled ? 'white' : 'var(--foreground)',
+                    }}
+                  />
+                </motion.form>
+              )}
+            </AnimatePresence>
+            <button
+              aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
+              onClick={() => setSearchOpen(v => !v)}
+              className={`transition-colors duration-300 flex-shrink-0 ${iconColor}`}
+            >
+              {searchOpen ? <X size={20} strokeWidth={1.5} /> : <Search size={20} strokeWidth={1.5} />}
+            </button>
+          </div>
 
           {/* Usuario / login */}
           <div ref={userRef} className="relative">

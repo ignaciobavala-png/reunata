@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingBag, Loader2, Minus, Plus } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
+import { formatPrecio } from '@/lib/utils'
 
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
@@ -15,6 +16,11 @@ interface PageUser {
   rol: string
 }
 
+interface Props {
+  user: PageUser | null
+  mostrarPrecios: boolean
+}
+
 function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items']) {
   const lineas = items.map(i =>
     `• ${i.titulo} (${i.codigo_interno}) × ${i.cantidad}`
@@ -22,17 +28,24 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
-export function CartClient({ user }: { user: PageUser | null }) {
+export function CartClient({ user, mostrarPrecios }: Props) {
   const { items, remove, updateCantidad, clear, total } = useCartStore()
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
   const router = useRouter()
 
+  // Formulario de invitado
+  const [guestNombre, setGuestNombre]     = useState('')
+  const [guestEmail, setGuestEmail]       = useState('')
+  const [guestTelefono, setGuestTelefono] = useState('')
+  const [guestErrors, setGuestErrors]     = useState<string | null>(null)
+
   useEffect(() => { setMounted(true) }, [])
 
   const esMinorista = user?.rol === 'consumidor_final'
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
+  const esGuest     = !user
 
   function handleMenos(productoId: number, cantidad: number, multiplo: number) {
     const nueva = cantidad - multiplo
@@ -47,13 +60,17 @@ export function CartClient({ user }: { user: PageUser | null }) {
     updateCantidad(productoId, redondeado)
   }
 
-  async function handlePagarMP() {
+  async function handlePagarMP(guestOverride?: { nombre: string; email: string; telefono?: string }) {
     if (!items.length || pagando) return
     setPagando(true)
     setErrorPago(null)
+    setGuestErrors(null)
+
     const result = await iniciarCheckoutMP(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
+      guestOverride
     )
+
     if (result.ok && result.init_point) {
       clear()
       window.location.href = result.init_point
@@ -61,6 +78,19 @@ export function CartClient({ user }: { user: PageUser | null }) {
       setErrorPago(result.error ?? 'Error inesperado. Intentá de nuevo.')
       setPagando(false)
     }
+  }
+
+  function handlePagarGuest() {
+    const nombre = guestNombre.trim()
+    const email  = guestEmail.trim()
+
+    if (!nombre) { setGuestErrors('Ingresá tu nombre.'); return }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setGuestErrors('Ingresá un email válido.')
+      return
+    }
+
+    handlePagarMP({ nombre, email, telefono: guestTelefono.trim() || undefined })
   }
 
   if (!mounted) return null
@@ -90,6 +120,13 @@ export function CartClient({ user }: { user: PageUser | null }) {
 
   const totalGeneral = total()
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
+
+  const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none'
+  const inputStyle: React.CSSProperties = {
+    borderColor: 'var(--color-acero-claro)',
+    color: 'var(--foreground)',
+    background: 'white',
+  }
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-10 max-w-5xl mx-auto">
@@ -146,9 +183,9 @@ export function CartClient({ user }: { user: PageUser | null }) {
                       <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
-                      {item.precio > 0 && (
+                      {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          u$s {item.precio.toFixed(2)} c/u
+                          {formatPrecio(item.precio)} c/u
                         </p>
                       )}
                     </div>
@@ -204,9 +241,9 @@ export function CartClient({ user }: { user: PageUser | null }) {
 
                   {/* Subtotal */}
                   <div className="flex-shrink-0 flex flex-col items-end justify-between">
-                    {item.precio > 0 && (
+                    {mostrarPrecios && item.precio > 0 && (
                       <p className="text-base font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        u$s {subtotal.toFixed(2)}
+                        {formatPrecio(subtotal)}
                       </p>
                     )}
                   </div>
@@ -237,16 +274,16 @@ export function CartClient({ user }: { user: PageUser | null }) {
               <span>{totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'}</span>
             </div>
 
-            {totalGeneral > 0 && (
+            {mostrarPrecios && totalGeneral > 0 && (
               <>
                 <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                   <span>Subtotal</span>
-                  <span>u$s {totalGeneral.toFixed(2)}</span>
+                  <span>{formatPrecio(totalGeneral)}</span>
                 </div>
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
-                  <span>u$s {totalGeneral.toFixed(2)}</span>
+                  <span>{formatPrecio(totalGeneral)}</span>
                 </div>
               </>
             )}
@@ -258,7 +295,7 @@ export function CartClient({ user }: { user: PageUser | null }) {
           {esMinorista ? (
             <>
               <button
-                onClick={handlePagarMP}
+                onClick={() => handlePagarMP()}
                 disabled={pagando}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
@@ -286,30 +323,78 @@ export function CartClient({ user }: { user: PageUser | null }) {
               </svg>
               Pedir por WhatsApp
             </a>
-          ) : user ? (
-            <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Contactanos para completar tu pedido.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Iniciá sesión para ver precios y hacer tu pedido.
-              </p>
+          ) : esGuest ? (
+            // ── Comprador sin cuenta ────────────────────────────────────
+            <>
+              <div>
+                <p className="text-xs font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Tus datos para el pedido
+                </p>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre y apellido *"
+                    value={guestNombre}
+                    onChange={e => { setGuestNombre(e.target.value); setGuestErrors(null) }}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email *"
+                    value={guestEmail}
+                    onChange={e => { setGuestEmail(e.target.value); setGuestErrors(null) }}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Teléfono (opcional)"
+                    value={guestTelefono}
+                    onChange={e => setGuestTelefono(e.target.value)}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+                {guestErrors && (
+                  <p className="text-xs mt-1.5" style={{ color: '#ef4444' }}>{guestErrors}</p>
+                )}
+              </div>
+
+              <button
+                onClick={handlePagarGuest}
+                disabled={pagando}
+                className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                style={{ background: '#009ee3', color: 'white' }}
+              >
+                {pagando ? (
+                  <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+                ) : (
+                  'Pagar con Mercado Pago'
+                )}
+              </button>
+
+              {errorPago && (
+                <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
+              )}
+
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-px" style={{ background: 'var(--color-acero-claro)' }} />
+                <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>o</span>
+                <div className="flex-1 h-px" style={{ background: 'var(--color-acero-claro)' }} />
+              </div>
               <Link
                 href="/login?next=/carrito"
-                className="w-full py-3 rounded-lg text-base font-medium text-center transition-opacity"
-                style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-              >
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/registro"
                 className="w-full py-2.5 rounded-lg text-sm text-center border transition-opacity"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
               >
-                ¿No tenés cuenta? Registrate
+                Iniciar sesión
               </Link>
-            </div>
+            </>
+          ) : (
+            <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Contactanos para completar tu pedido.
+            </p>
           )}
         </div>
       </div>

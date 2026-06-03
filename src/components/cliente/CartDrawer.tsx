@@ -5,6 +5,7 @@ import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
+import { formatPrecio } from '@/lib/utils'
 
 const WHATSAPP = '5491132720974'
 
@@ -55,7 +56,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
           </span>
         )}
         {totalItems() > 0 && (
-          <span className="text-xs">u$s {total().toFixed(2)}</span>
+          <span className="text-xs">{formatPrecio(total())}</span>
         )}
       </button>
 
@@ -144,7 +145,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                       </button>
                     </div>
                     <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
-                      u$s {(item.precio * item.cantidad).toFixed(2)}
+                      {formatPrecio(item.precio * item.cantidad)}
                     </span>
                   </div>
                 </div>
@@ -161,7 +162,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                 {esMayorista ? 'Total' : 'Total estimado'}
               </span>
               <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                u$s {total().toFixed(2)}
+                {formatPrecio(total())}
               </span>
             </div>
 
@@ -178,17 +179,12 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
             ) : (
               <>
                 <a
-                  href={buildWhatsAppLink(items)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/carrito"
                   className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
-                  style={{ background: '#25d366', color: 'white' }}
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
                 >
-                  Pedir por WhatsApp
+                  Ver carrito y finalizar
                 </a>
-                <p className="text-xs text-center mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Los precios se confirman al procesar tu pedido.
-                </p>
               </>
             )}
           </div>
