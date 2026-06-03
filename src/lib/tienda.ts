@@ -26,6 +26,7 @@ export async function resolverCanalTienda(): Promise<{
   listaPrecio: string | null
   mostrarPrecios: boolean
   pendienteAprobacion: boolean
+  tipoCambioUsd: number
 }> {
   const supabase = await createClient()
   const service = createServiceClient()
@@ -107,12 +108,20 @@ export async function resolverCanalTienda(): Promise<{
     }
   }
 
+  const { data: tcRow } = await service
+    .from('configuracion')
+    .select('valor')
+    .eq('clave', 'tipo_cambio_usd')
+    .maybeSingle()
+  const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
+
   return {
     user: userSession,
     canalId: canalId!,
     listaPrecio,
     mostrarPrecios,
     pendienteAprobacion,
+    tipoCambioUsd,
   }
 }
 
