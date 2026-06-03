@@ -12,351 +12,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Solo pushear cuando los cambios estén consolidados (evitar deploys innecesarios en Vercel)
 <!-- END:deploy-rules -->
 
-<!-- BEGIN:feactures -->
-## Feactures implementadas
+<!-- BEGIN:conventions -->
+## Convenciones críticas del proyecto
 
-### Postulaciones (Trabaja con Nosotros)
-- 3 formularios: fulltime (CV upload), comisionista (movilidad/zonas), proveedor (cargo/empresa/CUIT/web)
-- Tabla `postulaciones` con RLS + bucket `cv` en Storage
-- Server actions: crear, actualizar estado, eliminar
-- Admin panel con tabla de postulaciones, panel de detalle, filtros y búsqueda
-- Rate limit: 5 postulaciones/hora por IP
-- Validación: longitud de campos, MIME type de CV, formato email
-- Página web como texto libre (no URL estricta)
-- Fallback a email en tabla admin si nombre es null
+### Next.js 16.x — interceptación de requests
+El archivo de middleware se llama `proxy.ts` (no `middleware.ts`) y exporta `proxy` (no `middleware`). El matcher excluye `auth/` para no romper el code_verifier de PKCE.
 
-### Accordion de formularios (Trabaja con Nosotros)
-- Layout accordion con 3 secciones (Fulltime, Comisionista, Proveedor)
-- Solo un formulario abierto a la vez (ninguno por defecto)
-- Animación suave con framer-motion (AnimatePresence)
-- Responsive mobile
-
-### Hero carousel (homepage)
-- Tabla `hero_assets` con RLS (lectura pública, internos todo)
-- Panel de gestión en Multimedia > Hero: upload, ordenar, activar/desactivar, eliminar
-- Editor de contenido por asset: etiqueta, título, subtítulo, botón texto/url (drawer lateral)
-- Carousel automático con AnimatePresence, flechas, dots y pausa
-- Fallback estático (hero1.jpg) si no hay assets
-
-### CategoryGallery (antes CategoryBento)
-- Grilla regular 4 columnas desktop, 2 columnas mobile
-- Imagen full-bleed, texto superpuesto inferior izquierdo sin overlay oscuro
-- Mini thumbnails de fotos adicionales de productos en cada categoría
-- Estilo editorial/fashion premium con tipografía blanca
-- +X indicador si hay más fotos
-
-### FloatingActions (botones flotantes)
-- 3 botones en esquina inferior derecha: WhatsApp, Ofertas (Reloj), Hot Sale (Fuego)
-- Stack vertical, fixed, hover scale
-- Solo visible en páginas públicas (oculto en /dashboard)
-- Ofertas y Hot Sale abren drawer lateral con animación slide-in
-- Drawer claro (max-w-xl) con grid de cards: foto + título + precio + badge descuento
-- Mockdata de ofertas (configurable desde panel a futuro)
-
-### Dashboard — bump de legibilidad
-- `text-xs` → `text-sm` (12px → 14px)
-- `text-sm` → `text-base` (14px → 16px)
-- `font-medium` agregado a labels y botones
-- Aplicado a 28 archivos del dashboard (admin + cliente + sidebar)
-
-### Frontend — secciones claras
-- Contacto y Trabaja con Nosotros: fondo `acero-claro` (platinado azulado) en lugar de negro
-- Textos en `granito-oscuro` (negro) para legibilidad
-- Inputs con fondo blanco, botones oscuros, placeholder gris
-- Secciones estilo platino/editorial minimalista
-
-### Bug fixes de auditoría
-- `e.currentTarget` null después de async (capturar form antes del await)
-- Optimistic delete sin rollback (guardar y restaurar si falla server action)
-- Path de upload con colisión (Date.now() + random suffix)
-- Validación de tamaño en uploads (server-side)
-- Confirmación de eliminación en Multimedia (evita borrados accidentales)
-- Color `--foreground` en lugar de `--color-acero-brillo` en Postulaciones (compatibilidad light/dark)
-
-### Ofertas y Hot Sale (panel + drawer)
-- Tabla `ofertas`: id, canal (ofertas|hotsale), producto_id FK, precio_oferta, descuento_porcentaje, orden, activo
-- Panel en `/dashboard/admin/ofertas` con:
-  - Dropdown Ofertas / Hot Sale
-  - Tabla editable: producto, precio lista, precio oferta, % descuento, orden
-  - Precio oferta y % descuento se auto-sincronizan
-  - Modal selector de producto con búsqueda
-- Sidebar: agrupado bajo "Marketing" con Chatbot
-- RLS: lectura pública (drawer FloatingActions), CRUD solo master/empleado
-- FloatingActions aún usa mockdata (pendiente conectar a DB)
-
-### Redes y contacto
-- Link Instagram actualizado a https://www.instagram.com/reunata.ar/
-- Todos los links de Instagram abren en nueva ventana (target="_blank")
-- WhatsApp actualizado a +54 9 11 3272-0974
-- WhatsApp en FloatingActions, Footer, Contacto, Pedidos
-- "Trabaja con nosotros" removido del Header, solo en Footer
-
-### Diseño (panel de control)
-- Nueva sección "Diseño" en Multimedia > Diseño
-- 8 color pickers editables: acero (brillo/claro/medio/oscuro), granito (claro/medio/oscuro), fondo general
-- Vista previa en tiempo real al cambiar colores
-- Guardado en tabla `configuracion`
-- Restaurar colores originales
-- Swatch circular clickable que abre el color picker
-- `ThemeProvider` inyecta CSS variables en todas las páginas públicas
-
-### Multimedia — tabla de fotos
-- Grid visual de productos reemplazado por tabla compacta
-- Columnas: Producto, Categoría, Fotos (miniaturas + badge), Acción
-- Miniaturas superpuestas de hasta 3 fotos por producto
-- Fila seleccionable con highlight, drawer lateral para gestión detallada
-- Filtros por categoría y estado (con/sin foto) se mantienen
-
-### Corporativos (panel + formulario)
-- Tabla `corporativos`: nombre, empresa, email, teléfono, cuit, ubicación, ocasión, cantidades, productos[], personalizar, fecha_limite, estado
-- Bucket `corporativos` en Storage para archivos adjuntos
-- Panel en `/dashboard/admin/corporativos` con tabla, filtros (búsqueda, estado, ocasión), detalle expandible, aprobar/rechazar/eliminar
-- Server actions: crear, actualizar estado, eliminar
-- Formulario público en `/corporativos` con productos multiselect, personalizar sí/no, fecha límite
-- RLS: insert público (service client), CRUD solo master/empleado
-
-### Cinta promocional (PromoTicker)
-- Texto rotativo horizontal infinito en homepage debajo del Hero
-- Items y velocidad configurados desde tabla `configuracion` (claves `promo_items` y `promo_speed`) con fallback a defaults
-- Editor en Multimedia > Cinta promocional: tag input (Enter → chip), drag reordenar, slider velocidad (10-60s)
-- RLS: lectura pública, escritura solo master/empleado
-
-### Banner promocional
-- Banner único (no carrusel) antes del footer con imagen, título opcional, link opcional
-- Tabla `banners`: url, titulo, link_url, activo
-- Editor en Multimedia > Banner promocional: upload imagen, título, link, activar/desactivar, eliminar con confirmación
-- Upload a `multimedia/banners/{timestamp}.webp`
-- RLS: lectura pública, CRUD solo master/empleado
-
-### Tienda pública (catálogo visible)
-- `/tienda` y `/tienda/[slug]` muestran todos los productos activos (sin filtro de canal público)
-- Categorías obtenidas dinámicamente desde `categorias_home` con sus `categoria_keys`
-- Productos visibles sin precios (foto, título, código)
-- CTA al pie: "Registrate para ver precios, stock y hacer pedidos"
-- Registro necesario solo para ver precios y comprar (no para navegar el catálogo)
-
-### Frontend — secciones claras
-- Contacto, Trabaja con Nosotros y Nosotros: fondo `acero-claro` en lugar de negro
-- Textos en `granito-oscuro` para legibilidad
-- Inputs fondo blanco, botones oscuros, placeholder gris
-- Cards con `border-2` y padding optimizado
-- Secciones estilo platino/editorial minimalista
-
-### Fusión Canales → Productos
-- Sección Canales eliminada del sidebar y fusionada dentro de Productos como segundo tab (`?tab=canales`)
-- `CanalesClient.tsx` movido a `src/app/dashboard/admin/productos/`
-- Server actions de canales ahora revalida `/dashboard/admin/productos`
-- Redirect 301 de `/dashboard/admin/canales` → `/dashboard/admin/productos?tab=canales`
-- Tipos compartidos creados en `src/types/productos.ts`
-
-### Instagram / Comunidad
-- Tabla `comunidad_fotos` con RLS (lectura pública, internos CRUD)
-- Dashboard en `/dashboard/admin/instagram/` con upload, caption, drag reorder, delete
-- Server actions: agregarPost, eliminarPost, actualizarCaption, reordenarPosts, getPostsPublic
-- InstagramSlider en homepage con embla-carousel, oculto si no hay posts
-- Icono Instagram SVG inline, texto "Comunidad Reunata" destacado
-
-### Registro Mayorista
-- Migration agrega columnas a `profiles`: razon_social, direccion, localidad, sitio_web, puntos_venta, clientes_activos
-- `handle_new_user()` actualizado para insertar nombre desde metadata
-- Server action `registrarse()` con signUp + update perfil via service client
-- Página `/registro` con tabs Minorista / Mayorista
-- Mayorista: tipo (distri/local/mercha), razón social, CUIT, dirección, localidad, segmentación
-- Admin clientes: fila expandible con datos completos de mayoristas
-- Pendiente de aprobación por defecto (aprobado = false)
-
-### Dashboard cliente diferenciado (mayorista vs minorista)
-- `dashboard/cliente/page.tsx`: home diferenciada según rol
-  - **Minorista** (`consumidor_final`): saludo + texto de bienvenida + 2 CTAs (Catálogo, Mis Pedidos)
-  - **Mayorista** (`distribuidor`, `local`, `mercha`): saludo con razón social + panel de condiciones del canal (nombre, descripción, lista de precios activa) con color por tipo
-  - Badge de rol con color propio: índigo (consumidor_final), cyan (distribuidor), verde (local), ámbar (mercha)
-  - Texto de "Pendiente de aprobación" diferenciado: minorista genérico / mayorista menciona equipo comercial
-- `cuenta/CuentaForm.tsx`: sección "Datos de empresa" condicional solo para mayoristas
-  - Campos: razón social, dirección, localidad, sitio web, puntos de venta, clientes activos
-  - Mismo estilo visual que secciones Contacto y Facturación
-- `cuenta/page.tsx`: SELECT ampliado con todos los campos de empresa
-- `actions/cuenta.ts`: `actualizarPerfil()` actualiza campos mayoristas si vienen en el form (minoristas no se ven afectados)
-
-### Login — botón Google (visual)
-- `GoogleLoginButton.tsx` como componente `'use client'` separado
-- Logo G multicolor SVG oficial, fondo blanco, sombra sutil
-- Posicionado entre el formulario y el link "Crear cuenta" con separadores "o continuá con" / "¿Sos nuevo?"
-- Sin lógica OAuth por ahora — preparado para conectar `signInWithOAuth` cuando se habilite Google en Supabase
-
-### Navbar — sesión 15/05
-- Ícono carrito: `ShoppingBag` → `ShoppingCart` (lucide-react)
-- "Agencia de Merchandising" lleva a `/registro?tab=mayorista` (antes iba a `/login`)
-- "Mayoristas" es ítem independiente en el navbar al mismo nivel que Corporativos (antes estaba dentro del dropdown)
-- `RegistroForm` acepta prop `defaultTab?: 'minorista' | 'mayorista'` — la página lo lee del searchParam `?tab=`
-
-### Banner Promocional — sesión 15/05
-- Altura fija responsiva: `h-64 / h-72 / h-80` con `object-cover` (antes `h-auto`, se estiraba)
-- El campo `titulo` de la tabla `banners` se renderiza como texto overlay centrado sobre la imagen
-- Componente: `src/components/sections/PromotionalBanner.tsx`
-
-### Categorías Home — foto de portada (sesión 15/05)
-- Migration: columna `foto_url text` en tabla `categorias_home`
-- Panel `Multimedia > Categorías Home`: thumbnail + botones Subir/Cambiar/Quitar por categoría
-- Badge "foto manual" cuando la categoría tiene foto propia
-- Upload al bucket `multimedia/categorias/{id}/`
-- `CategoryGallery`: usa `foto_url` de la categoría como portada; fallback a primera foto de productos asociados
-- Componentes: `CategoriasClient.tsx`, `CategoryGallery.tsx`
-
-### Corporativos — logo upload (sesión 15/05)
-- Migration: columna `logo_url text` en tabla `corporativos`
-- Formulario público `/corporativos`: campo de upload de logo (PNG/JPG/WEBP/SVG, máx 5MB)
-- Validación en cliente: tipo MIME y tamaño
-- Action `crearCorporativo`: sube logo al bucket `corporativos/logos/` y guarda `logo_url`
-- Componentes: `CorporativosForm.tsx`, `src/app/actions/corporativos.ts`
-
-### Footer — rediseño (sesión 15/05)
-- Eliminada la sección "Tienda" del footer
-- 4 columnas extendidas desktop: Empresa — Información — Soporte — Newsletter/Redes
-- Accordions en mobile (siempre visible en desktop)
-- Sin `max-width` restrictivo, padding amplio `px-8/16/24`
-
-### Precios Gesu — limpieza (sesión 15/05)
-- `precio_compra` (costo) eliminado de la vista del panel de productos
-- Sigue en la DB y en el sync de Gesu — nunca se expone al frontend
-- Las 5 listas de Gesu mapean: Lista1→Distribuidor, Lista2→Local, Lista3→Mercha, Lista4→sin asignar, Lista5→Consumidor Final y Público
-
-### Trabaja con Nosotros — sesión 15/05
-- Descripción del formulario Full Time actualizada: "En las oficinas de nuestra empresa (Ciudad de Buenos Aires)"
-
-### Páginas provisorias — sesión 16/05
-- 12 rutas que daban 404 ahora tienen página con mensaje adecuado a cada sección
-- Rutas cubiertas: `/eventos`, `/franquicias`, `/puntos-de-venta`, `/catalogo`, `/banco-imagenes`, `/seguimiento`, `/faq`, `/terminos`, `/politicas`, `/arrepentimiento`, `/promociones`, `/recuperar-contrasena`
-- Todas en el grupo `(public)` salvo `/recuperar-contrasena` (misma estructura que `/login`)
-- Cada página tiene CTAs relevantes (WhatsApp, contacto, tienda, registro mayorista)
-- `/arrepentimiento` incluye texto legal completo (art. 34, Ley 24.240)
-
-### Tag "Más elegidos" en grilla de productos — sesión 16/05
-- Tercer tag (violeta `#8b5cf6`) en `ProductosListaClient` junto a Oferta y Hot Sale
-- `toggleDestacada(productoId, activo)` en `actions/ofertas.ts`: activa `destacada=true` en la primera foto del producto (o desactiva en todas)
-- `productos/page.tsx` carga `destacadasIniciales` desde `producto_fotos` y lo pasa al cliente
-- La estrella en Multimedia sigue funcionando — ambos tocan el mismo campo
-
-### ProductSlider "Más elegidos" — mejoras UX — sesión 16/05
-- Cada card es un `<button>` con `cursor-pointer`: al hacer clic agrega al carrito y abre `PublicCartDrawer`
-- Cinta diagonal "Más vendido" en esquina superior izquierda de cada card (fondo `granito-oscuro`, texto `acero-brillo`)
-- Eliminado `cursor-grab` — sin manito en ningún punto del slider
-
-### PublicCartDrawer — sesión 16/05
-- Conectado a `cartStore.cartOpen` / `setCartOpen` en lugar de `useState` local: cualquier componente puede abrirlo
-- Movido al layout `(public)/layout.tsx` — disponible en homepage, tienda, colecciones, etc.
-- Eliminado de `/tienda/[slug]/page.tsx` (ya está en el layout)
-
-### InstagramSlider — sesión 16/05
-- Reemplazado `embla-carousel` por scroll horizontal nativo (`overflow-x-auto`, `scrollbarWidth: none`)
-- Componente pasó a Server Component (sin `'use client'`, sin hooks)
-- Sin manito en ningún estado
-
-### PromoTicker — velocidad uniforme — sesión 16/05
-- La animación pasó de `x: ['0%', '-50%']` a píxeles absolutos: mide `scrollWidth` real con `useRef` y anima exactamente esa distancia
-- Eliminado `md:text-base` (ahora siempre `text-sm`): el elemento tiene el mismo ancho en todos los breakpoints
-- Resultado: velocidad idéntica en mobile y desktop
-
-### Sidebar admin — reorganización con acordeón — sesión 16/05
-- `navMaster` reorganizado en 5 grupos colapsables: Catálogo, Ventas, Contenido, Marketing, Equipo
-- Inicio y Configuración son ítems standalone fuera de grupos
-- Acordeón: solo un grupo abierto a la vez; al hacer clic en otro se cierra el anterior
-- Auto-expand: al cargar, se abre automáticamente el grupo que contiene la ruta activa
-- Si el grupo está cerrado pero contiene la ruta activa, el botón del grupo se ilumina
-- Chevron animado (−90° cerrado → 0° abierto) con transición CSS
-
-### Catálogos — sesión 16/05
-- Tabla `catalogos`: id, titulo, url, activo, orden, created_at — RLS habilitado
-- Acceso de lectura: master, empleado, comisionista, distribuidor, local, mercha (NO consumidor_final, NO anónimo)
-- Escritura: solo master y empleado
-- Bucket `catalogos` en Storage: privado, 20 MB máx, solo `application/pdf`
-- Panel en `/dashboard/admin/catalogos`: subir PDF con nombre, listar, toggle activo/inactivo, descargar (signed URL 1h), eliminar con confirmación
-- Server actions en `src/app/actions/catalogos.ts`: `subirCatalogo`, `eliminarCatalogo`, `toggleCatalogoActivo`
-- "Catálogos" agregado al sidebar bajo el grupo Contenido
-
-### Clientes sin dashboard — sesión 22/05
-- Roles `consumidor_final`, `distribuidor`, `local`, `mercha` ya NO tienen dashboard
-- Post-login redirigen a `/` en lugar de `/dashboard/cliente`
-- `dashboard/layout.tsx` bloquea acceso a toda la sección `/dashboard/` para roles cliente → redirect a `/`
-- Rutas públicas nuevas: `/cuenta` y `/pedidos` (con `/pedidos/[id]`) en el grupo `(public)` con header/footer normal
-- `CuentaForm` y componentes de pago copiados a las nuevas rutas públicas
-- Links internos de pedidos apuntan a `/pedidos/[id]` (antes `/dashboard/cliente/pedidos/[id]`)
-
-### Navbar con sesión — sesión 22/05
-- `(public)/layout.tsx` ahora es async y obtiene sesión server-side, pasa `user` al `Header` y `PublicCartDrawer`
-- `Header` acepta prop `user?: { nombre, rol }`: muestra ícono `User` (hombrecito) siempre
-  - Sin sesión: ícono lleva a `/login`
-  - Con sesión cliente: dropdown con Mi cuenta → `/cuenta`, Mis pedidos → `/pedidos`, Cerrar sesión
-  - Con sesión interna: dropdown con Panel de administración → `/dashboard/admin`
-- Ícono de usuario en la zona de acciones (junto a Search y Cart), visible en mobile y desktop
-- `logout()` ahora redirige a `/` en lugar de `/login`
-
-### Carrito reactivo al login — sesión 22/05
-- `PublicCartDrawer` acepta prop `user` y muestra footer diferenciado:
-  - Sin sesión: "Iniciá sesión para ver precios" + botón "Iniciar sesión →" + "Registrate"
-  - Con sesión: solo botón "Continuar comprando →" sin prompts de login
-- Mismo comportamiento en el carrito inline del `Header`
-
-### Fix sesión OAuth — sesión 22/05
-- `auth/callback/route.ts` reescrito: las cookies de sesión ahora se escriben directamente en el `NextResponse`
-  en lugar de vía `cookies()` de Next.js (que es read-only en Route Handlers)
-- `SupabaseAuthListener` client component agregado al root layout: llama `router.refresh()` en cada cambio
-  de sesión para invalidar el Router Cache de Next.js y forzar re-render de Server Components
-- Archivo `proxy.ts` ya existía con `updateSession` correctamente implementado
-
-### Google OAuth — configuración — sesión 22/05
-- App name "Reunata" configurado en Google Cloud Console OAuth consent screen
-- App publicada en modo Production (antes Testing)
-- `https://znmqvjxdnslrrvsjquej.supabase.co/auth/v1/callback` agregado como Authorized redirect URI
-- Supabase Site URL: `https://reunata.vercel.app`
-- Dominio verificado en Google Search Console (meta tag en layout via `metadata.verification.google`)
-- Pendiente: con dominio propio del cliente, completar verificación de propiedad (ver `docs/google-oauth-dominio.md`)
-
-### Fix Google OAuth — login persistente — sesión 22/05 (segunda parte)
-Tres bugs en cadena que impedían que el login con Google persista la sesión:
-
-1. **`src/proxy.ts` no era middleware** — Next.js solo reconoce `src/middleware.ts`. El archivo
-   `proxy.ts` exportaba `proxy` (no `middleware`) y nunca se ejecutaba, dejando `updateSession`
-   sin correr en ningún request. Renombrado a `middleware.ts` con la función `middleware` correcta.
-   El matcher excluye `auth/` para no interferir con el code_verifier de PKCE durante el callback.
-
-2. **`SupabaseAuthListener` recreaba el cliente en cada render** — `createClient()` estaba fuera
-   del `useEffect`, causando subscribe/unsubscribe constante que podía perder el evento `SIGNED_IN`
-   justo después del redirect OAuth. Corregido con `useRef(createClient())`. También se agregó
-   `TOKEN_REFRESHED` a la lista de eventos que disparan `router.refresh()`.
-
-3. **Homepage renderizaba `<Header />` sin `user`** — `src/app/page.tsx` está fuera del grupo
-   `(public)` y nunca leía la sesión del usuario, por lo que el Header siempre mostraba el ícono
-   del navbar como "no logueado" (link a `/login`) sin dropdown de cuenta. El OAuth callback
-   redirige a `/` por defecto (cuando no hay parámetro `next`), así que el login desde el navbar
-   siempre terminaba en la homepage sin mostrar la sesión. Fix: leer el user con `createClient()`
-   en la homepage y pasarlo como prop `user` al `Header`.
-
-   Esto explica por qué el login desde el carrito funcionaba: el carrito usa `/login?next=/tienda`
-   → callback redirige a `/tienda` (grupo `(public)`) → layout sí pasa `user` al Header.
-
-### Bug fixes — sesión 23/05
-
-#### Sync — desactivación de productos no-Reunata
-- **Query rota:** `.not('codigo_interno', 'in', ...)` generaba `("ABC","DEF")` con comillas dobles
-  extra que PostgREST no matcheaba. Corregido a `(ABC,DEF)` sin comillas → ahora funciona.
-- **Variable fuera de scope:** `totalDesactivados` declarado dentro del `try` pero usado en el
-  `return` final fuera de él → error de TypeScript que rompía el endpoint. Movida la declaración
-  al mismo nivel que `totalUpserted`.
-- **Sin feedback:** la respuesta ahora incluye `desactivados: number` y el panel muestra
-  "X registros sincronizados · Y productos desactivados".
-- **Toggle sin persistencia:** el checkbox "Desactivar productos que no son de Reunata" se reseteaba
-  al navegar. Ahora persiste en `localStorage` (clave `sync:desactivarNoReunata`).
-- Resultado validado: 123 registros sincronizados, 129 productos desactivados en producción.
-
-#### createClient() fuera de useEffect/useRef — patrón sistemático
-Varios componentes llamaban `createClient()` (browser Supabase client) a nivel módulo o en el
-cuerpo del componente. Turbopack lo ejecuta durante SSR donde las APIs del browser no existen,
-causando "Error in input stream". Corregido en:
-- `DisenoClient.tsx` — movido a `useRef` con inicialización lazy
-- `CategoriasClient.tsx` — ídem (era nivel módulo, el más grave)
-- `CategoryGallery.tsx` — movido dentro del `useEffect` (solo se usaba ahí)
-
-**Patrón correcto para componentes que necesitan Supabase en handlers:**
+### Supabase browser client — nunca a nivel módulo
+`createClient()` ejecutado fuera de `useEffect`/`useRef` falla en SSR (Turbopack lo ejecuta en el servidor). Patrón correcto para handlers:
 ```ts
 const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 function getSupabase() {
@@ -364,258 +27,106 @@ function getSupabase() {
   return supabaseRef.current
 }
 ```
-**Para componentes que solo usan Supabase en useEffect:** instanciar dentro del useEffect.
+Para `useEffect`-only: instanciar dentro del efecto.
 
-#### PromoTicker — framer-motion v12
-- `animate={false}` no es válido en framer-motion v12 → error de runtime. Cambiado a `animate={{ x: 0 }}`.
-- `JSON.parse(promo_items)` no validaba que el resultado fuera un array → posible crash en `.map()`.
-  Ahora valida `Array.isArray(parsed) && parsed.length > 0` antes de `setItems`.
+### Zustand persist + SSR
+`useCartStore` rehidrata desde `localStorage` en cliente. Cualquier UI que dependa de su estado necesita un flag `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`); renderizar condicionalmente cuando `mounted === true`.
 
-#### proxy.ts — convención Next.js 16.x
-En Next.js 16.x la convención cambió: el archivo de interceptación de requests se llama `proxy.ts`
-(no `middleware.ts`) y exporta `proxy` (no `middleware`). En sesión 22/05 se había renombrado a
-`middleware.ts` para corregir un bug de OAuth; en esta sesión se revirtió al nombre correcto para
-eliminar el warning de deprecación. La lógica de `updateSession` no cambió.
+### Precios
+- Siempre leídos desde DB (`precio_lista1/2/3/5`), nunca desde el cliente.
+- Moneda: **ARS** (pesos argentinos). Formato con `formatPrecio()` → `$ X.XXX` (`es-AR`).
+- Gesu mapea: Lista1→Distribuidor, Lista2→Local, Lista3→Mercha, Lista4→sin asignar, Lista5→Consumidor Final.
+- La columna en DB se llama `total_usd` (legacy cosmético, no renombrar sin migración).
+<!-- END:conventions -->
 
-### Tienda como homepage + navbar desde DB — sesión 25/05
-- `/tienda/page.tsx` tiene la misma estructura visual que `/`: Hero, PromoTicker, CategoryGallery, ProductSlider, InstagramSlider, PromotionalBanner
-- `Header.tsx`: categorías del navbar vienen de `categorias_home` (DB), no mockdata
-- Sync Gesu auto-genera `href` en `categorias_home` usando el slug de la categoría; parchea filas existentes con `href=null`
-- `src/app/page.tsx` (homepage `/`) pasa `categorias` al Header desde DB para mantener consistencia
+<!-- BEGIN:architecture -->
+## Arquitectura — tienda por canal
 
-### Tienda por canal de venta — sesión 25/05
+### `src/lib/tienda.ts`
+- `resolverCanalTienda()`: sesión → canal de venta → lista de precios.
+  - Usuario con `canal_id` + `aprobado=true` → `mostrarPrecios=true`, devuelve `listaPrecio`.
+  - Mayorista (`distribuidor|local|mercha`) con `aprobado=false` → `pendienteAprobacion=true`.
+  - `consumidor_final` sin `canal_id` → resuelve canal en memoria sin escribir a DB.
+  - Fallback (sin sesión): usa canal `consumidor_final` con `mostrarPrecios=false`. Canal `publico` existe en DB solo para el chatbot.
+- `getProductosDelCanal(canalId)`: devuelve `{ ids, multiplos }` desde `producto_canales`.
 
-#### Arquitectura central: `src/lib/tienda.ts`
-- `resolverCanalTienda()`: resuelve sesión del usuario → canal de venta → lista de precios
-  - Si el usuario tiene `canal_id` y `aprobado=true`: activa `mostrarPrecios=true` y devuelve `listaPrecio`
-  - Si el rol es mayorista (`distribuidor`, `local`, `mercha`) y `aprobado=false`: devuelve `pendienteAprobacion=true`
-  - Si el usuario es `consumidor_final` sin `canal_id` (ej: recién registrado con Google): resuelve el canal `consumidor_final` en memoria sin escribir a DB
-  - Fallback: canal `publico` si no hay sesión o no se pudo resolver
-- `getProductosDelCanal(canalId)`: devuelve array de `producto_id` visibles para ese canal (tabla `producto_canales`)
+### Sync Gesu (`src/app/api/sync/productos/route.ts`)
+- Cada sync reactiva productos que vienen de Gesu (`activo: true` en upsert).
+- Categorías nuevas en Gesu → `categorias_home` creada con `activo: true` automáticamente.
+- Al final de cada sync: filas de `categorias_home` sin productos activos → `activo: false`.
+- `keysAsignadas` solo cuenta categorías activas.
+- `aprobarCliente()` en `actions/clientes.ts`: al aprobar, asigna `canal_id` cuyo slug coincide con `profiles.rol`.
+- Filtro `CATEGORIAS_INTERNAS` excluye: `Preventa *`, `Productos Importados`, `Productos en Desarrollo`, `Bienes de Uso`, categorías `M)*` y `O)*`.
 
-#### Páginas de tienda filtradas por canal
-- `/tienda/page.tsx` y `/tienda/[slug]/page.tsx` usan `resolverCanalTienda()` + `getProductosDelCanal()`
-- Filtro `.in('id', filterCanal)` aplicado a todos los queries de productos
-- Todos los campos de precio se seleccionan siempre (`precio_lista1/2/3/5`) y se elige el correcto en runtime con `producto[listaPrecio]`
-- Slugs especiales `novedades` y `mas-vendidos` también respetan el canal
-- Si `pendienteAprobacion`: render temprano de `<PendingApproval>` sin mostrar el catálogo
+### Hero carousel — video externo
+`hero_assets.url` puede ser path de Storage (`hero/archivo.mp4`) o URL completa (YouTube/Vimeo). `getEmbedUrl()` en `HeroCarousel.tsx` detecta el tipo y renderiza `<iframe>` o `<video>`. Al eliminar: omitir llamada a Storage si `url.startsWith('http')`.
 
-#### `PendingApproval` — pantalla para mayoristas sin aprobar
-- Componente `src/components/sections/PendingApproval.tsx`
-- Muestra nombre del usuario, explicación de que el formulario fue recibido, botón WhatsApp y link a `/cuenta`
-- Visible para roles `distribuidor`, `local`, `mercha` que completaron el formulario pero aún no fueron aprobados por admin
+### Auth
+- `SupabaseAuthListener` (root layout): llama `router.refresh()` en `SIGNED_IN` y `TOKEN_REFRESHED`.
+- `auth/callback/route.ts`: escribe cookies de sesión directamente en `NextResponse`.
+- `(public)/layout.tsx`: async, obtiene sesión server-side y pasa `user` a `Header` y `PublicCartDrawer`.
+- `src/app/page.tsx` (homepage `/`): también lee sesión y pasa `user` al Header (está fuera del grupo `(public)`).
+<!-- END:architecture -->
 
-#### Auto-asignación de canal al aprobar
-- `aprobarCliente()` en `src/app/actions/clientes.ts`: cuando `aprobado=true`, busca el canal cuyo `slug` coincide con el `rol` del usuario y lo asigna en el mismo UPDATE
-- Elimina el paso manual de asignar canal separadamente
-- Slugs de canales coinciden exactamente con los valores de `profiles.rol`: `consumidor_final`, `distribuidor`, `local`, `mercha`
+<!-- BEGIN:schema -->
+## Tablas y buckets relevantes
 
-#### `ProductGridPublic` — precios y CTA consciente de sesión
-- Prop `mostrarPrecios`: muestra precio solo cuando es `true` (usuarios con canal aprobado)
-- Prop `estaLogueado`: diferencia el CTA
-  - Sin sesión: "Registrate para ver precios" + botón a `/registro` + link a `/login`
-  - Con sesión pero sin precios: "Contactanos para activar tu acceso" + botón a `/contacto`
+| Tabla | RLS — lectura | RLS — escritura |
+|---|---|---|
+| `hero_assets` | pública | master/empleado |
+| `ofertas` | pública | master/empleado |
+| `banners` | pública | master/empleado |
+| `configuracion` | pública | master/empleado |
+| `comunidad_fotos` | pública | master/empleado |
+| `newsletter_suscriptores` | master/empleado | pública (INSERT) |
+| `postulaciones` | master/empleado | pública (INSERT, rate limit 5/h por IP) |
+| `corporativos` | master/empleado | pública via service client |
+| `catalogos` | master/empleado/comisionista/distribuidor/local/mercha | master/empleado |
+| `categorias_home` | pública | master/empleado |
+| `producto_canales` | — | master/empleado |
 
-#### Panel de productos — filtro de categorías internas Gesu
-- Checkbox "Ocultar categorías sin activos" en `ProductosListaClient.tsx` (default: activado)
-- Filtra grupos donde todos los productos están inactivos (ej: categorías de costos internos de Gesu)
-- Persiste solo en estado local del componente
+### Columnas clave
+- `pedidos`: `cliente_id` nullable, `guest_nombre`, `guest_email`, `guest_telefono`, `mp_preference_id`, `mp_payment_id`
+- `productos`: `es_novedad boolean DEFAULT false`
+- `producto_canales`: `multiplo integer DEFAULT 1`
+- `profiles`: `razon_social`, `direccion`, `localidad`, `sitio_web`, `puntos_venta`
+- `categorias_home`: `foto_url text`, `href text`
+- `corporativos`: `logo_url text`
 
-### Fixes feedback Gastón — sesión 26/05
+### Buckets Storage
+`cv`, `multimedia` (categorías, banners, hero), `corporativos` (logos, adjuntos), `catalogos` (PDF privado, 20MB)
+<!-- END:schema -->
 
-#### ProductSlider "Más Elegidos" — navegación a categoría
-- Click en cualquier card ya no agrega al carrito ni abre el drawer
-- Navega a `/tienda/mas-vendidos` igual que cualquier categoría
-- Archivo: `src/components/sections/ProductSlider.tsx`
+<!-- BEGIN:features -->
+## Features implementadas (resumen)
 
-#### "Continuar comprando" — siempre visible
-- Botón visible para todos los usuarios cuando hay ítems en el carrito (antes solo con sesión)
-- Archivo: `src/components/cliente/PublicCartDrawer.tsx`
+- **Postulaciones** — 3 formularios (fulltime/comisionista/proveedor), CV upload, panel admin con filtros
+- **Hero carousel** — assets en Storage + YouTube/Vimeo embed; panel de gestión con editor de contenido
+- **CategoryGallery** — grilla 4 col desktop, foto de portada manual o fallback a productos, auto-sincronizada con Gesu
+- **FloatingActions** — WhatsApp, Ofertas, Hot Sale; drawers con productos de tabla `ofertas`
+- **Tienda por canal** — precios diferenciados por rol; `PendingApproval` para mayoristas sin aprobar
+- **PromoTicker** — animación por píxeles absolutos (velocidad uniforme mobile/desktop); configurable desde DB
+- **Carrito** — Zustand persist, multiplos de cantidad, guest checkout (sin sesión), Mercado Pago Checkout Pro
+- **Mercado Pago** — `iniciarCheckoutMP()` crea pedido + preferencia; webhook IPN en `/api/mp/webhook`; rollback si MP falla
+- **Newsletter** — suscripción pública, panel admin con exportar CSV
+- **Catálogos** — PDFs privados, signed URL 1h, solo roles habilitados
+- **Corporativos** — formulario público con logo upload, panel admin con detalle expandible
+- **Comunidad / Instagram** — `comunidad_fotos`, slider en homepage, oculto si vacío
+- **Ofertas / Hot Sale** — tabla `ofertas`, panel editable con auto-sync precio⟷% descuento
+- **Diseño** — 8 color pickers, `ThemeProvider` inyecta CSS vars, guardado en `configuracion`
+- **Banco de imágenes** — gate server-side (sin sesión / pendiente / aprobado), URL Drive desde `configuracion`
+- **Sidebar admin** — 5 grupos colapsables con acordeón y auto-expand por ruta activa
+- **Roles** — `consumidor_final|distribuidor|local|mercha` no tienen `/dashboard`; rutas públicas `/cuenta` y `/pedidos`
+- **Navbar** — sesión server-side, dropdown según rol, categorías desde DB
+- **Páginas provisorias** — 12 rutas cubiertas: `/eventos`, `/franquicias`, `/faq`, `/terminos`, etc.
+<!-- END:features -->
 
-#### Formulario de registro mayorista y /cuenta
-- Removidos campos `razon_social` y `clientes_activos` de ambas pantallas
-- Archivos: `src/app/registro/RegistroForm.tsx`, `src/app/(public)/cuenta/CuentaForm.tsx`
+<!-- BEGIN:pending -->
+## Pendiente
 
-#### Panel Corporativos — teléfono y logo
-- Tabla principal: teléfono apilado debajo del email en la misma celda
-- Detalle expandido: logo de la empresa visible si `logo_url` está cargado
-- Archivo: `src/app/dashboard/admin/corporativos/CorporativosClient.tsx`
-
-#### GesuSelector — categorías huérfanas visibles
-- `categoria_keys` asignadas a una categoría home pero sin productos activos en Gesu aparecen en rojo
-- Se pueden hacer clic para quitarlas y guardar (antes eran invisibles e irremovibles)
-- Archivo: `src/app/dashboard/admin/multimedia/CategoriasClient.tsx`
-
-### Newsletter — sesión 26/05
-- Migración: tabla `newsletter_suscriptores (id uuid, email text UNIQUE, created_at timestamptz)`
-- RLS: SELECT solo master/empleado; INSERT público
-- Server action `suscribirNewsletter(email)` en `src/app/actions/newsletter.ts`
-  - Inserta email en minúscula y sin espacios
-  - Si ya existe (`error.code === '23505'`): devuelve `{ ok: true, duplicado: true }`
-- `Footer.tsx`: formulario funcional con estados `idle | loading | ok | error`; muestra confirmación visual
-- Panel admin: `src/app/dashboard/admin/newsletter/` — tabla con Email y Fecha, búsqueda, exportar CSV
-- Sidebar: "Newsletter" bajo grupo Marketing antes de Chatbot
-
-### Toggle manual es_novedad — sesión 26/05
-- Migración: `ALTER TABLE productos ADD COLUMN es_novedad boolean NOT NULL DEFAULT false`
-- `toggleNovedad(productoId, activo)` en `src/app/actions/ofertas.ts`: actualiza `productos.es_novedad`
-- Panel Productos: tag 🆕 "Novedad" (celeste `#0ea5e9`) con mismo patrón que Oferta/Hot Sale/Destacado
-- `/tienda/novedades`: prioriza `es_novedad=true`; si no hay marcados manualmente, fallback a `order('created_at', desc)`
-
-### Favicon — sesión 26/05
-- Reemplazado el favicon genérico de Next.js por el ícono oficial de Reunata (el mate)
-- Procesado con ImageMagick: fondo blanco removido (`-fuzz 10% -transparent white`), recortado y centrado
-- ICO multi-size: 16×16, 32×32, 48×48, 256×256
-- Archivo: `src/app/favicon.ico`
-
-### Mercado Pago Checkout Pro — sesión 26/05
-- SDK `mercadopago` v3 instalado
-- `src/lib/mercadopago.ts`: inicialización lazy del cliente; `isSandbox()` detecta el token automáticamente
-- `src/app/actions/checkout.ts`: server action `iniciarCheckoutMP(items)`
-  - Valida que el usuario sea `consumidor_final`
-  - Precios leídos desde DB (`precio_lista5`) — nunca desde el cliente
-  - Crea pedido en DB, luego preferencia en MP con `external_reference = pedido.id`
-  - Si MP falla, elimina el pedido creado (rollback)
-  - Retorna `init_point` (prod) o `sandbox_init_point` (TEST-) según el token
-- `src/app/api/mp/webhook/route.ts`: endpoint IPN
-  - `approved` → `pago_confirmado` + `fecha_pago`
-  - `rejected` / `cancelled` → `cancelado`
-  - Guarda `mp_payment_id` en el pedido
-- Páginas de resultado: `/checkout/exito`, `/checkout/pendiente`, `/checkout/fallo`
-- `PublicCartDrawer`: botón azul "Pagar con Mercado Pago" solo para `consumidor_final`, con total ARS, loading spinner y manejo de error
-- Migración: columnas `mp_preference_id` y `mp_payment_id` en tabla `pedidos`
-- Activar: reemplazar `MP_ACCESS_TOKEN` y `NEXT_PUBLIC_APP_URL` en `.env.local` / Vercel
-
-### Fix hydration mismatch — Zustand persist + SSR — sesión 26/05
-- **Causa:** `useCartStore` con `persist` arranca vacío en el servidor pero rehidrata desde `localStorage` en el cliente. `totalItems() > 0` difería entre renders, causando hydration error de React.
-- **Fix:** flag `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`) en ambos componentes. Badge y contador solo se renderizan cuando `mounted === true`.
-- Archivos: `src/components/layout/Header.tsx`, `src/components/cliente/PublicCartDrawer.tsx`
-- **Patrón a seguir:** cualquier UI que dependa de Zustand `persist` debe protegerse con `mounted` para evitar este error.
-### Gesu como fuente de verdad — categorías y productos — sesión 27/05
-
-#### Sync de productos (`src/app/api/sync/productos/route.ts`)
-- `activo: true` agregado al objeto `rows` del upsert: cada sync reactiva explícitamente los productos que vienen de Gesu. Antes, productos marcados inactivos (por el flag o manualmente) nunca se reactivaban aunque volvieran a aparecer en Gesu.
-- **Categorías 1:1 automáticas:** nuevas categorías detectadas en Gesu se crean en `categorias_home` con `activo: true` (antes era `false`, requería activación manual). Gastón crea una categoría en Gesu → aparece sola en la web.
-- **Auto-desactivación:** al final de cada sync, las filas de `categorias_home` cuyas `categoria_keys` ya no tienen productos en Gesu se marcan `activo: false` automáticamente.
-- **`keysAsignadas` solo de categorías activas:** si una categoría se desactiva (manual o automáticamente), sus keys quedan "libres" para que el sync las cree como entradas individuales. Antes se contaban keys de todas las filas (incluso inactivas), lo que bloqueaba la auto-creación.
-
-#### Flujo resultante (Gesu → web)
-```
-Gesu: categoría "Mates Imperiales" con productos
-  ↓ sync
-categorias_home: { nombre: "Mates Imperiales", href: "/tienda/mates-imperiales", activo: true }
-  ↓ web
-Card en el home + página /tienda/mates-imperiales
-
-Gastón renombra en Gesu → clave vieja desaparece → auto-deactivate + nueva auto-create
-```
-
-#### Panel Categorías Home — rol simplificado
-- Ya no es donde se activan categorías; solo sirve para enriquecer: foto de portada, orden, nombre visible, desactivar manualmente.
-- Botón "Eliminar" agregado (rojo, solo visible en categorías **inactivas**): elimina la fila y la foto del bucket. Endpoint `DELETE /api/categorias-home` con verificación de master.
-
-#### Fix — toggle "Desactivar productos no-Reunata"
-- `localStorage.setItem` estaba dentro del callback funcional de `setState`, que React (Concurrent Mode) puede invocar más de una vez con el mismo valor inicial, corrompiendo el valor persistido. Movido fuera del callback → persiste correctamente entre navegaciones.
-- Archivo: `src/app/dashboard/admin/sync/SyncClient.tsx`
-
-#### Categorías internas de Gesu — siempre filtradas
-Las siguientes categorías de Gesu matchean el filtro `CATEGORIAS_INTERNAS` en el sync y **nunca aparecen en la web**:
-- `Preventa *` (ej: "Preventa C3")
-- `Productos Importados`
-- `Productos en Desarrollo`
-- `Bienes de Uso`
-- Categorías que empiezan con `M)` o `O)`
-### Fotos desde panel Productos — sesión 28/05
-- Nuevo componente `src/components/admin/ProductoFotosDrawer.tsx`: drawer lateral de gestión de fotos extraído de MultimediaClient, autocontenido con sus propias llamadas a `/api/multimedia` y Storage
-- `ProductosListaClient.tsx`: columna "Fotos" con badge cámara (verde = tiene fotos, rojo = sin fotos); clic abre el drawer lateral
-- `page.tsx (ListaContent)`: carga sesión para determinar `isMaster`, consulta `producto_fotos`, pasa `fotosIniciales`, `supabaseUrl`, `isMaster` al cliente
-- Callback `onFotosChange` actualiza el `fotosMap` del estado local → el badge se actualiza sin recargar la página
-- Multimedia > Fotos de productos sigue funcionando en paralelo; se puede ocultar cuando Gastón confirme que ya no lo usa
-
-### Múltiplos de cantidad por canal — panel admin — sesión 28/05
-- Migración aplicada en prod: `ALTER TABLE producto_canales ADD COLUMN IF NOT EXISTS multiplo integer NOT NULL DEFAULT 1`
-- Server action `actualizarMultiplo(productoId, canalId, multiplo)` en `src/app/actions/canales.ts`
-- `CanalesClient.tsx`: cada celda producto×canal tiene checkbox (arriba) + badge `×N` (abajo, solo si asignado)
-- Clic en el badge abre input inline → Enter o blur guarda el múltiplo con actualización optimista
-
-### Confirmación antes de asignación masiva por categoría — sesión 28/05
-- Los botones de fila de categoría ("Asignar todos" / "Quitar todos") mostraban antes un popover de confirmación inline
-- Primera clic: muestra "Asignar/Quitar X productos — Confirmar / Cancelar" con el color del canal
-- Segundo clic (Confirmar): ejecuta la acción; Cancelar o clic fuera descarta
-- Archivo: `src/app/dashboard/admin/productos/CanalesClient.tsx`
-
-### Múltiplos de cantidad cara al público — sesión 28/05
-- `getProductosDelCanal()` en `src/lib/tienda.ts` devuelve `{ ids, multiplos }` (antes solo `number[]`)
-- `CartItem` en `cartStore` agrega `multiplo?: number`; `add()` usa el múltiplo como cantidad inicial y como paso de re-clic
-- `ProductGridPublic`: badge "× X u. mín." visible debajo del precio cuando multiplo > 1
-- `PublicCartDrawer`: stepper −/+ por ítem que respeta el múltiplo; badge ×N junto al contador de cantidad
-- `tienda/[slug]/page.tsx`: `mapProducto` incluye `multiplo` desde el mapa del canal resuelto
-- `checkout.ts`: validación server-side — rechaza si `cantidad % multiplo !== 0`
-
-### Fix canal fallback para usuarios no registrados — sesión 28/05
-- **Bug:** el canal `publico` está oculto del panel admin (`.neq('slug', 'publico')`) → nadie podía asignarle productos → usuarios sin sesión veían catálogo vacío
-- **Fix:** el fallback en `resolverCanalTienda()` ahora usa `consumidor_final` en lugar de `publico` → mismos productos que un CF logueado, con `mostrarPrecios = false`
-- El canal `publico` en DB queda como referencia para el chatbot pero ya no afecta la tienda
-
-### Precios en ARS — limpieza de moneda — sesión 03/06
-- Confirmado: los precios de Gesu vienen en pesos argentinos (ARS), no en USD
-- Sync (`route.ts`): `moneda` default corregido de `'u$s'` a `'$'`
-- Todos los `u$s X.XX` y `USD X.XX` del frontend reemplazados por `formatPrecio()` (formato `$ X.XXX` con separador de miles `es-AR`)
-- Archivos corregidos: historial de pedidos, detalle de pedido, instrucciones de pago (transferencia/efectivo/e-cheq/cheque), tabla de pedidos admin, panel de productos admin (función `fmt`), dashboard cliente
-- `PagoInstrucciones` aparece duplicado en `(public)` y `dashboard/cliente/pedidos/[id]` — ambos corregidos
-- Label "Monto mínimo de pedido (USD)" → "(ARS)" en configuración
-- La columna en DB sigue llamándose `total_usd` (cosmético; renombrar requiere migración, no es urgente)
-- `currency_id: 'ARS'` en Mercado Pago ya estaba correcto
-
-### Banco de imágenes con gate de mayorista — sesión 03/06
-- `/banco-imagenes` reemplaza la página provisoria con lógica de acceso completa
-- Gate server-side con tres estados:
-  - **Sin sesión / consumidor_final:** "Exclusivo para revendedores" + botón registro mayorista + link "Ya tengo cuenta" (`?next=/banco-imagenes`)
-  - **Mayorista pendiente de aprobación:** badge amarillo + mensaje + WhatsApp
-  - **Mayorista aprobado:** botón "Abrir banco de imágenes" → Drive URL (o msg "en breve" si no está configurada)
-- URL del Drive configurable desde **Panel → Configuración → Banco de imágenes** (clave `banco_imagenes_drive_url`)
-- `configuracion/page.tsx`: nueva sección con input `type="url"` incluida en el upsert del form
-
-### Checkout de invitados (guest checkout) — sesión 03/06
-- Migración: `cliente_id` nullable + columnas `guest_nombre`, `guest_email`, `guest_telefono` en `pedidos`
-- `src/app/actions/checkout.ts`: acepta `guestData?: { nombre, email, telefono }` como segundo parámetro
-  - Usuarios registrados: mismo flujo de antes (solo `consumidor_final`)
-  - Invitados: validación de nombre y email, inserción con `service client` (bypasa RLS), `cliente_id: null`
-- `src/app/(public)/carrito/CartClient.tsx`: cuando no hay sesión, muestra formulario inline (nombre, email, teléfono) en lugar de los botones de login
-- `/checkout/exito`: botón "Ver mi pedido" visible solo si hay sesión; mensaje diferenciado para invitados
-- Admin pedidos: selecciona `guest_nombre` y `guest_email`; badge naranja "Invitado" cuando `cliente_id` es null
-- Fix: import duplicado de `formatPrecio` en `dashboard/cliente/pedidos/[id]/page.tsx`
-
-### Hero carousel — soporte de YouTube y Vimeo — sesión 03/06
-- **Motivación:** videos en Supabase Storage quemaban el egress del plan Free (5 GB/mes); un video de 40 MB × 100 visitas = 4 GB
-- `src/components/sections/HeroCarousel.tsx`: función `getEmbedUrl()` detecta URLs de YouTube/Vimeo y retorna la URL de embed; renderiza `<iframe>` con técnica CSS cover en lugar de `<video>` para URLs externas
-- `src/app/dashboard/admin/multimedia/HeroClient.tsx`:
-  - Sección "Agregar video de YouTube o Vimeo" con input URL y validación
-  - Badge "YT/Vimeo" en la grilla para distinguir assets externos de Storage
-  - `confirmarEliminar`: omite la llamada a Supabase Storage si `url.startsWith('http')` (URL externa)
-- El campo `url` en `hero_assets` ahora puede contener tanto paths de Storage (`hero/archivo.mp4`) como URLs completas (`https://youtube.com/...`)
-- **Flujo para Gastón:** subir video a YouTube (sin listar) → Panel → Multimedia → Hero → "Agregar video de YouTube" → pegar URL → Agregar → eliminar el video viejo de Storage
-
----
-
-## Pendiente (próximas sesiones)
-
-### Multimedia > Fotos de productos — evaluar ocultarlo
-- Ahora la gestión de fotos está disponible directamente desde el panel Productos (columna Fotos)
-- Queda duplicada la sección en Multimedia > Fotos de productos
-- **Acción:** confirmar con Gastón si la puede dejar de usar; luego ocultar del sidebar (no eliminar)
-
-### #35 — Filtros en tienda (sesión aparte)
-- Auditar atributos disponibles en tabla `productos`
-- Posiblemente requiere columnas nuevas o tabla `atributos`
-
-### Variables de entorno — configurar en Vercel antes de lanzar
-- `MP_ACCESS_TOKEN` → reemplazar con token real de Mercado Pago (producción o sandbox)
-- `NEXT_PUBLIC_APP_URL` → URL de producción (`https://reunata.vercel.app` o dominio propio)
-- Sin esto el checkout MP no funciona y el webhook no recibe notificaciones
-
-### Email de confirmación de Supabase
-- Verificar template en Supabase Dashboard → Authentication → Email Templates → Confirm signup
-- El link de confirmación debe apuntar al dominio de producción, no a localhost
-
-<!-- END:feactures -->
+- **Multimedia > Fotos de productos** — ahora duplicado con columna Fotos del panel Productos; ocultar del sidebar cuando Gastón confirme
+- **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
+- **Variables de entorno Vercel** — `MP_ACCESS_TOKEN` (token real MP) y `NEXT_PUBLIC_APP_URL` (dominio prod)
+- **Email confirmación Supabase** — verificar template apunte al dominio de producción, no localhost
+- **Dominio propio** — completar verificación Google Search Console con dominio del cliente (ver `docs/google-oauth-dominio.md`)
+<!-- END:pending -->
