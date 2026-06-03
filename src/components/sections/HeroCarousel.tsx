@@ -28,6 +28,19 @@ const FALLBACK = {
   boton_url: '/tienda',
 }
 
+function getEmbedUrl(url: string): string | null {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+  if (yt) {
+    const id = yt[1]
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&disablekb=1&rel=0&modestbranding=1&playsinline=1`
+  }
+  const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+  if (vimeo) {
+    return `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1`
+  }
+  return null
+}
+
 export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; supabaseUrl: string }) {
   const getPublicUrl = (url: string) => supabaseImg(supabaseUrl, url, 1920)
   const firstImageUrl = assets.find(a => a.tipo === 'imagen') ? getPublicUrl(assets.find(a => a.tipo === 'imagen')!.url) : null
@@ -80,6 +93,22 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
               className="object-cover object-center"
               sizes="100vw"
             />
+          ) : getEmbedUrl(asset.url) ? (
+            // Video externo (YouTube / Vimeo) — iframe con técnica cover
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <iframe
+                src={getEmbedUrl(asset.url)!}
+                allow="autoplay; fullscreen"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  width: '100vw',
+                  height: '56.25vw',
+                  minHeight: '100vh',
+                  minWidth: '177.78vh',
+                  border: 'none',
+                }}
+              />
+            </div>
           ) : (
             <video
               src={getPublicUrl(asset.url)}

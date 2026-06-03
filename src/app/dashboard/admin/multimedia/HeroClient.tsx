@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, ImageIcon, Pencil, ArrowLeft } from 'lucide-react'
+import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, Pencil, ArrowLeft, Youtube } from 'lucide-react'
 import Image from 'next/image'
 import { BannerClient } from './BannerClient'
 
@@ -41,6 +41,8 @@ export function HeroClient({
   const [subiendo, setSubiendo] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [assetAEliminar, setAssetAEliminar] = useState<HeroAsset | null>(null)
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [agregandoYt, setAgregandoYt] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<HeroAsset | null>(null)
   const [guardando, setGuardando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -156,9 +158,33 @@ export function HeroClient({
     setAssetAEliminar(asset)
   }
 
+  async function agregarYoutube() {
+    const url = youtubeUrl.trim()
+    if (!url) return
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+    const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+    if (!ytMatch && !vimeoMatch) {
+      mostrarToast('URL no reconocida. Usá un link de YouTube o Vimeo.')
+      return
+    }
+    setAgregandoYt(true)
+    const maxOrden = assets.reduce((max, a) => Math.max(max, a.orden), 0)
+    const { data } = await supabase
+      .from('hero_assets')
+      .insert({ tipo: 'video', url, orden: maxOrden + 1 })
+      .select()
+      .single()
+    if (data) setAssets(prev => [...prev, data])
+    setYoutubeUrl('')
+    setAgregandoYt(false)
+    mostrarToast('Video agregado al carrusel')
+  }
+
   async function confirmarEliminar() {
     if (!assetAEliminar) return
-    await supabase.storage.from('multimedia').remove([assetAEliminar.url])
+    // Solo borrar de Storage si es un path local (no URL externa)
+    const esExterno = assetAEliminar.url.startsWith('http')
+    if (!esExterno) await supabase.storage.from('multimedia').remove([assetAEliminar.url])
     await supabase.from('hero_assets').delete().eq('id', assetAEliminar.id)
     setAssets(prev => prev.filter(a => a.id !== assetAEliminar.id))
     setAssetAEliminar(null)
@@ -302,7 +328,9 @@ export function HeroClient({
 
                   <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
                   {a.tipo === 'video' && (
-                    <span className="absolute top-2 right-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded">video</span>
+                    <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-1.5 py-0.5 rounded">
+                      {a.url.startsWith('http') ? 'YT/Vimeo' : 'video'}
+                    </span>
                   )}
                   {a.activo && (
                     <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
@@ -371,6 +399,38 @@ export function HeroClient({
                 </button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Agregar video de YouTube / Vimeo */}
+        <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--color-acero-claro)', background: 'white' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Youtube size={15} style={{ color: '#ff0000' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+              Agregar video de YouTube o Vimeo
+            </p>
+          </div>
+          <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Pegá la URL del video. No consume almacenamiento de Supabase.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={youtubeUrl}
+              onChange={e => setYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none"
+              style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              onKeyDown={e => e.key === 'Enter' && agregarYoutube()}
+            />
+            <button
+              onClick={agregarYoutube}
+              disabled={agregandoYt || !youtubeUrl.trim()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+              style={{ background: 'var(--color-granito)', color: 'white' }}
+            >
+              {agregandoYt ? <Loader2 size={13} className="animate-spin" /> : 'Agregar'}
+            </button>
           </div>
         </div>
 
