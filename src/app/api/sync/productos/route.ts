@@ -36,10 +36,15 @@ interface GesuItem {
   stockMinimo: number
   monedaPrecioCompra: string
   precioFinalCompra: number
+  monedaPrecioLista1: string
   precioFinalLista1: number
+  monedaPrecioLista2: string
   precioFinalLista2: number
+  monedaPrecioLista3: string
   precioFinalLista3: number
+  monedaPrecioLista4: string
   precioFinalLista4: number
+  monedaPrecioLista5: string
   precioFinalLista5: number
   iva: number
   descripcion: string | null
@@ -170,7 +175,7 @@ async function syncProductos(desactivarNoReunata = false) {
       proveedor:       item.proveedor || null,
       stock:           int(item.stock),
       stock_minimo:    int(item.stockMinimo),
-      moneda:          item.monedaPrecioCompra || '$',
+      moneda:          item.monedaPrecioLista1 || item.monedaPrecioLista5 || '$',
       precio_compra:   num(item.precioFinalCompra),
       precio_lista1:   num(item.precioFinalLista1),
       precio_lista2:   num(item.precioFinalLista2),

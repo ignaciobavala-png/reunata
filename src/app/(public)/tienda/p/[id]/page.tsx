@@ -41,7 +41,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -102,7 +102,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
             {precio != null && (
               <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                {formatPrecio(precio)}
+                {formatPrecio(precio, producto.moneda)}
               </p>
             )}
 

@@ -15,6 +15,7 @@ export interface FotoDestacada {
   titulo: string
   codigo_interno: string
   precio: number | null
+  moneda?: string | null
   supabaseUrl: string
 }
 
@@ -85,7 +86,7 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                   </p>
                   {foto.precio != null && (
                     <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
-                      {formatPrecio(foto.precio)}
+                      {formatPrecio(foto.precio, foto.moneda)}
                     </p>
                   )}
                 </button>

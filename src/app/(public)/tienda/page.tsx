@@ -41,7 +41,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   if (busqueda) {
     const { data: resultados } = await supabase
       .from('productos')
-      .select(`id, titulo, codigo_interno, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)`)
+      .select(`id, titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)`)
       .eq('activo', true)
       .in('id', idsCanal.length > 0 ? idsCanal : [-1])
       .or(`titulo.ilike.%${busqueda}%,codigo_interno.ilike.%${busqueda}%`)
@@ -53,7 +53,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
       const precio = mostrarPrecios && listaPrecio
         ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
         : null
-      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: fotos[0]?.url ?? null, precio, multiplo: multiplos[p.id] ?? 1, supabaseUrl }
+      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: fotos[0]?.url ?? null, precio, moneda: p.moneda ?? null, multiplo: multiplos[p.id] ?? 1, supabaseUrl }
     })
 
     return (
@@ -82,7 +82,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
+    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
     .eq('destacada', true)
     .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')
@@ -106,6 +106,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
       titulo: producto?.titulo ?? '',
       codigo_interno: producto?.codigo_interno ?? '',
       precio,
+      moneda: producto?.moneda ?? null,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })

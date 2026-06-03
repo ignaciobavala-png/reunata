@@ -17,6 +17,7 @@ interface ProductoPublico {
   codigo_interno: string
   foto_url: string | null
   precio: number | null
+  moneda?: string | null
   multiplo?: number
   supabaseUrl: string
 }
@@ -188,7 +189,7 @@ export function ProductGridPublic({
                 </p>
                 {p.precio != null && (
                   <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(p.precio)}
+                    {formatPrecio(p.precio, p.moneda)}
                   </p>
                 )}
               </Link>
