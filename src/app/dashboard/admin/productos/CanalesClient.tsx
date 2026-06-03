@@ -13,6 +13,7 @@ const COLORES_CANAL: Record<string, string> = {
   distribuidor:     '#0ea5e9',
   local:            '#10b981',
   mercha:           '#f59e0b',
+  fabricantes:      '#f97316',
   publico:          '#8b5cf6',
 }
 
