@@ -18,6 +18,11 @@ function OfferDrawer({
   items: OfertaPublicItem[]
   onClose: () => void
 }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const filtered = items.filter(i => i.canal === type)
   const title = type === 'ofertas' ? 'Ofertas' : 'Hot Sale'
   const badgeColor = type === 'ofertas' ? 'bg-amber-500' : 'bg-red-500'
