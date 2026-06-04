@@ -108,13 +108,6 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
                   border: 'none',
                 }}
               />
-              {/* Cubre el overlay inicial de YouTube hasta que el autoplay arranca */}
-              <motion.div
-                className="absolute inset-0 bg-black"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 0 }}
-                transition={{ delay: 1.8, duration: 0.8 }}
-              />
             </div>
           ) : (
             <video

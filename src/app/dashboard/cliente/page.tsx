@@ -19,11 +19,8 @@ const CANAL_COLOR: Record<string, string> = {
 }
 
 const LISTA_LABEL: Record<string, string> = {
-  precio_lista1: 'Lista 1',
-  precio_lista2: 'Lista 2',
-  precio_lista3: 'Lista 3',
-  precio_lista4: 'Lista 4',
-  precio_lista5: 'Lista 5',
+  precio_lista3: 'Mayorista',
+  precio_lista5: 'Minorista',
 }
 
 const ESTADO_LABEL: Record<string, string> = {

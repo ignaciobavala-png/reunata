@@ -28,7 +28,7 @@ export default async function Home() {
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
+    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
     .eq('destacada', true)
     .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')

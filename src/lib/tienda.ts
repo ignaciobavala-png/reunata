@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export interface CanalUsuario {
   canalId: number
   slug: string
-  listaPrecio: string // 'precio_lista1' | 'precio_lista2' | 'precio_lista3' | 'precio_lista5'
+  listaPrecio: string // 'precio_lista3' (mayorista) | 'precio_lista5' (minorista)
   aprobado: boolean
 }
 

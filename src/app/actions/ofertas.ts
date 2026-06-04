@@ -27,7 +27,7 @@ export async function getOfertasPublic(): Promise<OfertaPublicItem[]> {
   const productoIds = ofertas.map(o => o.producto_id)
 
   const [{ data: productos }, { data: fotos }] = await Promise.all([
-    supabase.from('productos').select('id, titulo, precio_lista1').in('id', productoIds),
+    supabase.from('productos').select('id, titulo, precio_lista3').in('id', productoIds),
     supabase.from('producto_fotos').select('producto_id, url').eq('destacada', true).in('producto_id', productoIds),
   ])
 
@@ -43,7 +43,7 @@ export async function getOfertasPublic(): Promise<OfertaPublicItem[]> {
       canal: o.canal,
       titulo: prod?.titulo ?? '—',
       precio: o.precio_oferta,
-      antes: prod?.precio_lista1 ?? 0,
+      antes: prod?.precio_lista3 ?? 0,
       descuento: o.descuento_porcentaje,
       img: fotoMap.get(o.producto_id) ?? '',
     }

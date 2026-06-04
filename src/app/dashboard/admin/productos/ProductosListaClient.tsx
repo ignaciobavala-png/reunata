@@ -13,12 +13,12 @@ interface Producto {
   codigo_interno: string
   titulo: string
   categoria: string | null
+  descripcion: string | null
   stock: number | null
   stock_visible: number | null
   mostrar_stock: boolean
-  precio_lista1: number | null
-  precio_lista2: number | null
   precio_lista3: number | null
+  precio_lista5: number | null
   activo: boolean
 }
 
@@ -92,7 +92,7 @@ export function ProductosListaClient({
   const [guardandoStock, setGuardandoStock] = useState<number | null>(null)
   const [mostrarStock, setMostrarStock] = useState<Set<number>>(new Set(mostrarStockIniciales))
   const [guardandoMostrarStock, setGuardandoMostrarStock] = useState<number | null>(null)
-  const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' } | null>(null)
+  const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' | 'descripcion' } | null>(null)
 
   // Asignaciones masivas por categoría
   const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
@@ -250,7 +250,7 @@ export function ProductosListaClient({
     setOfertas(nuevo)
     startTransition(async () => {
       try {
-        const res = await toggleOferta(canal, p.id, p.precio_lista1, nuevoValor)
+        const res = await toggleOferta(canal, p.id, p.precio_lista3, nuevoValor)
         if (!res.ok) setOfertas(anterior)
         else router.refresh()
       } catch { setOfertas(anterior) }
@@ -338,9 +338,8 @@ export function ProductosListaClient({
                     <span className="text-xs font-normal opacity-60">Gesu / Visible</span>
                   </div>
                 </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 1</th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 2</th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Lista 3</th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Mayorista (L3)</th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Minorista (L5)</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Canales</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
@@ -527,9 +526,8 @@ export function ProductosListaClient({
                             </button>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista1)}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista2)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista3)}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista5)}</td>
                         <td className="px-4 py-2.5 text-center">
                           <span
                             className="px-2 py-0.5 rounded-full text-xs"
@@ -688,6 +686,7 @@ export function ProductosListaClient({
           canales={canalesIniciales}
           asignacionesIniciales={drawerAsignaciones}
           multiplosIniciales={drawerMultiplos}
+          descripcionInicial={drawerState.producto.descripcion ?? null}
           onClose={() => setDrawerState(null)}
           onFotosChange={(productoId, fotos) =>
             setFotosMap(prev => ({ ...prev, [productoId]: fotos }))

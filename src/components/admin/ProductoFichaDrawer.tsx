@@ -3,9 +3,10 @@
 import { useState, useRef, useCallback, useEffect, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft, Camera, Store } from 'lucide-react'
+import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft, Camera, Store, FileText } from 'lucide-react'
 import Image from 'next/image'
 import { toggleProductoCanal, actualizarMultiplo } from '@/app/actions/canales'
+import { guardarDescripcion } from '@/app/actions/productos'
 
 export interface FotoItem {
   id: number
@@ -39,10 +40,11 @@ interface Props {
   fotosIniciales: FotoItem[]
   supabaseUrl: string
   isMaster: boolean
-  initialTab?: 'fotos' | 'canales'
+  initialTab?: 'fotos' | 'canales' | 'descripcion'
   canales: Canal[]
   asignacionesIniciales: Set<number>
   multiplosIniciales: Record<number, number>
+  descripcionInicial?: string | null
   onClose: () => void
   onFotosChange?: (productoId: number, fotos: FotoItem[]) => void
   onCanalesChange?: (productoId: number, asignados: Set<number>, multiplos: Record<number, number>) => void
@@ -50,7 +52,7 @@ interface Props {
 
 export function ProductoFichaDrawer({
   producto, fotosIniciales, supabaseUrl, isMaster, initialTab = 'fotos',
-  canales, asignacionesIniciales, multiplosIniciales,
+  canales, asignacionesIniciales, multiplosIniciales, descripcionInicial = null,
   onClose, onFotosChange, onCanalesChange,
 }: Props) {
   const router = useRouter()
@@ -62,7 +64,11 @@ export function ProductoFichaDrawer({
     return supabaseRef.current
   }
 
-  const [tab, setTab] = useState<'fotos' | 'canales'>(initialTab)
+  const [tab, setTab] = useState<'fotos' | 'canales' | 'descripcion'>(initialTab)
+
+  // ── Descripción ───────────────────────────────────────────────────────────
+  const [descripcion, setDescripcion] = useState(descripcionInicial ?? '')
+  const [guardandoDesc, setGuardandoDesc] = useState(false)
 
   // ── Fotos ─────────────────────────────────────────────────────────────────
   const [fotos, setFotos] = useState<FotoItem[]>(fotosIniciales)
@@ -273,6 +279,14 @@ export function ProductoFichaDrawer({
     })
   }
 
+  async function handleGuardarDescripcion() {
+    setGuardandoDesc(true)
+    const res = await guardarDescripcion(producto.id, descripcion || null)
+    setGuardandoDesc(false)
+    if (res.ok) mostrarToast('Descripción guardada')
+    else mostrarToast('Error al guardar')
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -299,6 +313,7 @@ export function ProductoFichaDrawer({
           {([
             { key: 'fotos', label: 'Fotos', icon: Camera },
             { key: 'canales', label: 'Canales', icon: Store },
+            { key: 'descripcion', label: 'Descripción', icon: FileText },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -504,6 +519,35 @@ export function ProductoFichaDrawer({
               </div>
             </div>
           )}
+          {tab === 'descripcion' && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Descripción técnica visible en la página del producto. Si se carga desde Gesu, se sobrescribirá en el próximo sync.
+              </p>
+              <textarea
+                value={descripcion}
+                onChange={e => setDescripcion(e.target.value)}
+                rows={8}
+                placeholder="Ej: Mate de acero inoxidable 18/8, capacidad 350ml, con tapa a presión…"
+                className="w-full rounded-lg border p-3 text-sm resize-y outline-none"
+                style={{
+                  borderColor: 'var(--color-acero-claro)',
+                  color: 'var(--foreground)',
+                  background: 'white',
+                  lineHeight: 1.6,
+                }}
+              />
+              <button
+                onClick={handleGuardarDescripcion}
+                disabled={guardandoDesc}
+                className="self-end flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                style={{ background: 'var(--color-granito)', color: 'white' }}
+              >
+                {guardandoDesc ? <><Loader2 size={13} className="animate-spin" /> Guardando…</> : 'Guardar'}
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
 

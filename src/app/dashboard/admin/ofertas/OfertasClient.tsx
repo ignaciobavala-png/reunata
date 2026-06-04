@@ -10,7 +10,7 @@ interface ProductoItem {
   id: number
   codigo_interno: string | null
   titulo: string
-  precio_lista1: number | null
+  precio_lista3: number | null
   categoria: string | null
 }
 
@@ -69,7 +69,7 @@ export function OfertasClient({
   async function handleAgregar(productoId: number) {
     const producto = productos.find(p => p.id === productoId)
     if (!producto) return
-    const precioLista = producto.precio_lista1 ?? 0
+    const precioLista = producto.precio_lista3 ?? 0
     const descuento = 10
     const precioOferta = +(precioLista * (1 - descuento / 100)).toFixed(2)
 
@@ -194,7 +194,7 @@ export function OfertasClient({
               {ofertasFiltradas.map((oferta, i) => {
                 const edit = editando[oferta.id]
                 const prod = oferta.producto
-                const precioLista = prod?.precio_lista1 ?? 0
+                const precioLista = prod?.precio_lista3 ?? 0
                 return (
                   <tr
                     key={oferta.id}
@@ -377,7 +377,7 @@ export function OfertasClient({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{p.titulo}</p>
-                      <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{p.codigo_interno ?? ''} · ${p.precio_lista1 ?? 0}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{p.codigo_interno ?? ''} · ${p.precio_lista3 ?? 0}</p>
                     </div>
                     {agregando ? (
                       <Loader2 size={14} className="animate-spin" />
