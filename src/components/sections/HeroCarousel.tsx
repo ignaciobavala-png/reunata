@@ -21,7 +21,7 @@ interface HeroAsset {
 }
 
 const FALLBACK = {
-  etiqueta: 'Nueva Colección — 2025',
+  etiqueta: 'Reunata — 2025',
   titulo: 'El mate que te une.',
   subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
   boton_texto: 'Ver tienda',
@@ -32,7 +32,7 @@ function getEmbedUrl(url: string): string | null {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
   if (yt) {
     const id = yt[1]
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&disablekb=1&rel=0&modestbranding=1&playsinline=1`
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&disablekb=1&rel=0&fs=0&iv_load_policy=3&playsinline=1`
   }
   const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
   if (vimeo) {
@@ -98,8 +98,8 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <iframe
                 src={getEmbedUrl(asset.url)!}
-                allow="autoplay; fullscreen"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                allow="autoplay; encrypted-media"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.15]"
                 style={{
                   width: '100vw',
                   height: '56.25vw',
@@ -107,6 +107,13 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
                   minWidth: '177.78vh',
                   border: 'none',
                 }}
+              />
+              {/* Cubre el overlay inicial de YouTube hasta que el autoplay arranca */}
+              <motion.div
+                className="absolute inset-0 bg-black"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ delay: 1.8, duration: 0.8 }}
               />
             </div>
           ) : (
@@ -172,10 +179,10 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
           <Link
-            href="/colecciones"
+            href="/tienda/novedades"
             className="inline-flex items-center gap-2 border border-white/40 px-8 py-4 text-xs tracking-widest uppercase text-white hover:border-white transition-colors duration-300"
           >
-            Colecciones
+            Novedades
           </Link>
         </motion.div>
       </div>
