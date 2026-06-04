@@ -92,7 +92,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
         </div>
 
         {/* Items */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4" data-lenis-prevent>
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2">
               {esMayorista

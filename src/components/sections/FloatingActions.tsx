@@ -3,7 +3,6 @@
 import { Clock, Flame, MessageCircle, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { getOfertasPublic, type OfertaPublicItem } from '@/app/actions/ofertas'
 
@@ -11,31 +10,33 @@ type DrawerType = 'ofertas' | 'hotsale' | null
 
 function OfferDrawer({
   type,
+  open,
   items,
   onClose,
 }: {
   type: Exclude<DrawerType, null>
+  open: boolean
   items: OfertaPublicItem[]
   onClose: () => void
 }) {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
   const filtered = items.filter(i => i.canal === type)
   const title = type === 'ofertas' ? 'Ofertas' : 'Hot Sale'
   const badgeColor = type === 'ofertas' ? 'bg-amber-500' : 'bg-red-500'
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col"
+      <div
+        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      <div
+        className="fixed top-0 right-0 h-full z-50 flex flex-col transition-transform duration-300"
+        style={{
+          width: 'min(100vw, 36rem)',
+          background: 'white',
+          transform: open ? 'translateX(0)' : 'translateX(100%)',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+        }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -44,7 +45,7 @@ function OfferDrawer({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6" data-lenis-prevent>
           {filtered.length === 0 ? (
             <p className="text-center text-sm py-12" style={{ color: 'var(--color-acero-oscuro)' }}>
               No hay productos en {title.toLowerCase()} por el momento.
@@ -88,7 +89,7 @@ function OfferDrawer({
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </>
   )
 }
@@ -137,15 +138,14 @@ export function FloatingActions() {
         </button>
       </div>
 
-      <AnimatePresence>
-        {drawer && (
-          <OfferDrawer
-            type={drawer}
-            items={items}
-            onClose={() => setDrawer(null)}
-          />
-        )}
-      </AnimatePresence>
+      {drawer && (
+        <OfferDrawer
+          type={drawer}
+          open={!!drawer}
+          items={items}
+          onClose={() => setDrawer(null)}
+        />
+      )}
     </>
   )
 }
