@@ -26,7 +26,7 @@ export default async function FavoritosPage() {
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('producto_id, url, orden, productos(id, titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista5)')
+    .select('producto_id, url, orden, productos(id, titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
     .eq('destacada', true)
     .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')

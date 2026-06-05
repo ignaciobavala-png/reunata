@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getMPPreference, isSandbox } from '@/lib/mercadopago'
+import { aplicarTipoCambio } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -70,18 +71,36 @@ export async function iniciarCheckoutMP(
     }
   }
 
-  const { data: productos } = await service
-    .from('productos')
-    .select('id, titulo, precio_lista5')
-    .in('id', items.map(i => i.productoId))
-    .eq('activo', true)
+  const [{ data: productos }, { data: tcRow }] = await Promise.all([
+    service
+      .from('productos')
+      .select('id, titulo, precio_lista5, moneda, stock_visible')
+      .in('id', items.map(i => i.productoId))
+      .eq('activo', true),
+    service
+      .from('configuracion')
+      .select('valor')
+      .eq('clave', 'tipo_cambio_usd')
+      .maybeSingle(),
+  ])
 
   if (!productos?.length) return { ok: false, error: 'Productos no disponibles.' }
+
+  for (const item of items) {
+    const prod = productos.find(p => p.id === item.productoId)
+    if (prod && prod.stock_visible !== null && prod.stock_visible < item.cantidad) {
+      return { ok: false, error: `Stock insuficiente para "${prod.titulo}". Disponible: ${prod.stock_visible}.` }
+    }
+  }
+
+  const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
 
   const lineas = items.flatMap(item => {
     const prod = productos.find(p => p.id === item.productoId)
     if (!prod || !prod.precio_lista5) return []
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: prod.precio_lista5 as number }]
+    const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
+    if (precioArs === null) return []
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioArs }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -110,7 +129,7 @@ export async function iniciarCheckoutMP(
 
   if (pedidoError || !pedido) return { ok: false, error: 'Error al crear el pedido.' }
 
-  await service.from('pedido_items').insert(
+  const { error: itemsError } = await service.from('pedido_items').insert(
     lineas.map(l => ({
       pedido_id: pedido.id,
       producto_id: l.productoId,
@@ -118,6 +137,10 @@ export async function iniciarCheckoutMP(
       precio_unit: l.precioUnit,
     }))
   )
+  if (itemsError) {
+    await service.from('pedidos').delete().eq('id', pedido.id)
+    return { ok: false, error: 'Error al registrar los ítems del pedido.' }
+  }
 
   const payerEmail = user?.email ?? guestData!.email.trim().toLowerCase()
 

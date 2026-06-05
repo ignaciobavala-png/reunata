@@ -13,12 +13,15 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[]
+  ownerId: string | null
   cartOpen: boolean
   setCartOpen: (open: boolean) => void
   add: (item: Omit<CartItem, 'cantidad'>) => void
   remove: (productoId: number) => void
   updateCantidad: (productoId: number, cantidad: number) => void
   clear: () => void
+  setOwner: (userId: string | null) => void
+  clearIfOwnerChanged: (userId: string | null) => void
   total: () => number
   totalItems: () => number
 }
@@ -27,6 +30,7 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      ownerId: null,
       cartOpen: false,
       setCartOpen: (open) => set({ cartOpen: open }),
 
@@ -55,6 +59,17 @@ export const useCartStore = create<CartStore>()(
       }),
 
       clear: () => set({ items: [] }),
+
+      setOwner: (userId) => set({ ownerId: userId }),
+
+      clearIfOwnerChanged: (userId) => {
+        const current = get().ownerId
+        if (current !== null && current !== userId) {
+          set({ items: [], ownerId: userId })
+        } else {
+          set({ ownerId: userId })
+        }
+      },
 
       total: () => get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),
 

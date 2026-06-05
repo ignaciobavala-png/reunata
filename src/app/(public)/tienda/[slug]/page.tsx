@@ -52,7 +52,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista5, moneda'
+  const precioSelect = 'precio_lista3, precio_lista5, moneda'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -64,8 +64,6 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     titulo: string
     codigo_interno: string
     moneda?: string | null
-    precio_lista1?: number | null
-    precio_lista2?: number | null
     precio_lista3?: number | null
     precio_lista5?: number | null
     producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null

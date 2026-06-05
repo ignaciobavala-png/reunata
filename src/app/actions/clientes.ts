@@ -22,7 +22,8 @@ export async function aprobarCliente(clienteId: string, aprobado: boolean) {
         .select('id')
         .eq('slug', profile.rol)
         .single()
-      if (canal) update.canal_id = canal.id
+      if (!canal) throw new Error(`Canal "${profile.rol}" no encontrado en la tabla canales. Verificá que exista el registro.`)
+      update.canal_id = canal.id
     }
   }
 

@@ -91,7 +91,7 @@ export default async function CatalogoPage({
 
   const { data: productosRaw } = await service
     .from('productos')
-    .select('id, titulo, codigo_interno, precio_lista1, precio_lista2, precio_lista3, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, precio_lista3, precio_lista5, producto_fotos(url, orden)')
     .eq('activo', true)
     .in('id', ids.length > 0 ? ids : [-1])
     .order('titulo')

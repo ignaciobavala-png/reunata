@@ -3,7 +3,6 @@
 import { Clock, Flame, MessageCircle, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { getOfertasPublic, type OfertaPublicItem } from '@/app/actions/ofertas'
 
@@ -11,10 +10,12 @@ type DrawerType = 'ofertas' | 'hotsale' | null
 
 function OfferDrawer({
   type,
+  open,
   items,
   onClose,
 }: {
   type: Exclude<DrawerType, null>
+  open: boolean
   items: OfertaPublicItem[]
   onClose: () => void
 }) {
@@ -24,22 +25,27 @@ function OfferDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col"
+      <div
+        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      <div
+        className="fixed top-0 right-0 h-full z-50 flex flex-col transition-transform duration-300"
+        style={{
+          width: 'min(100vw, 36rem)',
+          background: 'white',
+          transform: open ? 'translateX(0)' : 'translateX(100%)',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+        }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} />
+          <button onClick={onClose} aria-label="Cerrar" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6" data-lenis-prevent>
           {filtered.length === 0 ? (
             <p className="text-center text-sm py-12" style={{ color: 'var(--color-acero-oscuro)' }}>
               No hay productos en {title.toLowerCase()} por el momento.
@@ -83,7 +89,7 @@ function OfferDrawer({
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </>
   )
 }
@@ -101,46 +107,45 @@ export function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+      <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
         <a
           href="https://wa.me/5491132720974"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Escribinos por WhatsApp"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#5D8F72' }}
-          title="Escribinos por WhatsApp"
         >
-          <MessageCircle size={24} className="text-white" />
+          <MessageCircle size={24} className="text-white" aria-hidden="true" />
         </a>
 
         <button
           onClick={() => setDrawer('ofertas')}
+          aria-label="Ver ofertas"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#B38C44' }}
-          title="Ofertas"
         >
-          <Clock size={22} className="text-white" />
+          <Clock size={22} className="text-white" aria-hidden="true" />
         </button>
 
         <button
           onClick={() => setDrawer('hotsale')}
+          aria-label="Ver Hot Sale"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#AD5F5F' }}
-          title="Hot Sale"
         >
-          <Flame size={22} className="text-white" />
+          <Flame size={22} className="text-white" aria-hidden="true" />
         </button>
       </div>
 
-      <AnimatePresence>
-        {drawer && (
-          <OfferDrawer
-            type={drawer}
-            items={items}
-            onClose={() => setDrawer(null)}
-          />
-        )}
-      </AnimatePresence>
+      {drawer && (
+        <OfferDrawer
+          type={drawer}
+          open={!!drawer}
+          items={items}
+          onClose={() => setDrawer(null)}
+        />
+      )}
     </>
   )
 }

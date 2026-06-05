@@ -33,8 +33,8 @@ interface Props {
 
 const CANAL_DESCRIPCION: Record<string, string> = {
   consumidor_final: 'Lista pública — precios Lista 5',
-  distribuidor:     'Pool de compra — precios Lista 1',
-  local:            'Local comercial — precios Lista 2',
+  distribuidor:     'Pool de compra — precios Lista 3',
+  local:            'Local comercial — precios Lista 3',
   mercha:           'Merchandising — precios Lista 3',
 }
 

@@ -186,3 +186,91 @@
 **Cambios:**
 - Columna `foto_url text` en tabla `categorias_home`
 - Si está seteada, el `CategoryGallery` la usa como portada; sino usa la primera foto de los productos asociados
+
+---
+
+## `20260526000002_productos_es_novedad.sql`
+
+**Propósito:** Marca productos como "novedad" para mostrarlos en sección destacada.
+
+**Cambios:**
+- Columna `es_novedad boolean NOT NULL DEFAULT false` en tabla `productos`
+
+---
+
+## `20260526000003_pedidos_mp_fields.sql`
+
+**Propósito:** Campos para vincular pedidos con Mercado Pago.
+
+**Cambios:**
+- `mp_preference_id text` en `pedidos` — ID de preferencia creada en MP
+- `mp_payment_id text` en `pedidos` — ID del pago confirmado vía webhook IPN
+
+---
+
+## `20260528000001_producto_canales_multiplo.sql`
+
+**Propósito:** Permite configurar múltiplo de cantidad mínima por producto por canal de venta.
+
+**Cambios:**
+- `multiplo integer NOT NULL DEFAULT 1` en `producto_canales`
+- DEFAULT 1 = sin restricción. Retrocompatible con todos los registros existentes
+
+---
+
+## `20260603000001_pedidos_guest_checkout.sql`
+
+**Propósito:** Habilita compras de invitados (sin cuenta registrada).
+
+**Cambios:**
+- `cliente_id` en `pedidos` pasa a nullable
+- Columnas nuevas: `guest_nombre text`, `guest_email text`, `guest_telefono text`
+- Cuando `cliente_id IS NULL`, los datos del comprador se leen desde los campos `guest_*`
+
+---
+
+## `20260603000002_canal_fabricantes.sql`
+
+**Propósito:** Crea canal de venta para fabricantes con acceso por bulto.
+
+**Inserta en `canales`:** slug=`fabricantes`, Lista1, `ver_por_bulto=true`, `acceso_precompra=true`
+
+**Nota:** No tiene rol correspondiente en `profiles`. Solo asignación manual desde el panel admin.
+
+---
+
+## `20260603000003_configuracion_tipo_cambio_usd.sql`
+
+**Propósito:** Seed del valor de tipo de cambio USD → ARS en `configuracion`.
+
+**Inserta:** `clave='tipo_cambio_usd', valor='1'` (ON CONFLICT DO NOTHING). El admin lo actualiza desde el panel.
+
+---
+
+## `20260603000004_productos_stock_visible.sql`
+
+**Propósito:** Almacena el stock sincronizado desde Gesu para validación en checkout.
+
+**Cambios:**
+- `stock_visible integer` nullable en `productos`
+- NULL = sin control de stock (no bloquea checkout). Solo bloquea si hay valor explícito
+
+---
+
+## `20260603000005_productos_mostrar_stock.sql`
+
+**Propósito:** Controla si el stock se muestra públicamente en la ficha del producto.
+
+**Cambios:**
+- `mostrar_stock boolean NOT NULL DEFAULT false` en `productos`
+
+---
+
+## `20260605000001_eliminar_canal_publico.sql`
+
+**Propósito:** Elimina el canal "publico" que nunca se usó en tienda ni catálogo.
+
+**Operaciones (en orden):**
+1. Elimina filas de `producto_canales` vinculadas al canal `publico`
+2. Desasocia cualquier perfil que tuviera ese `canal_id` (limpieza preventiva)
+3. Elimina el registro de `canales` con slug=`publico`

@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export interface CanalUsuario {
   canalId: number
   slug: string
-  listaPrecio: string // 'precio_lista1' | 'precio_lista2' | 'precio_lista3' | 'precio_lista5'
+  listaPrecio: string // 'precio_lista3' (mayorista) | 'precio_lista5' (minorista)
   aprobado: boolean
 }
 
@@ -71,17 +71,27 @@ export async function resolverCanalTienda(): Promise<{
         }
       }
 
-      // consumidor_final sin canal asignado → usar canal CF en memoria (sin escribir a DB)
+      // consumidor_final sin canal asignado → escribir a DB para que RLS funcione en browser
       if (!canalId && profile.rol === 'consumidor_final') {
         const { data: canalCF } = await service
           .from('canales')
-          .select('id, lista_precios')
+          .select('id, slug, lista_precios')
           .eq('slug', 'consumidor_final')
           .single()
         if (canalCF) {
+          await service
+            .from('profiles')
+            .update({ canal_id: canalCF.id, aprobado: true })
+            .eq('id', user.id)
           canalId = canalCF.id
           listaPrecio = canalCF.lista_precios
           mostrarPrecios = true
+          canal = {
+            canalId: canalCF.id,
+            slug: canalCF.slug,
+            listaPrecio: canalCF.lista_precios,
+            aprobado: true,
+          }
         }
       }
 

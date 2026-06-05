@@ -254,10 +254,63 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 
 ---
 
-## Sesión 5 — Próxima
+## Sesión 5 — Completada (4–5/06/2026)
+
+Esta sesión se centró en completar la integración de pagos, cerrar la arquitectura de canales y hacer una auditoría de robustez pre-lanzamiento.
+
+### Tienda por canal — Mercado Pago
+
+- ✅ **Unificación de listas de precios**: distribuidor/local/fabricantes → Lista 3 (mayorista), consumidor_final → Lista 5. Simplificó todos los selects del frontend
+- ✅ **Mercado Pago Checkout Pro**: `iniciarCheckoutMP()` crea pedido en DB + preferencia en MP con rollback si MP falla. Campos `mp_preference_id` y `mp_payment_id` en `pedidos`
+- ✅ **Webhook IPN**: `/api/mp/webhook` recibe notificaciones de pago, actualiza estado del pedido
+- ✅ **Tipo de cambio USD→ARS**: configurable desde panel admin (`configuracion.tipo_cambio_usd`). Checkout aplica conversión antes de enviar precio a MP
+- ✅ **Guest checkout**: `cliente_id` nullable + campos `guest_nombre/email/telefono`. Compradores sin cuenta pueden pagar con MP
+- ✅ **Múltiplos de cantidad**: `producto_canales.multiplo` — validado en checkout (server) y con aviso visual en carrito
+
+### Carrito — correcciones
+
+- ✅ **Carrito aislado por usuario**: `cartStore` agrega `ownerId` persistido; limpia el carrito si cambia el usuario al hacer login. Evita que un usuario vea el carrito del anterior
+- ✅ **Scroll independiente en drawers**: `data-lenis-prevent` en el contenedor scrolleable de CartDrawer, OfferDrawer y HotSaleDrawer. Lenis ya no intercepta el trackpad dentro de los drawers
+- ✅ **Scroll lock en body** cuando un drawer de ofertas/hot sale está abierto
+
+### Hero y contenido
+
+- ✅ **Hero YouTube**: escala 1.15 + overlay con fade (Framer Motion) para tapar la UI de YouTube antes del autoplay. Parámetros embed correctos: `fs=0, iv_load_policy=3`
+- ✅ **Botón "Novedades"**: Hero apunta a `/tienda/novedades`
+- ✅ **Flag `es_novedad`** en `productos` para marcar novedades desde el sync de Gesu
+
+### Auditoría pre-lanzamiento
+
+- ✅ **Páginas de error**: `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx` con branding Reunata (DM Serif Display, colores Acero/Granito)
+- ✅ **Validación de stock en checkout**: `iniciarCheckoutMP()` verifica `stock_visible` antes de crear el pedido. Solo bloquea si el valor es explícito (no NULL)
+- ✅ **Z-index unificado**: CSS vars `--z-floating:30 / --z-overlay:40 / --z-drawer:50 / --z-modal:60`. Botones flotantes bajados a z-30; overlays los cubren correctamente
+- ✅ **Accesibilidad — botones icono-only**: `aria-label` en todos los botones sin texto visible (WhatsApp, Ofertas, Hot Sale, cerrar, trash, +/-)
+- ✅ **Accesibilidad — dropdowns**: `aria-expanded + aria-controls` en los 3 dropdowns del Header (Tienda, Corporativos, Usuario) y el botón del menú mobile
+- ✅ **Elimina tab "Fotos de productos"** de Multimedia — ya cubierto por el panel de Productos
+
+### Arquitectura de canales — fixes
+
+- ✅ **RLS consumidor_final**: `resolverCanalTienda()` ahora escribe `canal_id + aprobado=true` al perfil en el primer acceso. Sin esto, el JOIN de la política RLS fallaba en browser (NULL no matchea el JOIN)
+- ✅ **Canal `publico` eliminado**: limpia `producto_canales` y perfiles antes de borrar. Nunca tuvo uso en tienda
+- ✅ **Canal `fabricantes` documentado**: solo asignación manual desde admin, no tiene rol en `profiles` ni flujo de registro
+
+### Bugs de checkout corregidos
+
+- ✅ **Tipo de cambio en MP**: el precio se convierte USD→ARS antes de enviarlo a la preferencia (antes se enviaba el raw)
+- ✅ **Rollback en `pedido_items`**: si el insert de ítems falla, el pedido se elimina (evita pedidos fantasma)
+- ✅ **`aprobarCliente()` con error explícito**: si el canal no existe al aprobar, lanza error en lugar de fallar silenciosamente
+
+---
+
+## Sesión 6 — Próxima
+
+### Prioridad alta (desbloquea lanzamiento)
+- [ ] **Variables de entorno Vercel**: `MP_ACCESS_TOKEN` (token real, no TEST-) y `NEXT_PUBLIC_APP_URL` (dominio de producción)
+- [ ] **Dominio propio**: completar verificación Google Search Console (ver `docs/google-oauth-dominio.md`)
+- [ ] **Email confirmación Supabase**: verificar que el template apunte al dominio de producción
 
 ### Prioridad alta
-- [ ] **Lupa funcional**: ruta /buscar?q=, búsqueda ILIKE + tsvector, UI de resultados
+- [ ] **Lupa funcional**: ruta `/buscar?q=`, búsqueda ILIKE + tsvector, UI de resultados
 - [ ] **Google OAuth**: conectar `GoogleLoginButton` con `signInWithOAuth`, ruta `/auth/callback`, manejo de perfil incompleto para mayoristas
   - Habilitar identity linking en Supabase (Settings → Auth → Merge accounts)
   - Si el perfil no tiene razón social/CUIT → redirigir a formulario de completar datos
@@ -267,8 +320,8 @@ Regístrate y recibí nuestras ofertas. Ingresá tu email. 10% OFF en tu próxim
 - [ ] **Opiniones**: tabla `opiniones`, formulario en /contacto, panel admin
 - [ ] **Páginas estáticas**: editor de contenido vía tabla `contenido` (Nosotros, FAQ, Términos, etc.)
 
-### Prioridad baja (cuando toque pedidos)
-- [ ] **Carrito**: lógica completa (borrador → checkout → pago)
+### Prioridad baja
+- [ ] **Filtros en tienda (#35)**: auditar atributos en tabla `productos` (marca, sub_categoria, tipo); posiblemente requiere tabla `atributos` nueva
 - [ ] **Más Elegidos**: algoritmo + intervención manual
 - [ ] **Catálogo descargable**: PDF dinámico según perfil
 - [ ] **Seguimiento de envíos**: integración con correo

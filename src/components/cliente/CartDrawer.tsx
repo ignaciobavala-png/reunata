@@ -43,7 +43,8 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
       {/* Botón flotante */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200"
+        aria-label={esMayorista ? 'Abrir pedido' : 'Abrir carrito'}
+        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200"
         style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
       >
         {esMayorista ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
@@ -86,13 +87,13 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
               {esMayorista ? 'Mi pedido' : 'Mi carrito'}
             </span>
           </div>
-          <button onClick={() => setOpen(false)}>
-            <X size={16} style={{ color: 'var(--color-acero-oscuro)' }} />
+          <button onClick={() => setOpen(false)} aria-label="Cerrar carrito">
+            <X size={16} aria-hidden="true" style={{ color: 'var(--color-acero-oscuro)' }} />
           </button>
         </div>
 
         {/* Items */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4" data-lenis-prevent>
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2">
               {esMayorista
@@ -120,28 +121,30 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                         {item.titulo}
                       </p>
                     </div>
-                    <button onClick={() => remove(item.productoId)}>
-                      <Trash2 size={12} style={{ color: 'var(--color-acero)' }} />
+                    <button onClick={() => remove(item.productoId)} aria-label={`Eliminar ${item.titulo}`}>
+                      <Trash2 size={12} aria-hidden="true" style={{ color: 'var(--color-acero)' }} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateCantidad(item.productoId, item.cantidad - 1)}
+                        aria-label="Reducir cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
                       >
-                        <Minus size={10} />
+                        <Minus size={10} aria-hidden="true" />
                       </button>
                       <span className="text-xs w-6 text-center" style={{ color: 'var(--foreground)' }}>
                         {item.cantidad}
                       </span>
                       <button
                         onClick={() => updateCantidad(item.productoId, item.cantidad + 1)}
+                        aria-label="Aumentar cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
                       >
-                        <Plus size={10} />
+                        <Plus size={10} aria-hidden="true" />
                       </button>
                     </div>
                     <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
