@@ -145,6 +145,8 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => { setDropdownOpen(!dropdownOpen); setCorporativosOpen(false) }}
+              aria-expanded={dropdownOpen}
+              aria-controls="dropdown-tienda"
               className={`flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
             >
               Tienda
@@ -162,6 +164,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  id="dropdown-tienda"
                   className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-72 rounded-xl overflow-hidden"
                   style={{
                     background: 'var(--color-acero-brillo)',
@@ -223,6 +226,8 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <div ref={corporativosRef} className="relative">
             <button
               onClick={() => { setCorporativosOpen(!corporativosOpen); setDropdownOpen(false) }}
+              aria-expanded={corporativosOpen}
+              aria-controls="dropdown-corporativos"
               className={`flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-300 ${textClass}`}
             >
               Corporativos
@@ -240,6 +245,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  id="dropdown-corporativos"
                   className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 rounded-xl overflow-hidden"
                   style={{
                     background: 'var(--color-acero-brillo)',
@@ -320,6 +326,8 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
               <button
                 onClick={() => setUserOpen(!userOpen)}
                 aria-label="Mi cuenta"
+                aria-expanded={userOpen}
+                aria-controls="dropdown-usuario"
                 className={`transition-colors duration-300 ${iconColor}`}
               >
                 <User size={20} strokeWidth={1.5} />
@@ -337,6 +345,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  id="dropdown-usuario"
                   className="absolute top-full right-0 mt-4 w-52 rounded-xl overflow-hidden"
                   style={{
                     background: 'var(--color-acero-brillo)',
@@ -414,6 +423,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <button
             onClick={() => setOpen(!open)}
             aria-label="Menú"
+            aria-expanded={open}
             className={`md:hidden transition-colors duration-300 ${iconColor}`}
           >
             {open ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}

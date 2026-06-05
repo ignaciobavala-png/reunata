@@ -124,7 +124,6 @@ Para `useEffect`-only: instanciar dentro del efecto.
 <!-- BEGIN:pending -->
 ## Pendiente
 
-- **Multimedia > Fotos de productos** — ahora duplicado con columna Fotos del panel Productos; ocultar del sidebar cuando Gastón confirme
 - **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
 - **Variables de entorno Vercel** — `MP_ACCESS_TOKEN` (token real MP) y `NEXT_PUBLIC_APP_URL` (dominio prod)
 - **Email confirmación Supabase** — verificar template apunte al dominio de producción, no localhost

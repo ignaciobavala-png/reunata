@@ -74,7 +74,7 @@ export async function iniciarCheckoutMP(
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, precio_lista5, moneda')
+      .select('id, titulo, precio_lista5, moneda, stock_visible')
       .in('id', items.map(i => i.productoId))
       .eq('activo', true),
     service
@@ -85,6 +85,13 @@ export async function iniciarCheckoutMP(
   ])
 
   if (!productos?.length) return { ok: false, error: 'Productos no disponibles.' }
+
+  for (const item of items) {
+    const prod = productos.find(p => p.id === item.productoId)
+    if (prod && prod.stock_visible !== null && prod.stock_visible < item.cantidad) {
+      return { ok: false, error: `Stock insuficiente para "${prod.titulo}". Disponible: ${prod.stock_visible}.` }
+    }
+  }
 
   const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
 

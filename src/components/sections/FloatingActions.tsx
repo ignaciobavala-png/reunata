@@ -40,8 +40,8 @@ function OfferDrawer({
       >
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} />
+          <button onClick={onClose} aria-label="Cerrar" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -107,34 +107,34 @@ export function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+      <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
         <a
           href="https://wa.me/5491132720974"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Escribinos por WhatsApp"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#5D8F72' }}
-          title="Escribinos por WhatsApp"
         >
-          <MessageCircle size={24} className="text-white" />
+          <MessageCircle size={24} className="text-white" aria-hidden="true" />
         </a>
 
         <button
           onClick={() => setDrawer('ofertas')}
+          aria-label="Ver ofertas"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#B38C44' }}
-          title="Ofertas"
         >
-          <Clock size={22} className="text-white" />
+          <Clock size={22} className="text-white" aria-hidden="true" />
         </button>
 
         <button
           onClick={() => setDrawer('hotsale')}
+          aria-label="Ver Hot Sale"
           className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
           style={{ background: '#AD5F5F' }}
-          title="Hot Sale"
         >
-          <Flame size={22} className="text-white" />
+          <Flame size={22} className="text-white" aria-hidden="true" />
         </button>
       </div>
 
