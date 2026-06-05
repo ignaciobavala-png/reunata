@@ -46,8 +46,9 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - `resolverCanalTienda()`: sesión → canal de venta → lista de precios.
   - Usuario con `canal_id` + `aprobado=true` → `mostrarPrecios=true`, devuelve `listaPrecio`.
   - Mayorista (`distribuidor|local|mercha`) con `aprobado=false` → `pendienteAprobacion=true`.
-  - `consumidor_final` sin `canal_id` → resuelve canal en memoria sin escribir a DB.
-  - Fallback (sin sesión): usa canal `consumidor_final` con `mostrarPrecios=false`. Canal `publico` existe en DB solo para el chatbot.
+  - `consumidor_final` sin `canal_id` → escribe `canal_id` + `aprobado=true` al perfil en DB (necesario para que RLS funcione en browser). Solo ocurre en el primer acceso.
+  - Fallback (sin sesión): usa canal `consumidor_final` con `mostrarPrecios=true` (Lista 5 pública). Canal `publico` eliminado de DB.
+  - Canal `fabricantes`: existe solo para asignación manual desde admin. No tiene rol en `profiles` ni flujo de registro automático.
 - `getProductosDelCanal(canalId)`: devuelve `{ ids, multiplos }` desde `producto_canales`.
 
 ### Sync Gesu (`src/app/api/sync/productos/route.ts`)
