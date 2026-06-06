@@ -46,19 +46,32 @@ export async function iniciarCheckoutMP(
 
   const service = createServiceClient()
 
-  // Validar múltiplos solo para usuarios registrados con canal asignado
-  if (user) {
-    const { data: profileCanal } = await supabase
-      .from('profiles')
-      .select('canal_id')
-      .eq('id', user.id)
-      .single()
+  // Validar múltiplos — aplica tanto a usuarios registrados como a guests
+  {
+    let canalId: number | null = null
 
-    if (profileCanal?.canal_id) {
+    if (user) {
+      const { data: profileCanal } = await supabase
+        .from('profiles')
+        .select('canal_id')
+        .eq('id', user.id)
+        .single()
+      canalId = profileCanal?.canal_id ?? null
+    } else {
+      // Guests operan como consumidor_final
+      const { data: cfCanal } = await service
+        .from('canales')
+        .select('id')
+        .eq('slug', 'consumidor_final')
+        .single()
+      canalId = cfCanal?.id ?? null
+    }
+
+    if (canalId) {
       const { data: multiplosDb } = await service
         .from('producto_canales')
         .select('producto_id, multiplo')
-        .eq('canal_id', profileCanal.canal_id)
+        .eq('canal_id', canalId)
         .in('producto_id', items.map(i => i.productoId))
 
       for (const item of items) {

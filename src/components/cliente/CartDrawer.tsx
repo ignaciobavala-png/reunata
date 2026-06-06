@@ -15,7 +15,7 @@ function buildWhatsAppLink(items: CartItem[]) {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
 }
 
-export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minorista' }) {
+export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'mayorista' | 'minorista'; aprobado?: boolean }) {
   const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
   const [enviando, setEnviando] = useState(false)
   const router = useRouter()
@@ -170,15 +170,21 @@ export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minori
             </div>
 
             {esMayorista ? (
-              <button
-                onClick={handleEnviarPedido}
-                disabled={enviando}
-                className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
-                style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-              >
-                {enviando && <Loader2 size={14} className="animate-spin" />}
-                {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
-              </button>
+              aprobado ? (
+                <button
+                  onClick={handleEnviarPedido}
+                  disabled={enviando}
+                  className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                >
+                  {enviando && <Loader2 size={14} className="animate-spin" />}
+                  {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
+                </button>
+              ) : (
+                <p className="text-xs text-center py-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Tu cuenta está pendiente de aprobación.
+                </p>
+              )
             ) : (
               <>
                 <a

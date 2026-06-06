@@ -14,6 +14,14 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('aprobado')
+    .eq('id', user.id)
+    .single()
+
+  if (!perfil?.aprobado) throw new Error('Tu cuenta aún no está aprobada para hacer pedidos.')
+
   const total = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
   const { data: pedido, error } = await supabase

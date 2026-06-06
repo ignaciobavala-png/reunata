@@ -9,14 +9,14 @@ export default async function PublicLayout({ children }: { children: React.React
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let headerUser: { nombre: string | null; rol: string } | null = null
+  let headerUser: { nombre: string | null; rol: string; aprobado: boolean } | null = null
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('nombre, rol')
+      .select('nombre, rol, aprobado')
       .eq('id', user.id)
       .single()
-    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol }
+    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol, aprobado: profile.aprobado ?? false }
   }
 
   const { data: categoriasRows } = await supabase
@@ -28,6 +28,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
 
   const tipoCliente = headerUser && ROLES_MAYORISTAS.includes(headerUser.rol) ? 'mayorista' : 'minorista'
+  const aprobado    = headerUser?.aprobado ?? true
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
@@ -36,7 +37,7 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer />
-      <CartDrawer tipoCliente={tipoCliente} />
+      <CartDrawer tipoCliente={tipoCliente} aprobado={aprobado} />
     </div>
   )
 }
