@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { CartDrawer } from '@/components/cliente/CartDrawer'
+
+const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -24,6 +27,8 @@ export default async function PublicLayout({ children }: { children: React.React
     .order('orden')
   const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
 
+  const tipoCliente = headerUser && ROLES_MAYORISTAS.includes(headerUser.rol) ? 'mayorista' : 'minorista'
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
       <Header user={headerUser} categorias={headerCategorias} />
@@ -31,6 +36,7 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer />
+      <CartDrawer tipoCliente={tipoCliente} />
     </div>
   )
 }

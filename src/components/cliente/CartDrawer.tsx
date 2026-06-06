@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 
@@ -15,13 +15,16 @@ function buildWhatsAppLink(items: CartItem[]) {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
 }
 
-export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 'mayorista' | 'minorista'; initialOpen?: boolean }) {
-  const { items, remove, updateCantidad, total, totalItems, clear } = useCartStore()
-  const [open, setOpen] = useState(initialOpen)
+export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minorista' }) {
+  const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
   const [enviando, setEnviando] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   const esMayorista = tipoCliente === 'mayorista'
+
+  // En la página de carrito completo el drawer es redundante
+  if (pathname === '/carrito') return null
 
   async function handleEnviarPedido() {
     if (items.length === 0) return
@@ -31,7 +34,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
         items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, precioUnit: i.precio }))
       )
       clear()
-      setOpen(false)
+      setCartOpen(false)
       router.push(`/dashboard/cliente/pedidos/${pedidoId}`)
     } finally {
       setEnviando(false)
@@ -40,32 +43,11 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
 
   return (
     <>
-      {/* Botón flotante */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label={esMayorista ? 'Abrir pedido' : 'Abrir carrito'}
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200"
-        style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-      >
-        {esMayorista ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
-        {totalItems() > 0 && (
-          <span
-            className="text-xs font-medium px-1.5 py-0.5 rounded-full"
-            style={{ background: 'var(--color-granito-claro)', color: 'white' }}
-          >
-            {totalItems()}
-          </span>
-        )}
-        {totalItems() > 0 && (
-          <span className="text-xs">{formatPrecio(total())}</span>
-        )}
-      </button>
-
       {/* Overlay */}
-      {open && (
+      {cartOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/30"
-          onClick={() => setOpen(false)}
+          onClick={() => setCartOpen(false)}
         />
       )}
 
@@ -75,7 +57,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
         style={{
           width: '360px',
           background: 'white',
-          transform: open ? 'translateX(0)' : 'translateX(100%)',
+          transform: cartOpen ? 'translateX(0)' : 'translateX(100%)',
           boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
         }}
       >
@@ -87,7 +69,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
               {esMayorista ? 'Mi pedido' : 'Mi carrito'}
             </span>
           </div>
-          <button onClick={() => setOpen(false)} aria-label="Cerrar carrito">
+          <button onClick={() => setCartOpen(false)} aria-label="Cerrar carrito">
             <X size={16} aria-hidden="true" style={{ color: 'var(--color-acero-oscuro)' }} />
           </button>
         </div>
@@ -109,10 +91,27 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
               {items.map(item => (
                 <div
                   key={item.productoId}
-                  className="rounded-lg border p-3"
+                  className="flex gap-3 rounded-lg border p-3"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 >
-                  <div className="flex justify-between items-start gap-2 mb-2">
+                  {/* Foto */}
+                  <div
+                    className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden"
+                    style={{ background: 'var(--color-acero-brillo)' }}
+                  >
+                    {item.foto_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.foto_url} alt={item.titulo} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag size={18} style={{ color: 'var(--color-acero-oscuro)' }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info + controles */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
+                  <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-mono truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
@@ -128,7 +127,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad - 1)}
+                        onClick={() => updateCantidad(item.productoId, item.cantidad - (item.multiplo ?? 1))}
                         aria-label="Reducir cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
@@ -139,7 +138,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                         {item.cantidad}
                       </span>
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad + 1)}
+                        onClick={() => updateCantidad(item.productoId, item.cantidad + (item.multiplo ?? 1))}
                         aria-label="Aumentar cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
@@ -151,6 +150,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                       {formatPrecio(item.precio * item.cantidad)}
                     </span>
                   </div>
+                  </div> {/* fin flex-1 */}
                 </div>
               ))}
             </div>

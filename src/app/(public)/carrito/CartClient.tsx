@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, Loader2, Minus, Plus } from 'lucide-react'
+import { ShoppingBag, Loader2, Minus, Plus, Trash2 } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
@@ -30,6 +31,7 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
 
 export function CartClient({ user, mostrarPrecios }: Props) {
   const { items, remove, updateCantidad, clear, total } = useCartStore()
+  const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
@@ -130,9 +132,38 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-10 max-w-5xl mx-auto">
-      <h1 className="text-2xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-        Mi carrito
-      </h1>
+      <div className="flex items-start justify-between mb-2">
+        <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+          Mi carrito
+        </h1>
+        {confirmVaciar ? (
+          <div className="flex items-center gap-3 text-sm">
+            <span style={{ color: 'var(--color-acero-oscuro)' }}>¿Vaciar todo?</span>
+            <button
+              onClick={() => { clear(); setConfirmVaciar(false) }}
+              className="font-medium"
+              style={{ color: '#ef4444' }}
+            >
+              Confirmar
+            </button>
+            <button
+              onClick={() => setConfirmVaciar(false)}
+              style={{ color: 'var(--color-acero-oscuro)' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmVaciar(true)}
+            className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+            style={{ color: 'var(--color-acero-oscuro)' }}
+          >
+            <Trash2 size={13} />
+            Vaciar carrito
+          </button>
+        )}
+      </div>
       <p className="text-sm mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         {items.length} {items.length === 1 ? 'producto' : 'productos'} · {totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'}
       </p>
@@ -177,9 +208,13 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   {/* Info + controles */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between gap-3">
                     <div>
-                      <p className="text-base font-medium leading-snug" style={{ color: 'var(--foreground)' }}>
+                      <Link
+                        href={`/tienda/p/${item.productoId}`}
+                        className="text-base font-medium leading-snug hover:underline"
+                        style={{ color: 'var(--foreground)' }}
+                      >
                         {item.titulo}
-                      </p>
+                      </Link>
                       <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
@@ -288,6 +323,23 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               </>
             )}
           </div>
+
+          <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
+
+          {/* Banner medios de pago — solo minoristas y guests */}
+          {!esMayorista && (
+            <div>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
+              <Image
+                src="/mediosdepago.png"
+                alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+                width={1344}
+                height={67}
+                className="w-full h-auto"
+                priority={false}
+              />
+            </div>
+          )}
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 

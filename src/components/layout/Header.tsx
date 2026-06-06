@@ -42,7 +42,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { totalItems } = useCartStore()
+  const { totalItems, setCartOpen } = useCartStore()
   const [mounted, setMounted] = useState(false)
   const { scrollY } = useScroll()
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -404,9 +404,9 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
             </AnimatePresence>
           </div>
 
-          <Link
-            href="/carrito"
-            aria-label="Carrito"
+          <button
+            onClick={() => setCartOpen(true)}
+            aria-label="Abrir carrito"
             className="relative"
           >
             <ShoppingCart
@@ -419,7 +419,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                 {totalItems()}
               </span>
             )}
-          </Link>
+          </button>
           <button
             onClick={() => setOpen(!open)}
             aria-label="Menú"
