@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function AddToCartButton({ producto }: Props) {
-  const { add, items } = useCartStore()
+  const { add, items, setCartOpen } = useCartStore()
   const [agregado, setAgregado] = useState(false)
   const enCarrito = items.some(i => i.productoId === producto.id)
 
@@ -33,6 +33,7 @@ export function AddToCartButton({ producto }: Props) {
       foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
     })
     setAgregado(true)
+    setCartOpen(true)
     setTimeout(() => setAgregado(false), 2000)
   }
 
