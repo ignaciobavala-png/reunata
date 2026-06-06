@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 
@@ -19,8 +19,12 @@ export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minori
   const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
   const [enviando, setEnviando] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   const esMayorista = tipoCliente === 'mayorista'
+
+  // En la página de carrito completo el drawer es redundante
+  if (pathname === '/carrito') return null
 
   async function handleEnviarPedido() {
     if (items.length === 0) return
