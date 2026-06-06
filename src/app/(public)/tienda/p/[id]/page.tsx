@@ -1,6 +1,47 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+
+function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
+  if (esMayorista) {
+    return (
+      <div className="mt-5 pt-4 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+        <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
+        <div className="flex flex-wrap gap-2">
+          {['Transferencia bancaria', 'Cheque', 'Efectivo'].map(m => (
+            <span
+              key={m}
+              className="px-2.5 py-1 text-xs rounded-full"
+              style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
+            >
+              {m}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-5 pt-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+      <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
+      <div className="flex items-center gap-2.5">
+        {/* MP logo */}
+        <svg viewBox="0 0 48 48" className="h-6 w-auto flex-shrink-0" aria-label="Mercado Pago">
+          <rect width="48" height="48" rx="8" fill="#009ee3"/>
+          <path d="M8 24c0-8.837 7.163-16 16-16s16 7.163 16 16-7.163 16-16 16S8 32.837 8 24z" fill="#009ee3"/>
+          <path d="M24 13c-6.075 0-11 4.925-11 11 0 3.038 1.232 5.788 3.222 7.778L24 24l7.778 7.778A10.955 10.955 0 0035 24c0-6.075-4.925-11-11-11z" fill="white"/>
+          <path d="M16.222 31.778A10.955 10.955 0 0024 35c2.374 0 4.573-.755 6.375-2.034L24 27l-7.778 4.778z" fill="#00b1ea"/>
+        </svg>
+        <div>
+          <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Mercado Pago</p>
+          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Tarjetas de crédito y débito · Dinero en cuenta</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -135,17 +176,20 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             )}
 
             {mostrarPrecios ? (
-              <AddToCartButton
-                producto={{
-                  id: producto.id,
-                  codigo_interno: producto.codigo_interno,
-                  titulo: producto.titulo,
-                  precio,
-                  multiplo,
-                  foto_url: fotos[0]?.url ?? null,
-                  supabaseUrl,
-                }}
-              />
+              <>
+                <AddToCartButton
+                  producto={{
+                    id: producto.id,
+                    codigo_interno: producto.codigo_interno,
+                    titulo: producto.titulo,
+                    precio,
+                    multiplo,
+                    foto_url: fotos[0]?.url ?? null,
+                    supabaseUrl,
+                  }}
+                />
+                <PaymentInfo esMayorista={['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')} />
+              </>
             ) : (
               <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
                 <p className="text-sm mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>

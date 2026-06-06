@@ -1,7 +1,6 @@
 'use client'
 
-import Link from 'next/link'
-import { Check } from 'lucide-react'
+import { Check, Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { supabaseImg } from '@/lib/images'
@@ -19,9 +18,30 @@ interface Props {
 }
 
 export function AddToCartButton({ producto }: Props) {
-  const { add, items, setCartOpen } = useCartStore()
-  const [agregado, setAgregado] = useState(false)
-  const enCarrito = items.some(i => i.productoId === producto.id)
+  const { add, items, updateCantidad, remove, setCartOpen } = useCartStore()
+  const multiplo = producto.multiplo ?? 1
+  const [cantidad, setCantidad] = useState(multiplo)
+
+  const itemEnCarrito = items.find(i => i.productoId === producto.id)
+  const cantidadMostrada = itemEnCarrito?.cantidad ?? cantidad
+
+  function handleMenos() {
+    if (itemEnCarrito) {
+      const nueva = itemEnCarrito.cantidad - multiplo
+      if (nueva < multiplo) remove(producto.id)
+      else updateCantidad(producto.id, nueva)
+    } else {
+      setCantidad(prev => Math.max(multiplo, prev - multiplo))
+    }
+  }
+
+  function handleMas() {
+    if (itemEnCarrito) {
+      updateCantidad(producto.id, itemEnCarrito.cantidad + multiplo)
+    } else {
+      setCantidad(prev => prev + multiplo)
+    }
+  }
 
   function handleAgregar() {
     add({
@@ -29,42 +49,78 @@ export function AddToCartButton({ producto }: Props) {
       codigo_interno: producto.codigo_interno,
       titulo: producto.titulo,
       precio: producto.precio ?? 0,
-      multiplo: producto.multiplo,
+      multiplo,
       foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
     })
-    setAgregado(true)
+    if (cantidad !== multiplo) {
+      updateCantidad(producto.id, cantidad)
+    }
     setCartOpen(true)
-    setTimeout(() => setAgregado(false), 2000)
   }
 
-  if (enCarrito) {
-    return (
-      <div className="mt-6 flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm" style={{ color: '#10b981' }}>
-          <Check size={16} strokeWidth={2.5} />
-          <span>En tu carrito</span>
-        </div>
-        <Link
-          href="/carrito"
-          className="px-6 py-4 text-xs tracking-widest uppercase text-center transition-colors"
-          style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
-        >
-          Ver carrito
-        </Link>
-      </div>
-    )
-  }
+  const stepperBorder = { borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }
+  const btnClass = 'w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]'
 
   return (
-    <button
-      onClick={handleAgregar}
-      className="mt-6 w-full px-6 py-4 text-xs tracking-widest uppercase transition-colors duration-300"
-      style={{
-        background: agregado ? '#10b981' : 'var(--color-granito-oscuro)',
-        color: 'white',
-      }}
-    >
-      {agregado ? '✓ Agregado al carrito' : '+ Agregar al carrito'}
-    </button>
+    <div className="mt-6 flex flex-col gap-4">
+
+      {/* Stepper */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center rounded-lg overflow-hidden border" style={stepperBorder}>
+          <button
+            onClick={handleMenos}
+            className={btnClass}
+            style={{ color: 'var(--color-granito)' }}
+            aria-label="Reducir cantidad"
+          >
+            <Minus size={13} strokeWidth={2.5} />
+          </button>
+          <span
+            className="w-12 text-center text-base font-semibold tabular-nums select-none"
+            style={{ color: 'var(--foreground)' }}
+          >
+            {cantidadMostrada}
+          </span>
+          <button
+            onClick={handleMas}
+            className={btnClass}
+            style={{ color: 'var(--color-granito)' }}
+            aria-label="Aumentar cantidad"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+          </button>
+        </div>
+        {multiplo > 1 && (
+          <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+            múltiplo de {multiplo}
+          </span>
+        )}
+      </div>
+
+      {/* CTA */}
+      {itemEnCarrito ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm" style={{ color: '#10b981' }}>
+            <Check size={15} strokeWidth={2.5} />
+            <span>En tu carrito</span>
+          </div>
+          <button
+            onClick={() => setCartOpen(true)}
+            className="w-full px-6 py-4 text-xs tracking-widest uppercase text-center transition-colors"
+            style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+          >
+            Ver carrito
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={handleAgregar}
+          className="w-full px-6 py-4 text-xs tracking-widest uppercase transition-colors duration-300"
+          style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+        >
+          + Agregar al carrito
+        </button>
+      )}
+    </div>
   )
 }
