@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ShoppingBag, Loader2, Minus, Plus, Trash2 } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
@@ -322,6 +323,23 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               </>
             )}
           </div>
+
+          <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
+
+          {/* Banner medios de pago — solo minoristas y guests */}
+          {!esMayorista && (
+            <div>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
+              <Image
+                src="/mediosdepago.png"
+                alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+                width={1344}
+                height={67}
+                className="w-full h-auto"
+                priority={false}
+              />
+            </div>
+          )}
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 
