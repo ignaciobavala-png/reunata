@@ -330,15 +330,15 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           {!esMayorista && (
             <div>
               <p className="text-xs mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
-              <Image
-                src="/mediosdepago.png"
-                alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
-                width={1344}
-                height={67}
-                className="w-full object-contain object-center"
-                style={{ height: '34px' }}
-                priority={false}
-              />
+              <div className="relative w-full" style={{ height: '40px' }}>
+                <Image
+                  src="/mediosdepago.png"
+                  alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+                  fill
+                  className="object-contain object-center"
+                  sizes="280px"
+                />
+              </div>
             </div>
           )}
 
