@@ -65,8 +65,17 @@ Para `useEffect`-only: instanciar dentro del efecto.
 ### Auth
 - `SupabaseAuthListener` (root layout): llama `router.refresh()` en `SIGNED_IN` y `TOKEN_REFRESHED`.
 - `auth/callback/route.ts`: escribe cookies de sesión directamente en `NextResponse`.
-- `(public)/layout.tsx`: async, obtiene sesión server-side y pasa `user` a `Header` y `PublicCartDrawer`.
+- `(public)/layout.tsx`: async, obtiene sesión server-side, pasa `user` a `Header` y monta `CartDrawer` con `tipoCliente` y `aprobado` resueltos server-side.
 - `src/app/page.tsx` (homepage `/`): también lee sesión y pasa `user` al Header (está fuera del grupo `(public)`).
+
+### CartDrawer
+- Montado en `(public)/layout.tsx` — disponible en todas las páginas públicas excepto `/carrito` (se suprime con `usePathname`).
+- Estado de apertura via `cartStore.cartOpen / setCartOpen` (no estado local).
+- `tipoCliente`: `'mayorista'` para `distribuidor|local|mercha`, `'minorista'` para el resto.
+- `aprobado`: leído de `profiles.aprobado`; si es `false`, muestra mensaje en lugar del botón "Enviar pedido".
+- `AddToCartButton` llama `setCartOpen(true)` al agregar; el ícono del Header también abre el drawer.
+- Fotos de producto renderizadas en cada ítem del drawer (64×64, fallback `ShoppingBag`).
+- `+/-` respetan `item.multiplo` (bug corregido en esta sesión).
 <!-- END:architecture -->
 
 <!-- BEGIN:schema -->
@@ -107,8 +116,10 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - **FloatingActions** — WhatsApp, Ofertas, Hot Sale; drawers con productos de tabla `ofertas`
 - **Tienda por canal** — precios diferenciados por rol; `PendingApproval` para mayoristas sin aprobar
 - **PromoTicker** — animación por píxeles absolutos (velocidad uniforme mobile/desktop); configurable desde DB
-- **Carrito** — Zustand persist, multiplos de cantidad, guest checkout (sin sesión), Mercado Pago Checkout Pro
-- **Mercado Pago** — `iniciarCheckoutMP()` crea pedido + preferencia; webhook IPN en `/api/mp/webhook`; rollback si MP falla
+- **Carrito** — Zustand persist, multiplos de cantidad, guest checkout (sin sesión), Mercado Pago Checkout Pro. Página `/carrito`: título clickeable por producto, botón vaciar con confirmación, banner `mediosdepago.png` (minoristas/guests).
+- **CartDrawer lateral** — conectado a `cartStore`, se abre al agregar producto, fotos en ítems, suprimido en `/carrito`.
+- **Ficha de producto** — selector de cantidad con stepper (respeta múltiplo), sección "Medios de pago" diferenciada por rol.
+- **Mercado Pago** — `iniciarCheckoutMP()` crea pedido + preferencia; webhook IPN en `/api/mp/webhook` (lee body JSON v2 + fallback query params v1, verifica HMAC-SHA256 con `MP_WEBHOOK_SECRET`); rollback si MP falla.
 - **Newsletter** — suscripción pública, panel admin con exportar CSV
 - **Catálogos** — PDFs privados, signed URL 1h, solo roles habilitados
 - **Corporativos** — formulario público con logo upload, panel admin con detalle expandible
@@ -125,8 +136,42 @@ Para `useEffect`-only: instanciar dentro del efecto.
 <!-- BEGIN:pending -->
 ## Pendiente
 
+### Variables de entorno para producción
+- `MP_ACCESS_TOKEN` — token real de MercadoPago (no sandbox)
+- `NEXT_PUBLIC_APP_URL` — dominio de producción
+- `MP_WEBHOOK_SECRET` — secret del webhook en el dashboard de MP (requerido para verificación HMAC)
+
+### Pre-lanzamiento obligatorio (ver `docs/auditoria.md`)
+- **Email confirmación Supabase** — verificar que el template apunte al dominio de producción, no localhost
+- **Dominio propio** — completar verificación Google Search Console (`docs/google-oauth-dominio.md`)
 - **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
-- **Variables de entorno Vercel** — `MP_ACCESS_TOKEN` (token real MP) y `NEXT_PUBLIC_APP_URL` (dominio prod)
-- **Email confirmación Supabase** — verificar template apunte al dominio de producción, no localhost
-- **Dominio propio** — completar verificación Google Search Console con dominio del cliente (ver `docs/google-oauth-dominio.md`)
+
+### Backlog auditoría — primera semana post-lanzamiento
+> Referencia completa: `docs/auditoria.md`
+
+| # | Archivo | Fix |
+|---|---------|-----|
+| **#4/#16** | `actions/checkout.ts:89` | Stock: usar `stock_visible ?? stock` en lugar de solo `stock_visible` |
+| **#8** | `components/sections/FloatingActions.tsx:83` | Usar `formatPrecio(item.precio)` en OfferDrawer (precio crudo sin formato) |
+| **#9** | `actions/pedidos.ts` | `crearPedidoBorrador`: validar stock y múltiplos como hace `iniciarCheckoutMP` |
+| **#14** | `components/sections/AddToCartButton.tsx:29` | `handleMenos`: si `nueva < multiplo` → `updateCantidad(id, multiplo)` en lugar de `remove()` |
+
+### Backlog auditoría — semanas 2-3
+| # | Archivo | Fix |
+|---|---------|-----|
+| **#6** | `app/(public)/carrito/CartClient.tsx:52` | `handleMenos`: redondear al múltiplo más cercano hacia abajo antes de restar |
+| **#7** | `pedidos` tabla + cron | Agregar `expira_en` y cron/edge function que cancele pedidos `pendiente_pago` > 24h |
+| **#10** | `stores/cartStore.ts:65` | Evaluar si items de sesión anónima deben persistir al login; agregar toast de confirmación |
+| **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
+| **#13** | `app/auth/callback/route.ts:66` | Usar `.upsert()` en lugar de `.update()` para evitar race condition con el trigger `handle_new_user()` |
+| **#21** | `stores/cartStore.ts:61` | `clear()` debe resetear también `ownerId: null` |
+
+### Mejoras (cuando haya bandwidth)
+| # | Fix |
+|---|-----|
+| **#12** | RLS `producto_fotos`: agregar filtro `activo=true` en join con `productos` |
+| **#17** | `HeroCarousel.tsx`: agregar `sandbox="allow-scripts allow-same-origin"` a iframes de YouTube/Vimeo |
+| **#18** | PromoTicker: validar velocidad mínima de 20s en slider de admin |
+| **#19** | `CategoryGallery`: paginación o lazy load para 50+ categorías |
+| **#20** | `FloatingActions`: filtrar ofertas por canal en la query, no en el cliente |
 <!-- END:pending -->
