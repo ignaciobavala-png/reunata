@@ -128,7 +128,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad - 1)}
+                        onClick={() => updateCantidad(item.productoId, item.cantidad - (item.multiplo ?? 1))}
                         aria-label="Reducir cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
@@ -139,7 +139,7 @@ export function CartDrawer({ tipoCliente, initialOpen = false }: { tipoCliente: 
                         {item.cantidad}
                       </span>
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad + 1)}
+                        onClick={() => updateCantidad(item.productoId, item.cantidad + (item.multiplo ?? 1))}
                         aria-label="Aumentar cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
