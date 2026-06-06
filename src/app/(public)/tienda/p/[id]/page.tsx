@@ -1,12 +1,21 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import Image from 'next/image'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { createServiceClient } from '@/lib/supabase/server'
+import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { AddToCartButton } from '@/components/sections/AddToCartButton'
+import { PendingApproval } from '@/components/sections/PendingApproval'
+import { ProductGallery } from '@/components/sections/ProductGallery'
+import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 
 function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
-  if (esMayorista) {
-    return (
-      <div className="mt-5 pt-4 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
-        <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
+  return (
+    <div className="mt-5 pt-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+      <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
+      {esMayorista ? (
         <div className="flex flex-wrap gap-2">
           {['Transferencia bancaria', 'Cheque', 'Efectivo'].map(m => (
             <span
@@ -18,38 +27,20 @@ function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
             </span>
           ))}
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-5 pt-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
-      <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
-      <div className="flex items-center gap-2.5">
-        {/* MP logo */}
-        <svg viewBox="0 0 48 48" className="h-6 w-auto flex-shrink-0" aria-label="Mercado Pago">
-          <rect width="48" height="48" rx="8" fill="#009ee3"/>
-          <path d="M8 24c0-8.837 7.163-16 16-16s16 7.163 16 16-7.163 16-16 16S8 32.837 8 24z" fill="#009ee3"/>
-          <path d="M24 13c-6.075 0-11 4.925-11 11 0 3.038 1.232 5.788 3.222 7.778L24 24l7.778 7.778A10.955 10.955 0 0035 24c0-6.075-4.925-11-11-11z" fill="white"/>
-          <path d="M16.222 31.778A10.955 10.955 0 0024 35c2.374 0 4.573-.755 6.375-2.034L24 27l-7.778 4.778z" fill="#00b1ea"/>
-        </svg>
-        <div>
-          <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Mercado Pago</p>
-          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Tarjetas de crédito y débito · Dinero en cuenta</p>
+      ) : (
+        <div className="relative w-full" style={{ height: '55px' }}>
+          <Image
+            src="/mediosdepago.png"
+            alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+            fill
+            className="object-contain object-left"
+            sizes="480px"
+          />
         </div>
-      </div>
+      )}
     </div>
   )
 }
-
-import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
-import { AddToCartButton } from '@/components/sections/AddToCartButton'
-import { PendingApproval } from '@/components/sections/PendingApproval'
-import { ProductGallery } from '@/components/sections/ProductGallery'
-import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
