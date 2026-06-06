@@ -87,10 +87,27 @@ export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minori
               {items.map(item => (
                 <div
                   key={item.productoId}
-                  className="rounded-lg border p-3"
+                  className="flex gap-3 rounded-lg border p-3"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 >
-                  <div className="flex justify-between items-start gap-2 mb-2">
+                  {/* Foto */}
+                  <div
+                    className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden"
+                    style={{ background: 'var(--color-acero-brillo)' }}
+                  >
+                    {item.foto_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.foto_url} alt={item.titulo} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag size={18} style={{ color: 'var(--color-acero-oscuro)' }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info + controles */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
+                  <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-mono truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
@@ -129,6 +146,7 @@ export function CartDrawer({ tipoCliente }: { tipoCliente: 'mayorista' | 'minori
                       {formatPrecio(item.precio * item.cantidad)}
                     </span>
                   </div>
+                  </div> {/* fin flex-1 */}
                 </div>
               ))}
             </div>
