@@ -335,7 +335,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
                 width={1344}
                 height={67}
-                className="w-full h-auto"
+                className="w-full object-contain object-center"
+                style={{ height: '34px' }}
                 priority={false}
               />
             </div>
