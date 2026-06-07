@@ -30,7 +30,7 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
 }
 
 export function CartClient({ user, mostrarPrecios }: Props) {
-  const { items, remove, updateCantidad, clear, total } = useCartStore()
+  const { items, remove, updateCantidad, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -45,12 +45,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Limpiar flag de merge una vez que el componente montó y el usuario lo ve
+  useEffect(() => {
+    if (mounted && guestItemsMerged) clearGuestMergedFlag()
+  }, [mounted, guestItemsMerged, clearGuestMergedFlag])
+
   const esMinorista = user?.rol === 'consumidor_final'
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
   const esGuest     = !user
 
   function handleMenos(productoId: number, cantidad: number, multiplo: number) {
-    const nueva = cantidad - multiplo
+    const base = cantidad - (cantidad % multiplo)
+    const nueva = base - multiplo
     if (nueva <= 0) remove(productoId)
     else updateCantidad(productoId, nueva)
   }
@@ -132,6 +138,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-10 max-w-5xl mx-auto">
+      {guestItemsMerged && user && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+          Mantuvimos los productos que habías agregado antes de iniciar sesión.
+        </div>
+      )}
       <div className="flex items-start justify-between mb-2">
         <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           Mi carrito
