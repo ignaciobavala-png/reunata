@@ -12,32 +12,21 @@ import { ProductGallery } from '@/components/sections/ProductGallery'
 import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 
 function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
+  if (!esMayorista) return null
   return (
     <div className="mt-5 pt-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
       <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago</p>
-      {esMayorista ? (
-        <div className="flex flex-wrap gap-2">
-          {['Transferencia bancaria', 'Cheque', 'Efectivo'].map(m => (
-            <span
-              key={m}
-              className="px-2.5 py-1 text-xs rounded-full"
-              style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
-            >
-              {m}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="relative w-full" style={{ height: '55px' }}>
-          <Image
-            src="/mediosdepago.png"
-            alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
-            fill
-            className="object-contain object-left"
-            sizes="480px"
-          />
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        {['Transferencia bancaria', 'Cheque', 'Efectivo'].map(m => (
+          <span
+            key={m}
+            className="px-2.5 py-1 text-xs rounded-full"
+            style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
+          >
+            {m}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

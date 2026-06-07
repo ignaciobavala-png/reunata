@@ -326,24 +326,6 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 
-          {/* Banner medios de pago — solo minoristas y guests */}
-          {!esMayorista && (
-            <div>
-              <p className="text-xs mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
-              <div className="relative w-full" style={{ height: '55px' }}>
-                <Image
-                  src="/mediosdepago.png"
-                  alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
-                  fill
-                  className="object-contain object-left"
-                  sizes="280px"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
-
           {/* CTA según rol */}
           {esMinorista ? (
             <>
@@ -451,6 +433,19 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           )}
         </div>
       </div>
+
+      {/* Banner medios de pago — ancho completo, solo minoristas y guests */}
+      {!esMayorista && (
+        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+          <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mediosdepago.png"
+            alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+            style={{ width: '100%', height: 'auto' }}
+          />
+        </div>
+      )}
     </div>
   )
 }
