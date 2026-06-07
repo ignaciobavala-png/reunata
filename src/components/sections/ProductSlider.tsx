@@ -55,7 +55,7 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                 <button
                   key={foto.id}
                   className="group flex-none w-[200px] md:w-[240px] text-left cursor-pointer"
-                  onClick={() => router.push('/tienda/mas-vendidos')}
+                  onClick={() => router.push(`/tienda/p/${foto.producto_id}`)}
                 >
                   <div
                     className="w-full aspect-[3/4] mb-4 relative overflow-hidden transition-opacity duration-200 group-hover:opacity-90"
