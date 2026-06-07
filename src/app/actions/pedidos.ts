@@ -36,7 +36,7 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible')
+      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock')
       .in('id', lineas.map(l => l.productoId))
       .eq('activo', true),
     service
@@ -47,6 +47,32 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
   ])
 
   if (!productos?.length) throw new Error('Productos no disponibles.')
+
+  // Validar múltiplos contra producto_canales
+  const { data: multiplosDb } = await service
+    .from('producto_canales')
+    .select('producto_id, multiplo')
+    .eq('canal_id', perfil.canal_id)
+    .in('producto_id', lineas.map(l => l.productoId))
+
+  for (const linea of lineas) {
+    const row = multiplosDb?.find(r => r.producto_id === linea.productoId)
+    const multiplo = row?.multiplo ?? 1
+    if (multiplo > 1 && linea.cantidad % multiplo !== 0) {
+      throw new Error(`La cantidad de un producto debe ser múltiplo de ${multiplo}.`)
+    }
+  }
+
+  // Validar stock disponible
+  for (const linea of lineas) {
+    const prod = productos.find(p => p.id === linea.productoId)
+    if (prod) {
+      const stockDisponible = prod.stock_visible ?? prod.stock
+      if (stockDisponible !== null && stockDisponible < linea.cantidad) {
+        throw new Error(`Stock insuficiente para el producto #${linea.productoId}. Disponible: ${stockDisponible}.`)
+      }
+    }
+  }
 
   const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
 
