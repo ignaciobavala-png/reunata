@@ -75,9 +75,7 @@
 
 - ✅ **#13** — Auth callback usa `.upsert()` — corregido en esta sesión (`auth/callback/route.ts`).
 
-- [ ] **#7** — Pedidos abandonados sin limpieza
-  Fix: columna `expira_en` en `pedidos` + cron/edge function que cancele pedidos
-  con `estado='pendiente_pago'` y `created_at > 24h`. Requiere migración DB.
+- ✅ **#7** — Pedidos abandonados: columna `expira_en` en `pedidos` + cron diario a las 3am en `/api/pedidos/limpiar` que cancela los vencidos. El checkout setea `expira_en = NOW() + 24h` al crear cada pedido.
 
 ---
 

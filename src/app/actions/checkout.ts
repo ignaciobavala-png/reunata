@@ -123,10 +123,13 @@ export async function iniciarCheckoutMP(
 
   const total = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
+  const expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
   const pedidoInsert: Record<string, unknown> = {
     estado: 'pendiente_pago',
     total_usd: total,
     medio_pago: 'mercadopago',
+    expira_en: expiraEn,
   }
 
   if (user) {
