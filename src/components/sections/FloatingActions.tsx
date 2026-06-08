@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { getOfertasPublic, type OfertaPublicItem } from '@/app/actions/ofertas'
+import { formatPrecio } from '@/lib/utils'
 
 type DrawerType = 'ofertas' | 'hotsale' | null
 
@@ -80,8 +81,8 @@ function OfferDrawer({
                   <div className="p-3">
                     <h3 className="text-sm font-medium mb-1">{item.titulo}</h3>
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-bold">${item.precio}</span>
-                      <span className="text-xs text-gray-400 line-through">${item.antes}</span>
+                      <span className="text-base font-bold">{formatPrecio(item.precio)}</span>
+                      <span className="text-xs text-gray-400 line-through">{formatPrecio(item.antes)}</span>
                     </div>
                   </div>
                 </div>

@@ -65,13 +65,13 @@ export async function GET(request: NextRequest) {
 
     await serviceSupabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: userId,
         rol: 'consumidor_final',
         aprobado: true,
         nombre,
         ...(canal ? { canal_id: canal.id } : {}),
       })
-      .eq('id', userId)
   }
 
   return response

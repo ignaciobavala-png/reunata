@@ -342,6 +342,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   <span>Subtotal</span>
                   <span>{formatPrecio(totalGeneral)}</span>
                 </div>
+                {(esMinorista || esGuest) && (
+                  <div className="flex justify-between items-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    <span>Envío</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+                      próximamente
+                    </span>
+                  </div>
+                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
