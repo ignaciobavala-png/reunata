@@ -30,7 +30,7 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
 }
 
 export function CartClient({ user, mostrarPrecios }: Props) {
-  const { items, remove, updateCantidad, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
+  const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -44,6 +44,22 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [guestErrors, setGuestErrors]     = useState<string | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Refrescar precios desde DB al montar
+  useEffect(() => {
+    if (!mounted || items.length === 0) return
+    const ids = items.map(i => i.productoId)
+    fetch('/api/carrito/precios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+      .then(r => r.json())
+      .then(({ precios }) => { if (precios) updatePrecios(precios) })
+      .catch(() => {})
+  // Solo al montar — no re-ejecutar si items cambia
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted])
 
   // Limpiar flag de merge una vez que el componente montó y el usuario lo ve
   useEffect(() => {

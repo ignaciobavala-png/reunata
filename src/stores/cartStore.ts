@@ -20,6 +20,7 @@ interface CartStore {
   add: (item: Omit<CartItem, 'cantidad'>) => void
   remove: (productoId: number) => void
   updateCantidad: (productoId: number, cantidad: number) => void
+  updatePrecios: (precios: Record<number, number>) => void
   clear: () => void
   setOwner: (userId: string | null) => void
   clearIfOwnerChanged: (userId: string | null) => void
@@ -60,6 +61,12 @@ export const useCartStore = create<CartStore>()(
         if (cantidad <= 0) return { items: state.items.filter(i => i.productoId !== productoId) }
         return { items: state.items.map(i => i.productoId === productoId ? { ...i, cantidad } : i) }
       }),
+
+      updatePrecios: (precios) => set(state => ({
+        items: state.items.map(i =>
+          i.productoId in precios ? { ...i, precio: precios[i.productoId] } : i
+        ),
+      })),
 
       clear: () => set({ items: [], ownerId: null }),
 
