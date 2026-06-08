@@ -141,9 +141,9 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - `NEXT_PUBLIC_APP_URL` — dominio de producción
 - `MP_WEBHOOK_SECRET` — secret del webhook en el dashboard de MP (requerido para verificación HMAC)
 
-### Pre-lanzamiento obligatorio (ver `docs/auditoria.md`)
+### Pre-lanzamiento obligatorio (ver `docs/auditorias/auditoria.md` y `docs/roadmap/checklist-lanzamiento.md`)
 - **Email confirmación Supabase** — verificar que el template apunte al dominio de producción, no localhost
-- **Dominio propio** — completar verificación Google Search Console (`docs/google-oauth-dominio.md`)
+- **Dominio propio** — completar verificación Google Search Console (`docs/integraciones/google-oauth-dominio.md`)
 - **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
 
 ### Backlog — primera semana post-lanzamiento
