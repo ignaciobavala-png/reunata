@@ -12,6 +12,9 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { PendingApproval } from '@/components/sections/PendingApproval'
+import { CartDrawer } from '@/components/cliente/CartDrawer'
+
+const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function Home() {
   const supabase = createServiceClient()
@@ -60,6 +63,7 @@ export default async function Home() {
   })
 
   const headerUser = user ? { nombre: user.nombre, rol: user.rol } : null
+  const tipoCliente = user && ROLES_MAYORISTAS.includes(user.rol) ? 'mayorista' : 'minorista'
 
   return (
     <>
@@ -79,6 +83,7 @@ export default async function Home() {
         )}
       </main>
       <Footer />
+      <CartDrawer tipoCliente={tipoCliente} aprobado={!pendienteAprobacion} />
     </>
   )
 }
