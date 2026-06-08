@@ -28,8 +28,7 @@ export function AddToCartButton({ producto }: Props) {
   function handleMenos() {
     if (itemEnCarrito) {
       const nueva = itemEnCarrito.cantidad - multiplo
-      if (nueva < multiplo) remove(producto.id)
-      else updateCantidad(producto.id, nueva)
+      updateCantidad(producto.id, Math.max(multiplo, nueva))
     } else {
       setCantidad(prev => Math.max(multiplo, prev - multiplo))
     }

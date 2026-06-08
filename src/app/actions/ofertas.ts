@@ -1,6 +1,6 @@
 'use server'
 
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export interface OfertaPublicItem {
   id: number
@@ -16,6 +16,30 @@ export async function getOfertasPublic(): Promise<OfertaPublicItem[]> {
   const supabase = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
+  // Resolver la lista de precios del viewer para mostrar el "antes" correcto
+  let listaPrecio: 'precio_lista1' | 'precio_lista2' | 'precio_lista3' | 'precio_lista4' | 'precio_lista5' = 'precio_lista5'
+  try {
+    const authClient = await createClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    if (user) {
+      const { data: perfil } = await authClient
+        .from('profiles')
+        .select('canal_id')
+        .eq('id', user.id)
+        .single()
+      if (perfil?.canal_id) {
+        const { data: canal } = await supabase
+          .from('canales')
+          .select('lista_precios')
+          .eq('id', perfil.canal_id)
+          .single()
+        if (canal?.lista_precios) listaPrecio = canal.lista_precios as typeof listaPrecio
+      }
+    }
+  } catch {
+    // Sin sesión o error → default lista5
+  }
+
   const { data: ofertas } = await supabase
     .from('ofertas')
     .select('id, canal, precio_oferta, descuento_porcentaje, producto_id')
@@ -27,7 +51,10 @@ export async function getOfertasPublic(): Promise<OfertaPublicItem[]> {
   const productoIds = ofertas.map(o => o.producto_id)
 
   const [{ data: productos }, { data: fotos }] = await Promise.all([
-    supabase.from('productos').select('id, titulo, precio_lista3').in('id', productoIds),
+    supabase
+      .from('productos')
+      .select(`id, titulo, ${listaPrecio}`)
+      .in('id', productoIds),
     supabase.from('producto_fotos').select('producto_id, url').eq('destacada', true).in('producto_id', productoIds),
   ])
 
@@ -38,12 +65,13 @@ export async function getOfertasPublic(): Promise<OfertaPublicItem[]> {
 
   return ofertas.map(o => {
     const prod = productoMap.get(o.producto_id)
+    const antesRaw = prod ? (prod as Record<string, unknown>)[listaPrecio] : null
     return {
       id: o.id,
       canal: o.canal,
       titulo: prod?.titulo ?? '—',
       precio: o.precio_oferta,
-      antes: prod?.precio_lista3 ?? 0,
+      antes: typeof antesRaw === 'number' ? antesRaw : 0,
       descuento: o.descuento_porcentaje,
       img: fotoMap.get(o.producto_id) ?? '',
     }

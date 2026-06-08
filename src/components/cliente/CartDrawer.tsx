@@ -31,7 +31,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
     setEnviando(true)
     try {
       const pedidoId = await crearPedidoBorrador(
-        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, precioUnit: i.precio }))
+        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))
       )
       clear()
       setCartOpen(false)

@@ -33,7 +33,7 @@ export function ProductGridPublic({
   mostrarPrecios?: boolean
   estaLogueado?: boolean
 }) {
-  const { add, items } = useCartStore()
+  const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
   const [favoritos, setFavoritos] = useState<Set<number>>(new Set())
   const [loginHint, setLoginHint] = useState<number | null>(null)
@@ -96,6 +96,7 @@ export function ProductGridPublic({
     setAgregados(prev => new Set(prev).add(p.id))
     setTimeout(() => {
       setAgregados(prev => { const s = new Set(prev); s.delete(p.id); return s })
+      setCartOpen(true)
     }, 1200)
   }
 

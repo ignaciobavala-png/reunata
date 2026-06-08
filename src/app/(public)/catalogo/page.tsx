@@ -3,125 +3,65 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
-import { CatalogoView } from './CatalogoView'
+import { resolverCanalTienda } from '@/lib/tienda'
+import { CatalogoDescargas } from './CatalogoDescargas'
 
-export const metadata: Metadata = { title: 'Catálogo — Reunata' }
+export const metadata: Metadata = { title: 'Catálogos — Reunata' }
 
-const ROLES_ADMIN = ['master', 'empleado']
+const ROLES_CON_ACCESO = ['master', 'empleado', 'comisionista', 'distribuidor', 'local', 'mercha']
 
-async function resolverCanal(preview: string | undefined) {
+export default async function CatalogoPage() {
   const service = createServiceClient()
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
 
-  // Detectar si es admin
-  let isAdmin = false
-  if (user) {
-    const { data: profile } = await service.from('profiles').select('rol').eq('id', user.id).single()
-    isAdmin = ROLES_ADMIN.includes(profile?.rol ?? '')
+  // Sin sesión → gate
+  if (!user) {
+    return <CatalogoDescargas pdfs={[]} estado="sin_sesion" />
   }
 
-  // Admin sin ?preview → redirigir a consumidor_final por defecto
-  if (isAdmin && !preview) {
-    return { redirectTo: '/catalogo?preview=consumidor_final' as string }
-  }
-
-  // Admin con ?preview → mostrar ese canal
-  if (isAdmin && preview) {
-    const { data: canal } = await service
-      .from('canales')
-      .select('id, nombre, slug, lista_precios')
-      .eq('slug', preview)
-      .single()
-    if (canal) {
-      return {
-        canalId: canal.id as number,
-        listaPrecio: canal.lista_precios as string,
-        mostrarPrecios: true,
-        nombreCanal: canal.nombre as string,
-        pendienteAprobacion: false,
-        isAdminPreview: true,
-      }
-    }
-  }
-
-  // Usuario normal → su canal real
-  const canalInfo = await resolverCanalTienda()
-  const { data: canal } = await service
-    .from('canales')
-    .select('nombre')
-    .eq('id', canalInfo.canalId)
+  const { data: perfil } = await service
+    .from('profiles')
+    .select('rol, aprobado')
+    .eq('id', user.id)
     .single()
 
-  return {
-    canalId: canalInfo.canalId,
-    listaPrecio: canalInfo.listaPrecio,
-    mostrarPrecios: canalInfo.mostrarPrecios,
-    nombreCanal: canal?.nombre ?? 'Catálogo',
-    pendienteAprobacion: canalInfo.pendienteAprobacion,
-    isAdminPreview: false,
+  const rol = perfil?.rol ?? ''
+  const aprobado = perfil?.aprobado ?? false
+
+  // Consumidor final o rol sin acceso → gate
+  if (!ROLES_CON_ACCESO.includes(rol)) {
+    return <CatalogoDescargas pdfs={[]} estado="sin_acceso" />
   }
-}
 
-export default async function CatalogoPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ preview?: string }>
-}) {
-  const { preview } = await searchParams
-  const service = createServiceClient()
+  // Mayorista pendiente de aprobación
+  const canalInfo = await resolverCanalTienda()
+  if (canalInfo.pendienteAprobacion) {
+    return <CatalogoDescargas pdfs={[]} estado="pendiente" />
+  }
 
-  const [canalData, { data: configRows }] = await Promise.all([
-    resolverCanal(preview),
-    service
-      .from('configuracion')
-      .select('clave, valor')
-      .in('clave', ['catalogo_mostrar_codigo', 'catalogo_columnas']),
-  ])
-
-  if ('redirectTo' in canalData) redirect(canalData.redirectTo!)
-  if (canalData.pendienteAprobacion) redirect('/')
-
-  const configMap = Object.fromEntries((configRows ?? []).map(r => [r.clave, r.valor]))
-  const mostrarCodigo = configMap['catalogo_mostrar_codigo'] !== 'false'
-  const columnas = parseInt(configMap['catalogo_columnas'] ?? '3', 10)
-
-  const { ids } = await getProductosDelCanal(canalData.canalId)
-
-  const { data: productosRaw } = await service
-    .from('productos')
-    .select('id, titulo, codigo_interno, precio_lista3, precio_lista5, producto_fotos(url, orden)')
+  // Fetch PDFs activos
+  const { data: rows } = await service
+    .from('catalogos')
+    .select('id, titulo, url, created_at')
     .eq('activo', true)
-    .in('id', ids.length > 0 ? ids : [-1])
-    .order('titulo')
+    .order('created_at', { ascending: false })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
-  const productos = (productosRaw ?? []).map(p => {
-    const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[])
-      .sort((a, b) => a.orden - b.orden)
-    const precio = canalData.mostrarPrecios && canalData.listaPrecio
-      ? ((p as Record<string, unknown>)[canalData.listaPrecio] as number | null) ?? null
-      : null
-    return {
-      id: p.id,
-      titulo: p.titulo,
-      codigo_interno: p.codigo_interno,
-      foto_url: fotos[0]?.url ?? null,
-      precio,
-      supabaseUrl,
-    }
-  })
-
-  return (
-    <CatalogoView
-      productos={productos}
-      nombreCanal={canalData.nombreCanal}
-      mostrarPrecios={canalData.mostrarPrecios}
-      mostrarCodigo={mostrarCodigo}
-      columnas={columnas}
-      isAdminPreview={canalData.isAdminPreview}
-    />
+  // Generar signed URLs (1 hora)
+  const pdfs = await Promise.all(
+    (rows ?? []).map(async (cat) => {
+      const { data: signed } = await service.storage
+        .from('catalogos')
+        .createSignedUrl(cat.url, 3600)
+      return {
+        id: cat.id as number,
+        titulo: cat.titulo as string,
+        url: cat.url as string,
+        created_at: cat.created_at as string,
+        signedUrl: signed?.signedUrl ?? null,
+      }
+    })
   )
+
+  return <CatalogoDescargas pdfs={pdfs.filter(p => p.signedUrl)} estado="ok" />
 }

@@ -15,13 +15,16 @@ interface CartStore {
   items: CartItem[]
   ownerId: string | null
   cartOpen: boolean
+  guestItemsMerged: boolean
   setCartOpen: (open: boolean) => void
   add: (item: Omit<CartItem, 'cantidad'>) => void
   remove: (productoId: number) => void
   updateCantidad: (productoId: number, cantidad: number) => void
+  updatePrecios: (precios: Record<number, number>) => void
   clear: () => void
   setOwner: (userId: string | null) => void
   clearIfOwnerChanged: (userId: string | null) => void
+  clearGuestMergedFlag: () => void
   total: () => number
   totalItems: () => number
 }
@@ -32,6 +35,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       ownerId: null,
       cartOpen: false,
+      guestItemsMerged: false,
       setCartOpen: (open) => set({ cartOpen: open }),
 
       add: (item) => set(state => {
@@ -58,18 +62,30 @@ export const useCartStore = create<CartStore>()(
         return { items: state.items.map(i => i.productoId === productoId ? { ...i, cantidad } : i) }
       }),
 
-      clear: () => set({ items: [] }),
+      updatePrecios: (precios) => set(state => ({
+        items: state.items.map(i =>
+          i.productoId in precios ? { ...i, precio: precios[i.productoId] } : i
+        ),
+      })),
+
+      clear: () => set({ items: [], ownerId: null }),
 
       setOwner: (userId) => set({ ownerId: userId }),
 
       clearIfOwnerChanged: (userId) => {
         const current = get().ownerId
         if (current !== null && current !== userId) {
+          // Cambio de usuario: vaciar carrito del usuario anterior
           set({ items: [], ownerId: userId })
+        } else if (current === null && get().items.length > 0) {
+          // Guest con ítems que inicia sesión: conservar ítems y avisar
+          set({ ownerId: userId, guestItemsMerged: true })
         } else {
           set({ ownerId: userId })
         }
       },
+
+      clearGuestMergedFlag: () => set({ guestItemsMerged: false }),
 
       total: () => get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),
 

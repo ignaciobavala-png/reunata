@@ -141,32 +141,24 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - `NEXT_PUBLIC_APP_URL` — dominio de producción
 - `MP_WEBHOOK_SECRET` — secret del webhook en el dashboard de MP (requerido para verificación HMAC)
 
-### Pre-lanzamiento obligatorio (ver `docs/auditoria.md`)
+### Pre-lanzamiento obligatorio (ver `docs/auditorias/auditoria.md` y `docs/roadmap/checklist-lanzamiento.md`)
 - **Email confirmación Supabase** — verificar que el template apunte al dominio de producción, no localhost
-- **Dominio propio** — completar verificación Google Search Console (`docs/google-oauth-dominio.md`)
+- **Dominio propio** — completar verificación Google Search Console (`docs/integraciones/google-oauth-dominio.md`)
 - **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
 
-### Backlog auditoría — primera semana post-lanzamiento
-> Referencia completa: `docs/auditoria.md`
+### Backlog — primera semana post-lanzamiento
 
 | # | Archivo | Fix |
 |---|---------|-----|
-| **#4/#16** | `actions/checkout.ts:89` | Stock: usar `stock_visible ?? stock` en lugar de solo `stock_visible` |
 | **#8** | `components/sections/FloatingActions.tsx:83` | Usar `formatPrecio(item.precio)` en OfferDrawer (precio crudo sin formato) |
-| **#9** | `actions/pedidos.ts` | `crearPedidoBorrador`: validar stock y múltiplos como hace `iniciarCheckoutMP` |
-| **#14** | `components/sections/AddToCartButton.tsx:29` | `handleMenos`: si `nueva < multiplo` → `updateCantidad(id, multiplo)` en lugar de `remove()` |
-
-### Backlog auditoría — semanas 2-3
-| # | Archivo | Fix |
-|---|---------|-----|
-| **#6** | `app/(public)/carrito/CartClient.tsx:52` | `handleMenos`: redondear al múltiplo más cercano hacia abajo antes de restar |
 | **#7** | `pedidos` tabla + cron | Agregar `expira_en` y cron/edge function que cancele pedidos `pendiente_pago` > 24h |
-| **#10** | `stores/cartStore.ts:65` | Evaluar si items de sesión anónima deben persistir al login; agregar toast de confirmación |
 | **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
 | **#13** | `app/auth/callback/route.ts:66` | Usar `.upsert()` en lugar de `.update()` para evitar race condition con el trigger `handle_new_user()` |
-| **#21** | `stores/cartStore.ts:61` | `clear()` debe resetear también `ownerId: null` |
+| **H** | `app/(public)/tienda/[slug]/page.tsx:55` | `precioSelect` solo incluye `lista3` y `lista5`; distribuidores (lista1) y locales (lista2) ven precio null en todas las páginas de categoría, novedades y más elegidos |
+| **F5/B6** | `carrito/page.tsx` + nuevo endpoint | Precios del carrito no se refrescan contra DB al cargar; requiere `/api/carrito/precios` que CartClient consulte al montar |
 
 ### Mejoras (cuando haya bandwidth)
+
 | # | Fix |
 |---|-----|
 | **#12** | RLS `producto_fotos`: agregar filtro `activo=true` en join con `productos` |
@@ -174,4 +166,5 @@ Para `useEffect`-only: instanciar dentro del efecto.
 | **#18** | PromoTicker: validar velocidad mínima de 20s en slider de admin |
 | **#19** | `CategoryGallery`: paginación o lazy load para 50+ categorías |
 | **#20** | `FloatingActions`: filtrar ofertas por canal en la query, no en el cliente |
+| **F9** | `carrito/CartClient.tsx` | Cross-sell: sección "También te puede interesar" al pie del carrito con productos de la misma categoría |
 <!-- END:pending -->

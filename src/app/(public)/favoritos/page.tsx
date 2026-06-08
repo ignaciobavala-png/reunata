@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { PendingApproval } from '@/components/sections/PendingApproval'
@@ -10,48 +10,91 @@ import { aplicarTipoCambio } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Favoritos — Reunata',
-  description: 'Los productos seleccionados por Reunata.',
+  description: 'Los productos que guardaste.',
 }
 
 export default async function FavoritosPage() {
-  const supabase = createServiceClient()
+  const service = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  const canalInfo = await resolverCanalTienda()
+  const authClient = await createClient()
+  const [canalInfo, { data: { user: authUser } }] = await Promise.all([
+    resolverCanalTienda(),
+    authClient.auth.getUser(),
+  ])
+
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = canalInfo
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
+  if (!authUser) {
+    return (
+      <main style={{ background: 'var(--background)' }}>
+        <div className="px-6 md:px-16 max-w-3xl mx-auto py-28 md:py-36 flex flex-col items-center text-center gap-6">
+          <h1 className="text-3xl md:text-5xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+            Favoritos
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Iniciá sesión para ver los productos que guardaste.
+          </p>
+          <Link
+            href="/login?next=/favoritos"
+            className="px-6 py-3 text-xs tracking-widest uppercase transition-opacity hover:opacity-80"
+            style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+          >
+            Iniciar sesión
+          </Link>
+        </div>
+      </main>
+    )
+  }
+
+  const { data: favs } = await authClient.from('favoritos').select('producto_id')
+  const favIds = (favs ?? []).map(f => f.producto_id as number)
+
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
+  const idsCanalSet = new Set(idsCanal)
+  const idsValidos = favIds.filter(id => idsCanalSet.has(id))
 
-  const { data: fotosDestacadas } = await supabase
-    .from('producto_fotos')
-    .select('producto_id, url, orden, productos(id, titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
-    .eq('destacada', true)
-    .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
-    .order('orden')
+  type ProductoPublico = {
+    id: number
+    titulo: string
+    codigo_interno: string
+    foto_url: string | null
+    precio: number | null
+    moneda?: string | null
+    multiplo: number
+    supabaseUrl: string
+  }
 
-  // Un producto puede tener varias fotos destacadas; deduplicar por producto_id
-  const vistos = new Set<number>()
-  const productos = (fotosDestacadas ?? []).flatMap((f) => {
-    const producto = Array.isArray(f.productos) ? f.productos[0] : (f.productos as typeof f.productos | null)
-    if (!producto || vistos.has(f.producto_id)) return []
-    vistos.add(f.producto_id)
-    const precioRaw = mostrarPrecios && listaPrecio
-      ? ((producto as Record<string, unknown>)[listaPrecio] as number | null) ?? null
-      : null
-    const { precio, moneda } = aplicarTipoCambio(precioRaw, (producto as { moneda?: string | null }).moneda ?? null, tipoCambioUsd)
-    return [{
-      id: f.producto_id,
-      titulo: (producto as { titulo: string }).titulo,
-      codigo_interno: (producto as { codigo_interno: string }).codigo_interno,
-      foto_url: f.url,
-      precio,
-      moneda,
-      multiplo: multiplos[f.producto_id] ?? 1,
-      supabaseUrl,
-    }]
-  })
+  let productos: ProductoPublico[] = []
+
+  if (idsValidos.length > 0) {
+    const { data: prods } = await service
+      .from('productos')
+      .select('id, titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+      .in('id', idsValidos)
+      .eq('activo', true)
+      .order('titulo')
+
+    productos = (prods ?? []).map(p => {
+      const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+      const precioRaw = mostrarPrecios && listaPrecio
+        ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
+        : null
+      const { precio, moneda } = aplicarTipoCambio(precioRaw, p.moneda ?? null, tipoCambioUsd)
+      return {
+        id: p.id,
+        titulo: p.titulo,
+        codigo_interno: p.codigo_interno,
+        foto_url: fotos[0]?.url ?? null,
+        precio,
+        moneda,
+        multiplo: multiplos[p.id] ?? 1,
+        supabaseUrl,
+      }
+    })
+  }
 
   return (
     <main style={{ background: 'var(--background)' }}>
@@ -73,8 +116,8 @@ export default async function FavoritosPage() {
         </h1>
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productos.length > 0
-            ? 'Nuestra selección de productos destacados.'
-            : 'No hay productos destacados por el momento.'}
+            ? `${productos.length} producto${productos.length !== 1 ? 's' : ''} guardado${productos.length !== 1 ? 's' : ''}.`
+            : 'Todavía no guardaste ningún producto. Hacé click en el corazón de cualquier producto para agregarlo acá.'}
         </p>
 
         {productos.length > 0 && (

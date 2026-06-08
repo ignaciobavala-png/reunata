@@ -30,7 +30,7 @@ function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items
 }
 
 export function CartClient({ user, mostrarPrecios }: Props) {
-  const { items, remove, updateCantidad, clear, total } = useCartStore()
+  const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -45,12 +45,34 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Refrescar precios desde DB al montar
+  useEffect(() => {
+    if (!mounted || items.length === 0) return
+    const ids = items.map(i => i.productoId)
+    fetch('/api/carrito/precios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+      .then(r => r.json())
+      .then(({ precios }) => { if (precios) updatePrecios(precios) })
+      .catch(() => {})
+  // Solo al montar — no re-ejecutar si items cambia
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted])
+
+  // Limpiar flag de merge una vez que el componente montó y el usuario lo ve
+  useEffect(() => {
+    if (mounted && guestItemsMerged) clearGuestMergedFlag()
+  }, [mounted, guestItemsMerged, clearGuestMergedFlag])
+
   const esMinorista = user?.rol === 'consumidor_final'
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
   const esGuest     = !user
 
   function handleMenos(productoId: number, cantidad: number, multiplo: number) {
-    const nueva = cantidad - multiplo
+    const base = cantidad - (cantidad % multiplo)
+    const nueva = base - multiplo
     if (nueva <= 0) remove(productoId)
     else updateCantidad(productoId, nueva)
   }
@@ -132,6 +154,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-10 max-w-5xl mx-auto">
+      {guestItemsMerged && user && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+          Mantuvimos los productos que habías agregado antes de iniciar sesión.
+        </div>
+      )}
       <div className="flex items-start justify-between mb-2">
         <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           Mi carrito
@@ -315,6 +342,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   <span>Subtotal</span>
                   <span>{formatPrecio(totalGeneral)}</span>
                 </div>
+                {(esMinorista || esGuest) && (
+                  <div className="flex justify-between items-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    <span>Envío</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+                      próximamente
+                    </span>
+                  </div>
+                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
@@ -323,24 +358,6 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               </>
             )}
           </div>
-
-          <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
-
-          {/* Banner medios de pago — solo minoristas y guests */}
-          {!esMayorista && (
-            <div>
-              <p className="text-xs mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
-              <div className="relative w-full" style={{ height: '55px' }}>
-                <Image
-                  src="/mediosdepago.png"
-                  alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
-                  fill
-                  className="object-contain object-left"
-                  sizes="280px"
-                />
-              </div>
-            </div>
-          )}
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 
@@ -451,6 +468,19 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           )}
         </div>
       </div>
+
+      {/* Banner medios de pago — ancho completo, solo minoristas y guests */}
+      {!esMayorista && (
+        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+          <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>Medios de pago aceptados</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mediosdepago.png"
+            alt="Medios de pago: Visa, Mastercard, Naranja, Cabal, Mercado Pago y más"
+            style={{ width: '100%', height: 'auto' }}
+          />
+        </div>
+      )}
     </div>
   )
 }

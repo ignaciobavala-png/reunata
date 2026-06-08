@@ -11,7 +11,7 @@ import { aplicarTipoCambio } from '@/lib/utils'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
-  'mas-vendidos': { nombre: 'Más vendidos', subtitulo: 'Los productos más elegidos por nuestros clientes.' },
+  'mas-vendidos': { nombre: 'Más elegidos', subtitulo: 'Los productos más elegidos por nuestros clientes.' },
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
