@@ -72,13 +72,13 @@ export function HeroClient({
   function handleFileSelect(archivos: FileList | File[]) {
     const rechazados: string[] = []
     const lista = Array.from(archivos).flatMap(file => {
-      if (file.type.startsWith('video/') && file.type !== 'video/mp4') {
+      if (!file.type.startsWith('video/') && !file.type.startsWith('image/')) {
         rechazados.push(file.name)
         return []
       }
       return [{ file, previewUrl: URL.createObjectURL(file), tipo: file.type.startsWith('video/') ? 'video' as const : 'imagen' as const }]
     })
-    if (rechazados.length > 0) mostrarToast(`Solo se aceptan videos MP4. Rechazado: ${rechazados.join(', ')}`)
+    if (rechazados.length > 0) mostrarToast(`Formato no soportado: ${rechazados.join(', ')}`)
     if (lista.length > 0) setPendingFiles(prev => [...prev, ...lista])
   }
 
@@ -523,7 +523,7 @@ export function HeroClient({
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
               {pendingFiles.length > 0
                 ? `${pendingFiles.length} archivo${pendingFiles.length !== 1 ? 's' : ''} pendiente${pendingFiles.length !== 1 ? 's' : ''}`
-                : <>Arrastrá archivos acá o usá el botón + <span className="opacity-60">(imágenes o video MP4)</span></>}
+                : <>Arrastrá archivos acá o usá el botón + <span className="opacity-60">(imágenes o video — se convierte a MP4)</span></>}
             </p>
             {pendingFiles.length > 0 && (
               <div className="flex gap-2 flex-wrap items-center">
@@ -557,7 +557,7 @@ export function HeroClient({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4"
+          accept="image/jpeg,image/png,image/webp,image/avif,video/*"
           multiple
           className="hidden"
           onChange={e => e.target.files && handleFileSelect(e.target.files)}
