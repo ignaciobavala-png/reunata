@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, Pencil, ArrowLeft, Video } from 'lucide-react'
 import Image from 'next/image'
 import { BannerClient } from './BannerClient'
+import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
 interface HeroAsset {
   id: number
@@ -39,7 +41,9 @@ export function HeroClient({
   const [assets, setAssets] = useState<HeroAsset[]>(assetsIniciales)
   const [pendingFiles, setPendingFiles] = useState<ArchivoPreview[]>([])
   const [subiendo, setSubiendo] = useState(false)
+  const [compresiónProgreso, setCompresiónProgreso] = useState<{ nombre: string; pct: number } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const ffmpegRef = useRef<FFmpeg | null>(null)
   const [assetAEliminar, setAssetAEliminar] = useState<HeroAsset | null>(null)
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [agregandoYt, setAgregandoYt] = useState(false)
@@ -113,6 +117,48 @@ export function HeroClient({
     })
   }
 
+  async function comprimirVideo(file: File): Promise<Blob> {
+    if (!ffmpegRef.current) {
+      const ff = new FFmpeg()
+      // Carga el core single-thread desde CDN (no requiere headers COOP/COEP)
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
+      await ff.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      })
+      ffmpegRef.current = ff
+    }
+
+    const ff = ffmpegRef.current
+    ff.on('progress', ({ progress }) => {
+      setCompresiónProgreso(prev => prev ? { ...prev, pct: Math.round(progress * 100) } : null)
+    })
+
+    const inputName = 'input.mp4'
+    const outputName = 'output.mp4'
+
+    await ff.writeFile(inputName, await fetchFile(file))
+    await ff.exec([
+      '-i', inputName,
+      '-vf', 'scale=-2:720',   // 720p, mantiene aspect ratio
+      '-c:v', 'libx264',
+      '-crf', '26',             // calidad/tamaño: 26 = buen balance
+      '-preset', 'fast',
+      '-an',                    // sin audio (videos hero son mudos)
+      '-movflags', '+faststart', // metadata al inicio para streaming
+      outputName,
+    ])
+
+    const data = await ff.readFile(outputName)
+    await ff.deleteFile(inputName)
+    await ff.deleteFile(outputName)
+
+    // FileData = Uint8Array | string; extraemos un ArrayBuffer limpio para Blob
+    const raw = typeof data === 'string' ? new TextEncoder().encode(data) : data
+    const buf = (raw.buffer as ArrayBuffer).slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    return new Blob([buf], { type: 'video/mp4' })
+  }
+
   async function confirmarSubida() {
     if (subiendo || pendingFiles.length === 0) return
     setSubiendo(true)
@@ -126,7 +172,18 @@ export function HeroClient({
         try { blob = await optimizarImagen(file) } catch { continue }
         ext = 'webp'
       } else {
-        ext = file.name.split('.').pop() ?? 'mp4'
+        // Comprimir video antes de subir
+        try {
+          setCompresiónProgreso({ nombre: file.name, pct: 0 })
+          blob = await comprimirVideo(file)
+          setCompresiónProgreso(null)
+        } catch (err) {
+          console.error('Error comprimiendo video:', err)
+          mostrarToast(`Error al comprimir "${file.name}". Subiendo original…`)
+          setCompresiónProgreso(null)
+          // Fallback: subir el original sin comprimir
+        }
+        ext = 'mp4'
       }
 
       const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
@@ -433,6 +490,29 @@ export function HeroClient({
           </div>
         </div>
 
+        {/* Barra de compresión de video */}
+        {compresiónProgreso && (
+          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--color-acero-claro)', background: 'white' }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                Comprimiendo video…
+              </p>
+              <span className="text-sm tabular-nums" style={{ color: 'var(--color-acero-oscuro)' }}>
+                {compresiónProgreso.pct}%
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-acero-claro)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${compresiónProgreso.pct}%`, background: 'var(--color-granito)' }}
+              />
+            </div>
+            <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
+              {compresiónProgreso.nombre}
+            </p>
+          </div>
+        )}
+
         <div
           onDragOver={e => e.preventDefault()}
           onDrop={onDrop}
@@ -467,7 +547,7 @@ export function HeroClient({
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
                   style={{ background: 'var(--color-granito)', color: 'white' }}
                 >
-                  {subiendo ? <><Loader2 size={12} className="animate-spin" /> Subiendo…</> : <><Upload size={12} /> Subir</>}
+                  {compresiónProgreso ? <><Loader2 size={12} className="animate-spin" /> Comprimiendo…</> : subiendo ? <><Loader2 size={12} className="animate-spin" /> Subiendo…</> : <><Upload size={12} /> Subir</>}
                 </button>
               </div>
             )}
