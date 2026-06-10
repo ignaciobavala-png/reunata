@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, Loader2, CheckCircle, Star, ChevronLeft, Play, Pencil, ArrowLeft, Video } from 'lucide-react'
+import { Upload, X, Loader2, CheckCircle, ChevronLeft, Play, Pencil, ArrowLeft, Video, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { BannerClient } from './BannerClient'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
@@ -364,7 +364,7 @@ export function HeroClient({
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
               <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{activos}</span>
-              {' '}/ {assets.length} activos
+              {' '}de {assets.length} {assets.length === 1 ? 'slide' : 'slides'} en carrusel
             </p>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-acero-claro)' }}>
@@ -379,11 +379,16 @@ export function HeroClient({
           {sorted.map(a => {
             const idx = sorted.findIndex(s => s.id === a.id)
             return (
-              <div key={a.id} className="flex flex-col" style={{ opacity: a.activo ? 1 : 0.5 }}>
+              <div
+                key={a.id}
+                className="flex flex-col rounded-xl overflow-hidden border-2 transition-colors"
+                style={{ borderColor: a.activo ? '#22c55e' : 'var(--color-acero-claro)' }}
+              >
+                {/* Thumbnail */}
                 <div
                   onClick={() => abrirEditor(a)}
-                  className="relative group rounded-t-lg overflow-hidden aspect-video border-x border-t cursor-pointer"
-                  style={{ borderColor: a.activo ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}>
+                  className="relative aspect-video cursor-pointer bg-black/10"
+                >
                   {a.tipo === 'imagen' ? (
                     <Image src={getPublicUrl(a.url)} alt="" fill className="object-cover" />
                   ) : (() => {
@@ -404,56 +409,73 @@ export function HeroClient({
                       </div>
                     )
                   })()}
-
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {idx > 0 && (
-                        <button onClick={e => { e.stopPropagation(); reordenar(a, 'up') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover arriba">
-                          <ChevronLeft size={14} className="text-white rotate-90" />
-                        </button>
-                      )}
-                      <button onClick={e => { e.stopPropagation(); toggleActivo(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-amber-400" title={a.activo ? 'Ocultar del hero' : 'Mostrar en hero'}>
-                        <Star size={14} className="text-white" fill={a.activo ? 'white' : 'none'} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); pedirEliminar(a) }} className="p-1.5 rounded-full bg-white/20 hover:bg-red-500">
-                        <X size={14} className="text-white" />
-                      </button>
-                      {idx < sorted.length - 1 && (
-                        <button onClick={e => { e.stopPropagation(); reordenar(a, 'down') }} className="p-1.5 rounded-full bg-white/20 hover:bg-white/40" title="Mover abajo">
-                          <ChevronLeft size={14} className="text-white -rotate-90" />
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); abrirEditor(a) }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-900 hover:bg-gray-100 transition-colors"
-                    >
-                      <Pencil size={11} />
-                      Editar título y texto
-                    </button>
-                  </div>
-
-                  <span className="absolute bottom-2 left-2 text-sm bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
+                  <span className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-1.5 py-0.5 rounded font-mono">{idx + 1}</span>
                   {a.tipo === 'video' && (
                     <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-1.5 py-0.5 rounded">
                       {a.url.startsWith('http') ? 'YT/Vimeo' : 'video'}
                     </span>
                   )}
-                  {a.activo && (
-                    <span className="absolute top-2 left-2"><Star size={12} className="text-amber-400" fill="currentColor" /></span>
-                  )}
                   {!a.titulo && (
                     <span className="absolute bottom-2 right-2 text-xs bg-amber-500/90 text-white px-1.5 py-0.5 rounded">Sin título</span>
                   )}
                 </div>
-                <button
-                  onClick={() => abrirEditor(a)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-b-lg border text-xs font-semibold transition-colors hover:opacity-90"
-                  style={{ borderColor: 'var(--color-granito)', background: 'var(--color-granito)', color: 'white' }}
+
+                {/* Barra de controles — siempre visible */}
+                <div
+                  className="flex items-center gap-1 px-1.5 py-1.5"
+                  style={{ background: 'white', borderTop: '1px solid var(--color-acero-claro)' }}
                 >
-                  <Pencil size={11} />
-                  Editar título y texto
-                </button>
+                  {/* Reordenar */}
+                  <button
+                    onClick={() => reordenar(a, 'up')}
+                    disabled={idx === 0}
+                    className="p-1 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-default"
+                    title="Mover antes"
+                  >
+                    <ChevronLeft size={13} className="rotate-90" style={{ color: 'var(--color-acero-oscuro)' }} />
+                  </button>
+                  <button
+                    onClick={() => reordenar(a, 'down')}
+                    disabled={idx === sorted.length - 1}
+                    className="p-1 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-default"
+                    title="Mover después"
+                  >
+                    <ChevronLeft size={13} className="-rotate-90" style={{ color: 'var(--color-acero-oscuro)' }} />
+                  </button>
+
+                  {/* Toggle visibilidad */}
+                  <button
+                    onClick={() => toggleActivo(a)}
+                    className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-xs font-medium transition-colors mx-0.5"
+                    style={{
+                      background: a.activo ? '#dcfce7' : 'var(--color-acero-brillo)',
+                      color: a.activo ? '#16a34a' : 'var(--color-acero-oscuro)',
+                    }}
+                  >
+                    {a.activo
+                      ? <><Eye size={11} /> En carrusel</>
+                      : <><EyeOff size={11} /> Oculto</>
+                    }
+                  </button>
+
+                  {/* Editar textos */}
+                  <button
+                    onClick={() => abrirEditor(a)}
+                    className="p-1 rounded hover:bg-gray-100"
+                    title="Editar título y texto"
+                  >
+                    <Pencil size={13} style={{ color: 'var(--color-acero-oscuro)' }} />
+                  </button>
+
+                  {/* Eliminar */}
+                  <button
+                    onClick={() => pedirEliminar(a)}
+                    className="p-1 rounded hover:bg-red-50"
+                    title="Eliminar"
+                  >
+                    <X size={13} style={{ color: '#ef4444' }} />
+                  </button>
+                </div>
               </div>
             )
           })}
