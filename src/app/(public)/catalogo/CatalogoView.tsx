@@ -42,59 +42,54 @@ export function CatalogoView({ productos, config, supabaseUrl, esPreview, previe
     <>
       <style>{`
         @media print {
-          .print\\:hidden { display: none !important; }
-          nav, footer, header { display: none !important; }
+          nav, footer, header, .print-hide { display: none !important; }
+          .print-show { display: block !important; }
+          .print-grid-show { display: grid !important; }
           @page { margin: 1.5cm; size: A4; }
           body { background: white !important; }
         }
       `}</style>
 
-      <div className="px-6 md:px-16 max-w-6xl mx-auto py-12">
+      {/* ── PANTALLA: solo el botón de descarga ── */}
+      <div className="print-hide px-6 md:px-16 max-w-2xl mx-auto py-20 md:py-28">
 
-        {/* Banner preview admin — solo visible en pantalla */}
         {esPreview && (
           <div
-            className="print:hidden mb-6 px-4 py-3 rounded-lg flex items-center gap-2 text-sm"
+            className="mb-8 px-4 py-3 rounded-lg flex items-center gap-2 text-sm"
             style={{ background: '#fef3c7', color: '#92400e' }}
           >
             <AlertTriangle size={15} />
-            Previsualizando como <strong className="ml-1">{previewCanal}</strong> — los clientes de este canal ven este catálogo
+            Previsualizando como <strong className="ml-1">{previewCanal}</strong>
           </div>
         )}
 
-        {/* Header pantalla */}
-        <div className="print:hidden flex items-start justify-between mb-8">
-          <div>
-            <h1
-              className="text-4xl md:text-5xl leading-tight mb-2"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
+        <h1
+          className="text-4xl md:text-5xl leading-tight mb-3"
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
+        >
+          Catálogo
+        </h1>
+        <p className="text-sm mb-10" style={{ color: 'var(--color-acero-oscuro)' }}>
+          {config.nombreCanal} · {productos.length} productos
+        </p>
+
+        {productos.length > 0 ? (
+          <>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-3 px-8 py-4 text-sm font-medium tracking-wide uppercase transition-opacity hover:opacity-80"
+              style={{ background: 'var(--color-granito)', color: 'white' }}
             >
-              Catálogo
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-              {config.nombreCanal} · {productos.length} productos
+              <Printer size={16} />
+              Descargar catálogo
+            </button>
+            <p className="text-xs mt-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Se abre el diálogo de impresión — elegí &ldquo;Guardar como PDF&rdquo;.
             </p>
-          </div>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium flex-shrink-0 mt-2"
-            style={{ background: 'var(--color-granito)', color: 'white' }}
-          >
-            <Printer size={15} />
-            Descargar / Imprimir
-          </button>
-        </div>
-
-        {/* Header impresión */}
-        <div className="hidden print:block text-center mb-10">
-          <h1 className="text-2xl font-bold mb-1">Catálogo Reunata</h1>
-          <p className="text-sm text-gray-500">{config.nombreCanal} · {productos.length} productos</p>
-        </div>
-
-        {/* Sin productos */}
-        {productos.length === 0 && (
+          </>
+        ) : (
           <div
-            className="rounded-xl border py-20 flex flex-col items-center gap-3"
+            className="rounded-xl border py-16 flex flex-col items-center gap-3"
             style={{ borderColor: 'var(--color-acero-claro)', borderStyle: 'dashed' }}
           >
             <FileText size={32} strokeWidth={1.2} style={{ color: 'var(--color-acero-claro)' }} />
@@ -103,70 +98,89 @@ export function CatalogoView({ productos, config, supabaseUrl, esPreview, previe
             </p>
           </div>
         )}
+      </div>
 
-        {/* Grilla por categoría */}
-        {Object.entries(porCategoria).map(([categoria, prods]) => (
-          <section key={categoria} className="mb-10">
-            <h2
-              className="text-xs tracking-widest uppercase font-semibold mb-4 pb-2 border-b"
-              style={{ color: 'var(--color-acero-oscuro)', borderColor: 'var(--color-acero-claro)' }}
-            >
-              {categoria}
-            </h2>
-            <div className={`grid ${GRID_COLS[config.columnas] ?? 'grid-cols-3'} gap-3`}>
-              {prods.map(p => (
-                <div
-                  key={p.id}
-                  className="rounded-lg border overflow-hidden"
-                  style={{ borderColor: 'var(--color-acero-claro)', breakInside: 'avoid' }}
-                >
-                  {/* Foto */}
-                  <div className="aspect-square bg-gray-50 overflow-hidden">
-                    {p.foto_url ? (
-                      <img
-                        src={supabaseImg(supabaseUrl, p.foto_url, 400)}
-                        alt={p.titulo}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <FileText size={24} strokeWidth={1} style={{ color: 'var(--color-acero-claro)' }} />
-                      </div>
-                    )}
-                  </div>
+      {/* ── IMPRESIÓN: catálogo completo, invisible en pantalla ── */}
+      <div className="print-show" style={{ display: 'none' }}>
+        <div style={{ padding: '0', fontFamily: 'sans-serif' }}>
 
-                  {/* Info */}
-                  <div className="p-2.5">
-                    <p
-                      className="text-xs font-medium leading-snug"
-                      style={{ color: 'var(--foreground)' }}
-                    >
-                      {p.titulo}
-                    </p>
-                    {config.mostrarCodigo && (
-                      <p
-                        className="text-xs font-mono mt-0.5"
-                        style={{ color: 'var(--color-acero-oscuro)' }}
-                      >
-                        {p.codigo_interno}
+          {/* Encabezado del PDF */}
+          <div style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0 0 0.25rem' }}>Catálogo Reunata</h1>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+              {config.nombreCanal} · {productos.length} productos
+            </p>
+          </div>
+
+          {/* Productos por categoría */}
+          {Object.entries(porCategoria).map(([categoria, prods]) => (
+            <div key={categoria} style={{ marginBottom: '2.5rem' }}>
+              <h2 style={{
+                fontSize: '0.65rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                fontWeight: 600,
+                color: '#9ca3af',
+                borderBottom: '1px solid #e5e7eb',
+                paddingBottom: '0.4rem',
+                marginBottom: '1rem',
+              }}>
+                {categoria}
+              </h2>
+              <div
+                className={`print-grid-show ${GRID_COLS[config.columnas] ?? 'grid-cols-3'}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${config.columnas}, 1fr)`,
+                  gap: '0.75rem',
+                }}
+              >
+                {prods.map(p => (
+                  <div
+                    key={p.id}
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      breakInside: 'avoid',
+                    }}
+                  >
+                    {/* Foto */}
+                    <div style={{ aspectRatio: '1', background: '#f9fafb', overflow: 'hidden' }}>
+                      {p.foto_url ? (
+                        <img
+                          src={supabaseImg(supabaseUrl, p.foto_url, 300)}
+                          alt={p.titulo}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '0.65rem', color: '#d1d5db' }}>Sin foto</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div style={{ padding: '0.5rem 0.625rem' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 500, margin: '0 0 0.15rem', lineHeight: 1.3, color: '#111' }}>
+                        {p.titulo}
                       </p>
-                    )}
-                    {p.precio !== null && (
-                      <p
-                        className="text-sm font-semibold mt-1.5"
-                        style={{ color: 'var(--foreground)' }}
-                      >
-                        {formatPrecio(p.precio)}
-                      </p>
-                    )}
+                      {config.mostrarCodigo && (
+                        <p style={{ fontSize: '0.6rem', fontFamily: 'monospace', color: '#6b7280', margin: '0 0 0.15rem' }}>
+                          {p.codigo_interno}
+                        </p>
+                      )}
+                      {p.precio !== null && (
+                        <p style={{ fontSize: '0.75rem', fontWeight: 700, margin: 0, color: '#111' }}>
+                          {formatPrecio(p.precio)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </section>
-        ))}
-
+          ))}
+        </div>
       </div>
     </>
   )
