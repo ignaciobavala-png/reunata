@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { BannerClient } from './BannerClient'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import type { HeroFallbackConfig } from '@/components/sections/Hero'
 
 interface HeroAsset {
   id: number
@@ -29,12 +30,14 @@ export function HeroClient({
   supabaseKey,
   isMaster,
   initialSubtab = 'carrusel',
+  fallbackInicial,
 }: {
   assetsIniciales: HeroAsset[]
   supabaseUrl: string
   supabaseKey: string
   isMaster: boolean
   initialSubtab?: 'carrusel' | 'banner'
+  fallbackInicial?: HeroFallbackConfig
 }) {
   const supabase = createClient()
   const [subtab, setSubtab] = useState<'carrusel' | 'banner'>(initialSubtab)
@@ -50,6 +53,15 @@ export function HeroClient({
   const [selectedAsset, setSelectedAsset] = useState<HeroAsset | null>(null)
   const [guardando, setGuardando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const [fallback, setFallback] = useState<HeroFallbackConfig>(fallbackInicial ?? {
+    etiqueta: 'Nueva Colección',
+    titulo: 'El mate que te une.',
+    subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
+    boton_texto: 'Ver tienda',
+    boton_url: '/tienda',
+  })
+  const [guardandoFallback, setGuardandoFallback] = useState(false)
 
   const activos = assets.filter(a => a.activo).length
   const sorted = [...assets].sort((a, b) => a.orden - b.orden)
@@ -291,6 +303,20 @@ export function HeroClient({
     setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, ...payload } : a))
     setSelectedAsset(a => a?.id === asset.id ? { ...a, ...payload } : a)
     mostrarToast('Cambios guardados')
+  }
+
+  async function guardarFallback() {
+    setGuardandoFallback(true)
+    const entries: { clave: string; valor: string }[] = [
+      { clave: 'hero_fallback_etiqueta', valor: fallback.etiqueta },
+      { clave: 'hero_fallback_titulo', valor: fallback.titulo },
+      { clave: 'hero_fallback_subtitulo', valor: fallback.subtitulo },
+      { clave: 'hero_fallback_boton_texto', valor: fallback.boton_texto },
+      { clave: 'hero_fallback_boton_url', valor: fallback.boton_url },
+    ]
+    const { error } = await supabase.from('configuracion').upsert(entries, { onConflict: 'clave' })
+    setGuardandoFallback(false)
+    mostrarToast(error ? 'Error al guardar el texto por defecto' : 'Texto por defecto guardado')
   }
 
   function abrirEditor(asset: HeroAsset) {
@@ -564,6 +590,83 @@ export function HeroClient({
           className="hidden"
           onChange={e => e.target.files && handleFileSelect(e.target.files)}
         />
+
+        {/* Texto por defecto */}
+        <div className="rounded-xl border p-5 mb-4" style={{ borderColor: 'var(--color-acero-claro)', background: 'white' }}>
+          <h3 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>Texto por defecto</h3>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Aparece en el sitio cuando el carrusel está vacío, o en un slide que no tiene texto configurado.
+          </p>
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Etiqueta</label>
+              <input
+                type="text"
+                value={fallback.etiqueta}
+                onChange={e => setFallback(f => ({ ...f, etiqueta: e.target.value }))}
+                placeholder="Ej: Nueva Colección"
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1"
+                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Título principal</label>
+              <input
+                type="text"
+                value={fallback.titulo}
+                onChange={e => setFallback(f => ({ ...f, titulo: e.target.value }))}
+                placeholder="Ej: El mate que te une."
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1"
+                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Subtítulo</label>
+              <textarea
+                value={fallback.subtitulo}
+                onChange={e => setFallback(f => ({ ...f, subtitulo: e.target.value }))}
+                rows={2}
+                placeholder="Descripción breve..."
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 resize-none"
+                style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>Texto del botón</label>
+                <input
+                  type="text"
+                  value={fallback.boton_texto}
+                  onChange={e => setFallback(f => ({ ...f, boton_texto: e.target.value }))}
+                  placeholder="Ver tienda"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>URL del botón</label>
+                <input
+                  type="text"
+                  value={fallback.boton_url}
+                  onChange={e => setFallback(f => ({ ...f, boton_url: e.target.value }))}
+                  placeholder="/tienda"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 font-mono"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={guardarFallback}
+                disabled={guardandoFallback}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60"
+                style={{ background: 'var(--color-granito)', color: 'white' }}
+              >
+                {guardandoFallback ? <><Loader2 size={13} className="animate-spin" /> Guardando…</> : 'Guardar texto por defecto'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Confirmación de eliminación */}

@@ -4,6 +4,7 @@ import { HeroClient } from './HeroClient'
 import { DisenoClient } from './DisenoClient'
 import { PromoClient } from './PromoClient'
 import { CorporativosClient } from './CorporativosClient'
+import { HERO_DEFAULTS } from '@/components/sections/Hero'
 
 export default async function MultimediaPage({
   searchParams,
@@ -18,7 +19,7 @@ export default async function MultimediaPage({
   const { data: profile } = user ? await supabase.from('profiles').select('rol').eq('id', user.id).single() : { data: null }
   const isMaster = profile?.rol === 'master'
 
-  const [{ data: categorias }, { data: heroAssets }, { data: gesuCatsRaw }] = await Promise.all([
+  const [{ data: categorias }, { data: heroAssets }, { data: gesuCatsRaw }, { data: heroConfig }] = await Promise.all([
     supabase
       .from('categorias_home')
       .select('id, nombre, descripcion, href, activo, categoria_keys, foto_url')
@@ -32,7 +33,22 @@ export default async function MultimediaPage({
       .select('categoria')
       .eq('activo', true)
       .not('categoria', 'is', null),
+    supabase
+      .from('configuracion')
+      .select('clave, valor')
+      .in('clave', ['hero_fallback_etiqueta', 'hero_fallback_titulo', 'hero_fallback_subtitulo', 'hero_fallback_boton_texto', 'hero_fallback_boton_url']),
   ])
+
+  const heroConfigMap: Record<string, string> = {}
+  for (const row of heroConfig ?? []) heroConfigMap[row.clave] = row.valor
+
+  const heroFallbackInicial = {
+    etiqueta: heroConfigMap.hero_fallback_etiqueta ?? HERO_DEFAULTS.hero_fallback_etiqueta,
+    titulo: heroConfigMap.hero_fallback_titulo ?? HERO_DEFAULTS.hero_fallback_titulo,
+    subtitulo: heroConfigMap.hero_fallback_subtitulo ?? HERO_DEFAULTS.hero_fallback_subtitulo,
+    boton_texto: heroConfigMap.hero_fallback_boton_texto ?? HERO_DEFAULTS.hero_fallback_boton_texto,
+    boton_url: heroConfigMap.hero_fallback_boton_url ?? HERO_DEFAULTS.hero_fallback_boton_url,
+  }
 
   const gesuCategorias = [...new Set((gesuCatsRaw ?? []).map(p => p.categoria as string).filter(Boolean))].sort()
 
@@ -75,6 +91,7 @@ export default async function MultimediaPage({
           supabaseKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
           isMaster={isMaster}
           initialSubtab={tab === 'banner' ? 'banner' : 'carrusel'}
+          fallbackInicial={heroFallbackInicial}
         />
       ) : vistaActual === 'diseno' ? (
         <DisenoClient />

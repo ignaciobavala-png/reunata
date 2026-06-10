@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { supabaseImg } from '@/lib/images'
+import type { HeroFallbackConfig } from './Hero'
 
 interface HeroAsset {
   id: number
@@ -20,7 +21,7 @@ interface HeroAsset {
   boton_url: string | null
 }
 
-const FALLBACK = {
+const FALLBACK: HeroFallbackConfig = {
   etiqueta: 'Reunata',
   titulo: 'El mate que te une.',
   subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
@@ -41,7 +42,8 @@ function getEmbedUrl(url: string): string | null {
   return null
 }
 
-export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; supabaseUrl: string }) {
+export function HeroCarousel({ assets, supabaseUrl, fallback }: { assets: HeroAsset[]; supabaseUrl: string; fallback?: HeroFallbackConfig }) {
+  const F = fallback ?? FALLBACK
   const getPublicUrl = (url: string) => supabaseImg(supabaseUrl, url, 1920)
   const firstImageUrl = assets.find(a => a.tipo === 'imagen') ? getPublicUrl(assets.find(a => a.tipo === 'imagen')!.url) : null
   const [current, setCurrent] = useState(0)
@@ -64,11 +66,11 @@ export function HeroCarousel({ assets, supabaseUrl }: { assets: HeroAsset[]; sup
   const asset = assets[current]
   if (!asset) return null
 
-  const etiqueta = asset.etiqueta || FALLBACK.etiqueta
-  const titulo = asset.titulo || FALLBACK.titulo
-  const subtitulo = asset.subtitulo || FALLBACK.subtitulo
-  const boton_texto = asset.boton_texto || FALLBACK.boton_texto
-  const boton_url = asset.boton_url || FALLBACK.boton_url
+  const etiqueta = asset.etiqueta || F.etiqueta
+  const titulo = asset.titulo || F.titulo
+  const subtitulo = asset.subtitulo || F.subtitulo
+  const boton_texto = asset.boton_texto || F.boton_texto
+  const boton_url = asset.boton_url || F.boton_url
 
   return (
     <section

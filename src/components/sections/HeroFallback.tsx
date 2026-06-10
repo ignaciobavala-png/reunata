@@ -4,8 +4,15 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import type { HeroFallbackConfig } from './Hero'
 
-export function Hero() {
+export function Hero({
+  etiqueta = 'Nueva Colección',
+  titulo = 'El mate que te une.',
+  subtitulo = 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
+  boton_texto = 'Ver tienda',
+  boton_url = '/tienda',
+}: Partial<HeroFallbackConfig>) {
   return (
     <section className="relative h-screen w-full overflow-hidden bg-[var(--color-granito-oscuro)]">
       <Image
@@ -24,7 +31,7 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="text-[10px] tracking-[0.4em] uppercase text-white/60 mb-6"
         >
-          Nueva Colección
+          {etiqueta}
         </motion.span>
         <motion.h1
           initial={{ opacity: 0, y: 28 }}
@@ -33,9 +40,7 @@ export function Hero() {
           className="text-6xl md:text-8xl lg:text-9xl leading-[1.0] text-white mb-6"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          El mate
-          <br />
-          <em>que te une.</em>
+          {titulo}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
@@ -43,8 +48,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.55 }}
           className="text-sm text-white/60 leading-relaxed max-w-sm mb-12"
         >
-          Productos importados, diseñados para quienes toman el mate en serio.
-          Acero, granito y tradición en cada pieza.
+          {subtitulo}
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -53,17 +57,17 @@ export function Hero() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <Link
-            href="/tienda"
+            href={boton_url}
             className="group inline-flex items-center gap-3 bg-white text-[var(--color-granito-oscuro)] px-8 py-4 text-xs tracking-widest uppercase hover:bg-[var(--color-acero-brillo)] transition-colors duration-300"
           >
-            Ver tienda
+            {boton_texto}
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
           <Link
-            href="/colecciones"
+            href="/tienda/novedades"
             className="inline-flex items-center gap-2 border border-white/40 px-8 py-4 text-xs tracking-widest uppercase text-white hover:border-white transition-colors duration-300"
           >
-            Colecciones
+            Novedades
           </Link>
         </motion.div>
       </div>
