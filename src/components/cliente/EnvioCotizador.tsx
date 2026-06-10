@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Truck, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
-import type { OpcionEnvio } from '@/app/api/envio/cotizar/route'
+import type { OpcionEnvio } from '@/lib/enviopack'
 
 const PROVINCIAS = [
   { id: 'B', nombre: 'Buenos Aires (Provincia)' },
@@ -32,10 +32,19 @@ const PROVINCIAS = [
   { id: 'T', nombre: 'Tucumán' },
 ]
 
+export interface EnvioSeleccionado {
+  descripcion: string
+  costo: number
+  // Params para re-cotizar server-side en checkout (fix #3)
+  provincia: string
+  codigo_postal: string
+  servicioId: string
+}
+
 interface Props {
   items: { productoId: number; cantidad: number }[]
-  onSelect: (opcion: { descripcion: string; costo: number } | null) => void
-  seleccionada: { descripcion: string; costo: number } | null
+  onSelect: (opcion: EnvioSeleccionado | null) => void
+  seleccionada: EnvioSeleccionado | null
 }
 
 export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
@@ -79,7 +88,13 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
 
   function handleSelect(opcion: OpcionEnvio) {
     setSeleccionadaId(opcion.id)
-    onSelect({ descripcion: `${opcion.descripcion} · ${opcion.dias} día${opcion.dias !== 1 ? 's' : ''}`, costo: opcion.costo })
+    onSelect({
+      descripcion: `${opcion.descripcion} · ${opcion.dias} día${opcion.dias !== 1 ? 's' : ''}`,
+      costo: opcion.costo,
+      provincia,
+      codigo_postal: cp,
+      servicioId: opcion.id,
+    })
   }
 
   const inputClass = 'w-full px-2.5 py-1.5 text-xs rounded-lg border outline-none'

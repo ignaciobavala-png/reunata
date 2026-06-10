@@ -8,7 +8,7 @@ import { ShoppingBag, Loader2, Minus, Plus, Trash2 } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
-import { EnvioCotizador } from '@/components/cliente/EnvioCotizador'
+import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
 
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
@@ -44,7 +44,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [guestTelefono, setGuestTelefono] = useState('')
   const [guestErrors, setGuestErrors]     = useState<string | null>(null)
 
-  const [envioSeleccionado, setEnvioSeleccionado] = useState<{ descripcion: string; costo: number } | null>(null)
+  const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -96,7 +96,13 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     const result = await iniciarCheckoutMP(
       items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
       guestOverride,
-      envioSeleccionado ?? undefined
+      envioSeleccionado
+        ? {
+            provincia: envioSeleccionado.provincia,
+            codigo_postal: envioSeleccionado.codigo_postal,
+            servicioId: envioSeleccionado.servicioId,
+          }
+        : undefined
     )
 
     if (result.ok && result.init_point) {

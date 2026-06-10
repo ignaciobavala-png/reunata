@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getMPPreference, isSandbox } from '@/lib/mercadopago'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
+import { cotizarEnvio } from '@/lib/enviopack'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -19,7 +20,14 @@ interface GuestData {
   telefono?: string
 }
 
-interface EnvioData {
+interface EnvioParams {
+  provincia: string
+  codigo_postal: string
+  servicioId: string
+}
+
+// Datos de envío resueltos server-side (nunca del cliente)
+interface EnvioResuelto {
   descripcion: string
   costo: number
 }
@@ -27,7 +35,7 @@ interface EnvioData {
 export async function iniciarCheckoutMP(
   items: CheckoutItem[],
   guestData?: GuestData,
-  envio?: EnvioData
+  envioParams?: EnvioParams
 ): Promise<{ ok: boolean; init_point?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -126,6 +134,21 @@ export async function iniciarCheckoutMP(
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
+
+  // Re-cotizar envío server-side — nunca confiar en el precio del cliente (fix #3)
+  let envio: EnvioResuelto | undefined
+  if (envioParams) {
+    const { opciones, error: envioError } = await cotizarEnvio({
+      items,
+      codigo_postal: envioParams.codigo_postal,
+      provincia: envioParams.provincia,
+    })
+    const opcion = opciones.find(o => o.id === envioParams.servicioId)
+    if (envioError || !opcion) {
+      return { ok: false, error: 'No se pudo verificar el costo de envío. Recalculá antes de continuar.' }
+    }
+    envio = { descripcion: opcion.descripcion, costo: opcion.costo }
+  }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
   const total = subtotal + (envio?.costo ?? 0)
