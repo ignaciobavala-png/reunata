@@ -2,11 +2,11 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Eye, EyeOff } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Eye, EyeOff, Package } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { toggleOferta, toggleDestacada, toggleNovedad, guardarStockVisible, toggleMostrarStock } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
-import { ProductoFichaDrawer, type FotoItem, type Canal } from '@/components/admin/ProductoFichaDrawer'
+import { ProductoFichaDrawer, type FotoItem, type Canal, type DimensionesEnvio } from '@/components/admin/ProductoFichaDrawer'
 
 interface Producto {
   id: number
@@ -20,6 +20,11 @@ interface Producto {
   precio_lista3: number | null
   precio_lista5: number | null
   activo: boolean
+  alto: number | null
+  ancho: number | null
+  largo: number | null
+  peso: number | null
+  enviar_solo: boolean
 }
 
 const TAGS = [
@@ -92,7 +97,14 @@ export function ProductosListaClient({
   const [guardandoStock, setGuardandoStock] = useState<number | null>(null)
   const [mostrarStock, setMostrarStock] = useState<Set<number>>(new Set(mostrarStockIniciales))
   const [guardandoMostrarStock, setGuardandoMostrarStock] = useState<number | null>(null)
-  const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' | 'descripcion' } | null>(null)
+  const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' | 'descripcion' | 'envio' } | null>(null)
+  const [dimensiones, setDimensiones] = useState<Record<number, DimensionesEnvio>>(() => {
+    const map: Record<number, DimensionesEnvio> = {}
+    for (const p of productos) {
+      map[p.id] = { alto: p.alto, ancho: p.ancho, largo: p.largo, peso: p.peso, enviar_solo: p.enviar_solo }
+    }
+    return map
+  })
 
   // Asignaciones masivas por categoría
   const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
@@ -283,6 +295,11 @@ export function ProductosListaClient({
     return new Set(canalesIniciales.filter(c => asignaciones.has(`${pid}-${c.id}`)).map(c => c.id))
   }, [drawerState, asignaciones, canalesIniciales])
 
+  const drawerDimensiones = useMemo<DimensionesEnvio>(() => {
+    if (!drawerState) return { alto: null, ancho: null, largo: null, peso: null, enviar_solo: false }
+    return dimensiones[drawerState.producto.id] ?? { alto: null, ancho: null, largo: null, peso: null, enviar_solo: false }
+  }, [drawerState, dimensiones])
+
   const drawerMultiplos = useMemo<Record<number, number>>(() => {
     if (!drawerState) return {}
     const pid = drawerState.producto.id
@@ -343,6 +360,7 @@ export function ProductosListaClient({
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Canales</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Envío</th>
                 {TAGS.map(t => (
                   <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: t.color + '33', color: t.color }}>
@@ -466,8 +484,8 @@ export function ProductosListaClient({
                         </div>
                       </td>
 
-                      {/* Fotos + Tags — vacíos */}
-                      <td /><td /><td /><td /><td />
+                      {/* Fotos + Envío + Tags — vacíos */}
+                      <td /><td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -586,6 +604,27 @@ export function ProductosListaClient({
                           })()}
                         </td>
 
+                        {/* Envío */}
+                        <td className="px-4 py-2.5 text-center">
+                          {(() => {
+                            const d = dimensiones[p.id]
+                            const completo = !!(d?.alto && d?.ancho && d?.largo && d?.peso)
+                            return (
+                              <button
+                                onClick={() => setDrawerState({ producto: p, tab: 'envio' })}
+                                title={completo ? 'Dimensiones cargadas' : 'Faltan dimensiones de envío'}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors"
+                                style={{
+                                  background: completo ? '#dcfce7' : '#fee2e2',
+                                  color: completo ? '#16a34a' : '#dc2626',
+                                }}
+                              >
+                                <Package size={11} />
+                              </button>
+                            )
+                          })()}
+                        </td>
+
                         {TAGS.map(t => {
                           if (t.key === 'elegidos') {
                             const activo = destacadas.has(p.id)
@@ -687,11 +726,15 @@ export function ProductosListaClient({
           asignacionesIniciales={drawerAsignaciones}
           multiplosIniciales={drawerMultiplos}
           descripcionInicial={drawerState.producto.descripcion ?? null}
+          dimensionesIniciales={drawerDimensiones}
           onClose={() => setDrawerState(null)}
           onFotosChange={(productoId, fotos) =>
             setFotosMap(prev => ({ ...prev, [productoId]: fotos }))
           }
           onCanalesChange={handleCanalesChange}
+          onDimensionesChange={(productoId, dims) =>
+            setDimensiones(prev => ({ ...prev, [productoId]: dims }))
+          }
         />
       )}
     </>

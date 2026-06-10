@@ -24,7 +24,7 @@ async function ListaContent() {
   const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, codigo_interno, titulo, categoria, descripcion, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, activo')
+      .select('id, codigo_interno, titulo, categoria, descripcion, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, activo, alto, ancho, largo, peso, enviar_solo')
       .order('categoria')
       .order('titulo'),
     supabase

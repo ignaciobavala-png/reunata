@@ -3,10 +3,10 @@
 import { useState, useRef, useCallback, useEffect, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft, Camera, Store, FileText } from 'lucide-react'
+import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft, Camera, Store, FileText, Package } from 'lucide-react'
 import Image from 'next/image'
 import { toggleProductoCanal, actualizarMultiplo } from '@/app/actions/canales'
-import { guardarDescripcion } from '@/app/actions/productos'
+import { guardarDescripcion, guardarDimensionesEnvio } from '@/app/actions/productos'
 
 export interface FotoItem {
   id: number
@@ -35,25 +35,36 @@ interface Producto {
   titulo: string
 }
 
+export interface DimensionesEnvio {
+  alto: number | null
+  ancho: number | null
+  largo: number | null
+  peso: number | null
+  enviar_solo: boolean
+}
+
 interface Props {
   producto: Producto
   fotosIniciales: FotoItem[]
   supabaseUrl: string
   isMaster: boolean
-  initialTab?: 'fotos' | 'canales' | 'descripcion'
+  initialTab?: 'fotos' | 'canales' | 'descripcion' | 'envio'
   canales: Canal[]
   asignacionesIniciales: Set<number>
   multiplosIniciales: Record<number, number>
   descripcionInicial?: string | null
+  dimensionesIniciales?: DimensionesEnvio
   onClose: () => void
   onFotosChange?: (productoId: number, fotos: FotoItem[]) => void
   onCanalesChange?: (productoId: number, asignados: Set<number>, multiplos: Record<number, number>) => void
+  onDimensionesChange?: (productoId: number, dims: DimensionesEnvio) => void
 }
 
 export function ProductoFichaDrawer({
   producto, fotosIniciales, supabaseUrl, isMaster, initialTab = 'fotos',
   canales, asignacionesIniciales, multiplosIniciales, descripcionInicial = null,
-  onClose, onFotosChange, onCanalesChange,
+  dimensionesIniciales,
+  onClose, onFotosChange, onCanalesChange, onDimensionesChange,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -64,10 +75,24 @@ export function ProductoFichaDrawer({
     return supabaseRef.current
   }
 
-  const [tab, setTab] = useState<'fotos' | 'canales' | 'descripcion'>(initialTab)
+  const [tab, setTab] = useState<'fotos' | 'canales' | 'descripcion' | 'envio'>(initialTab)
 
   // ── Descripción ───────────────────────────────────────────────────────────
   const [descripcion, setDescripcion] = useState(descripcionInicial ?? '')
+
+  // ── Dimensiones de envío ──────────────────────────────────────────────────
+  const [dims, setDims] = useState<DimensionesEnvio>({
+    alto: dimensionesIniciales?.alto ?? null,
+    ancho: dimensionesIniciales?.ancho ?? null,
+    largo: dimensionesIniciales?.largo ?? null,
+    peso: dimensionesIniciales?.peso ?? null,
+    enviar_solo: dimensionesIniciales?.enviar_solo ?? false,
+  })
+  const [guardandoDims, setGuardandoDims] = useState(false)
+
+  const volumen = dims.alto && dims.ancho && dims.largo
+    ? dims.alto * dims.ancho * dims.largo
+    : null
   const [guardandoDesc, setGuardandoDesc] = useState(false)
 
   // ── Fotos ─────────────────────────────────────────────────────────────────
@@ -287,6 +312,18 @@ export function ProductoFichaDrawer({
     else mostrarToast('Error al guardar')
   }
 
+  async function handleGuardarDims() {
+    setGuardandoDims(true)
+    const res = await guardarDimensionesEnvio(producto.id, dims)
+    setGuardandoDims(false)
+    if (res.ok) {
+      onDimensionesChange?.(producto.id, dims)
+      mostrarToast('Dimensiones guardadas')
+    } else {
+      mostrarToast('Error al guardar')
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -314,6 +351,7 @@ export function ProductoFichaDrawer({
             { key: 'fotos', label: 'Fotos', icon: Camera },
             { key: 'canales', label: 'Canales', icon: Store },
             { key: 'descripcion', label: 'Descripción', icon: FileText },
+            { key: 'envio', label: 'Envío', icon: Package },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -544,6 +582,97 @@ export function ProductoFichaDrawer({
                 style={{ background: 'var(--color-granito)', color: 'white' }}
               >
                 {guardandoDesc ? <><Loader2 size={13} className="animate-spin" /> Guardando…</> : 'Guardar'}
+              </button>
+            </div>
+          )}
+
+          {tab === 'envio' && (
+            <div className="flex flex-col gap-5">
+              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Dimensiones del producto para cotizar envíos con EnvioPack.
+              </p>
+
+              {/* Inputs de dimensiones */}
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { key: 'alto',  label: 'Alto',  unit: 'cm' },
+                  { key: 'ancho', label: 'Ancho', unit: 'cm' },
+                  { key: 'largo', label: 'Largo', unit: 'cm' },
+                  { key: 'peso',  label: 'Peso',  unit: 'kg' },
+                ] as const).map(({ key, label, unit }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      {label} <span style={{ color: 'var(--color-acero)' }}>({unit})</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={key === 'peso' ? 0.01 : 1}
+                      value={dims[key] ?? ''}
+                      onChange={e => {
+                        const raw = e.target.value
+                        const val = raw === '' ? null : (key === 'peso' ? parseFloat(raw) : parseInt(raw))
+                        setDims(prev => ({ ...prev, [key]: val }))
+                      }}
+                      placeholder="—"
+                      className="w-full px-3 py-2 text-sm rounded-lg border outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      style={{
+                        borderColor: 'var(--color-acero-claro)',
+                        color: 'var(--foreground)',
+                        background: 'white',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Volumen calculado */}
+              {volumen !== null && (
+                <div
+                  className="rounded-lg px-3 py-2 text-sm"
+                  style={{
+                    background: volumen > 27000 ? '#fef3c7' : 'var(--color-acero-brillo)',
+                    color: volumen > 27000 ? '#92400e' : 'var(--color-acero-oscuro)',
+                  }}
+                >
+                  Volumen: <strong>{volumen.toLocaleString('es-AR')} cm³</strong>
+                  {volumen > 27000 && (
+                    <span className="ml-2">→ Se recomienda activar "Enviar solo"</span>
+                  )}
+                </div>
+              )}
+
+              {/* Toggle enviar_solo */}
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={dims.enviar_solo}
+                    onChange={e => setDims(prev => ({ ...prev, enviar_solo: e.target.checked }))}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-9 h-5 rounded-full transition-colors"
+                    style={{ background: dims.enviar_solo ? 'var(--color-granito)' : 'var(--color-acero-claro)' }}
+                  />
+                  <div
+                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                    style={{ left: dims.enviar_solo ? '1.25rem' : '0.125rem' }}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Enviar solo</p>
+                  <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>El producto se despacha en su propia caja, sin consolidar</p>
+                </div>
+              </label>
+
+              <button
+                onClick={handleGuardarDims}
+                disabled={guardandoDims}
+                className="self-end flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                style={{ background: 'var(--color-granito)', color: 'white' }}
+              >
+                {guardandoDims ? <><Loader2 size={13} className="animate-spin" /> Guardando…</> : 'Guardar'}
               </button>
             </div>
           )}
