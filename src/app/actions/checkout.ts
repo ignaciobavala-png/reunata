@@ -101,7 +101,7 @@ export async function iniciarCheckoutMP(
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, precio_lista5, moneda, stock_visible, stock')
+      .select('id, titulo, precio_lista5, moneda, stock')
       .in('id', items.map(i => i.productoId))
       .eq('activo', true),
     service
@@ -116,7 +116,7 @@ export async function iniciarCheckoutMP(
   for (const item of items) {
     const prod = productos.find(p => p.id === item.productoId)
     if (prod) {
-      const stockDisponible = prod.stock_visible ?? prod.stock
+      const stockDisponible = prod.stock
       if (stockDisponible !== null && stockDisponible < item.cantidad) {
         return { ok: false, error: `"${prod.titulo}" ingresa próximamente. Reducí la cantidad para continuar.` }
       }

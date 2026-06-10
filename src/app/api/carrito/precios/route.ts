@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista3, precio_lista5, moneda, stock, stock_visible')
+      .select('id, precio_lista3, precio_lista5, moneda, stock')
       .in('id', ids)
       .eq('activo', true),
     service
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
     if (precio !== null) precios[prod.id] = precio
     // stock_visible si está definido, si no stock; null = sin control de stock
-    stocks[prod.id] = prod.stock_visible ?? prod.stock ?? null
+    stocks[prod.id] = prod.stock ?? null
   }
 
   return NextResponse.json({ precios, stocks })

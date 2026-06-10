@@ -24,7 +24,7 @@ async function ListaContent() {
   const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, codigo_interno, titulo, categoria, descripcion, stock, stock_visible, precio_lista3, precio_lista5, activo, alto, ancho, largo, peso, enviar_solo')
+      .select('id, codigo_interno, titulo, categoria, descripcion, stock, precio_lista3, precio_lista5, activo, alto, ancho, largo, peso, enviar_solo')
       .order('categoria')
       .order('titulo'),
     supabase
@@ -70,11 +70,6 @@ async function ListaContent() {
     multiplosMap[`${a.producto_id}-${a.canal_id}`] = a.multiplo ?? 1
   }
 
-  const stockVisiblesMap: Record<number, number | null> = {}
-  for (const p of productos ?? []) {
-    if (p.stock_visible !== undefined) stockVisiblesMap[p.id] = p.stock_visible
-  }
-
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -91,7 +86,6 @@ async function ListaContent() {
         canalesIniciales={canales ?? []}
         asignacionesIniciales={asignacionesSet}
         multiplosIniciales={multiplosMap}
-        stockVisiblesIniciales={stockVisiblesMap}
       />
     </div>
   )
