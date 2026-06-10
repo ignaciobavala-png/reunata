@@ -193,6 +193,8 @@ export function HeroClient({
       if (uploadError) {
         console.error(uploadError)
         mostrarToast(`Error al subir "${file.name}": ${uploadError.message}`)
+        if (nuevos.length > 0) setAssets(prev => [...prev, ...nuevos])
+        setPendingFiles([])
         setSubiendo(false)
         return
       }

@@ -1,4 +1,5 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 const admin = createAdmin(
@@ -6,12 +7,16 @@ const admin = createAdmin(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-function verificarMaster(request: Request): boolean {
-  return request.headers.get('X-Is-Master') === 'true'
+async function verificarMaster(): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data: profile } = await supabase.from('profiles').select('rol').eq('id', user.id).single()
+  return profile?.rol === 'master'
 }
 
 export async function PATCH(request: Request) {
-  if (!verificarMaster(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id, ...fields } = await request.json()
   await admin.from('categorias_home').update(fields).eq('id', id)
@@ -20,7 +25,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!verificarMaster(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await request.json()
   await admin.from('categorias_home').delete().eq('id', id)
@@ -29,7 +34,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!verificarMaster(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await request.json()
   const { data } = await admin
