@@ -2,9 +2,9 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Eye, EyeOff, Package } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
-import { toggleOferta, toggleDestacada, toggleNovedad, guardarStockVisible, toggleMostrarStock } from '@/app/actions/ofertas'
+import { toggleOferta, toggleDestacada, toggleNovedad, guardarStockVisible } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
 import { ProductoFichaDrawer, type FotoItem, type Canal, type DimensionesEnvio } from '@/components/admin/ProductoFichaDrawer'
 
@@ -16,7 +16,6 @@ interface Producto {
   descripcion: string | null
   stock: number | null
   stock_visible: number | null
-  mostrar_stock: boolean
   precio_lista3: number | null
   precio_lista5: number | null
   activo: boolean
@@ -57,7 +56,6 @@ export function ProductosListaClient({
   asignacionesIniciales,
   multiplosIniciales,
   stockVisiblesIniciales,
-  mostrarStockIniciales,
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>
@@ -70,7 +68,6 @@ export function ProductosListaClient({
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
   stockVisiblesIniciales: Record<number, number | null>
-  mostrarStockIniciales: Set<number>
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -95,8 +92,6 @@ export function ProductosListaClient({
   const [multiplos, setMultiplos] = useState<Record<string, number>>({ ...multiplosIniciales })
   const [stockVisibles, setStockVisibles] = useState<Record<number, number | null>>({ ...stockVisiblesIniciales })
   const [guardandoStock, setGuardandoStock] = useState<number | null>(null)
-  const [mostrarStock, setMostrarStock] = useState<Set<number>>(new Set(mostrarStockIniciales))
-  const [guardandoMostrarStock, setGuardandoMostrarStock] = useState<number | null>(null)
   const [drawerState, setDrawerState] = useState<{ producto: Producto; tab: 'fotos' | 'canales' | 'descripcion' | 'envio' } | null>(null)
   const [dimensiones, setDimensiones] = useState<Record<number, DimensionesEnvio>>(() => {
     const map: Record<number, DimensionesEnvio> = {}
@@ -233,22 +228,6 @@ export function ProductosListaClient({
         if (!res.ok) setStockVisibles(prev => ({ ...prev, [p.id]: anterior }))
       } catch { setStockVisibles(prev => ({ ...prev, [p.id]: anterior })) }
       finally { setGuardandoStock(null) }
-    })
-  }
-
-  function handleToggleMostrarStock(p: Producto) {
-    const nuevoValor = !mostrarStock.has(p.id)
-    const anterior = new Set(mostrarStock)
-    const nuevo = new Set(mostrarStock)
-    nuevoValor ? nuevo.add(p.id) : nuevo.delete(p.id)
-    setMostrarStock(nuevo)
-    setGuardandoMostrarStock(p.id)
-    startTransition(async () => {
-      try {
-        const res = await toggleMostrarStock(p.id, nuevoValor)
-        if (!res.ok) setMostrarStock(anterior)
-      } catch { setMostrarStock(anterior) }
-      finally { setGuardandoMostrarStock(null) }
     })
   }
 
@@ -509,40 +488,22 @@ export function ProductosListaClient({
                           <div className="text-xs mb-1" style={{ color: p.stock === 0 ? '#ef4444' : 'var(--color-acero-oscuro)' }}>
                             {p.stock ?? '—'}
                           </div>
-                          {/* Stock visible (editable) */}
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              min={0}
-                              max={p.stock ?? undefined}
-                              defaultValue={stockVisibles[p.id] ?? ''}
-                              placeholder={p.stock !== null ? String(p.stock) : '—'}
-                              onBlur={e => handleStockVisibleBlur(p, e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                              className="w-14 text-right px-2 py-0.5 text-xs rounded border outline-none"
-                              style={{
-                                borderColor: 'var(--color-acero-claro)',
-                                color: 'var(--foreground)',
-                                background: guardandoStock === p.id ? 'var(--color-acero-brillo)' : 'white',
-                              }}
-                            />
-                            {/* Toggle mostrar al cliente */}
-                            <button
-                              title={mostrarStock.has(p.id) ? 'Ocultar stock al cliente' : 'Mostrar stock al cliente'}
-                              disabled={guardandoMostrarStock === p.id}
-                              onClick={() => handleToggleMostrarStock(p)}
-                              className="p-0.5 rounded transition-colors"
-                              style={{
-                                color: mostrarStock.has(p.id) ? '#10b981' : 'var(--color-acero)',
-                                opacity: guardandoMostrarStock === p.id ? 0.5 : 1,
-                              }}
-                            >
-                              {mostrarStock.has(p.id)
-                                ? <Eye size={13} />
-                                : <EyeOff size={13} />
-                              }
-                            </button>
-                          </div>
+                          {/* Límite público (umbral para "Ingresa próximamente") */}
+                          <input
+                            type="number"
+                            min={0}
+                            max={p.stock ?? undefined}
+                            defaultValue={stockVisibles[p.id] ?? ''}
+                            placeholder={p.stock !== null ? String(p.stock) : '—'}
+                            onBlur={e => handleStockVisibleBlur(p, e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                            className="w-14 text-right px-2 py-0.5 text-xs rounded border outline-none"
+                            style={{
+                              borderColor: 'var(--color-acero-claro)',
+                              color: 'var(--foreground)',
+                              background: guardandoStock === p.id ? 'var(--color-acero-brillo)' : 'white',
+                            }}
+                          />
                         </td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista3)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista5)}</td>
