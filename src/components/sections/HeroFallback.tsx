@@ -24,7 +24,7 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="text-[10px] tracking-[0.4em] uppercase text-white/60 mb-6"
         >
-          Nueva Colección — 2025
+          Nueva Colección
         </motion.span>
         <motion.h1
           initial={{ opacity: 0, y: 28 }}

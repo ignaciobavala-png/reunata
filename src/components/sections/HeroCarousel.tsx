@@ -21,7 +21,7 @@ interface HeroAsset {
 }
 
 const FALLBACK = {
-  etiqueta: 'Reunata — 2025',
+  etiqueta: 'Reunata',
   titulo: 'El mate que te une.',
   subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
   boton_texto: 'Ver tienda',
