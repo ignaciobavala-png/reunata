@@ -8,6 +8,7 @@ import { ShoppingBag, Loader2, Minus, Plus, Trash2 } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
+import { EnvioCotizador } from '@/components/cliente/EnvioCotizador'
 
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
@@ -42,6 +43,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [guestEmail, setGuestEmail]       = useState('')
   const [guestTelefono, setGuestTelefono] = useState('')
   const [guestErrors, setGuestErrors]     = useState<string | null>(null)
+
+  const [envioSeleccionado, setEnvioSeleccionado] = useState<{ descripcion: string; costo: number } | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -92,7 +95,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
     const result = await iniciarCheckoutMP(
       items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
-      guestOverride
+      guestOverride,
+      envioSeleccionado ?? undefined
     )
 
     if (result.ok && result.init_point) {
@@ -143,6 +147,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   }
 
   const totalGeneral = total()
+  const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
   const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none'
@@ -342,24 +347,31 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   <span>Subtotal</span>
                   <span>{formatPrecio(totalGeneral)}</span>
                 </div>
-                {(esMinorista || esGuest) && (
-                  <div className="flex justify-between items-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                {envioSeleccionado && (
+                  <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                     <span>Envío</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
-                      próximamente
-                    </span>
+                    <span>{formatPrecio(envioSeleccionado.costo)}</span>
                   </div>
                 )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
-                  <span>{formatPrecio(totalGeneral)}</span>
+                  <span>{formatPrecio(totalConEnvio)}</span>
                 </div>
               </>
             )}
           </div>
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
+
+          {/* Cotizador de envío — solo minoristas y guests */}
+          {(esMinorista || esGuest) && (
+            <EnvioCotizador
+              items={items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))}
+              seleccionada={envioSeleccionado}
+              onSelect={setEnvioSeleccionado}
+            />
+          )}
 
           {/* CTA según rol */}
           {esMinorista ? (

@@ -19,9 +19,15 @@ interface GuestData {
   telefono?: string
 }
 
+interface EnvioData {
+  descripcion: string
+  costo: number
+}
+
 export async function iniciarCheckoutMP(
   items: CheckoutItem[],
-  guestData?: GuestData
+  guestData?: GuestData,
+  envio?: EnvioData
 ): Promise<{ ok: boolean; init_point?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -121,7 +127,8 @@ export async function iniciarCheckoutMP(
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
 
-  const total = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+  const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+  const total = subtotal + (envio?.costo ?? 0)
 
   const expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
@@ -130,6 +137,8 @@ export async function iniciarCheckoutMP(
     total_usd: total,
     medio_pago: 'mercadopago',
     expira_en: expiraEn,
+    costo_envio: envio?.costo ?? null,
+    envio_descripcion: envio?.descripcion ?? null,
   }
 
   if (user) {
@@ -167,13 +176,22 @@ export async function iniciarCheckoutMP(
     const preference = getMPPreference()
     const response = await preference.create({
       body: {
-        items: lineas.map(l => ({
-          id: String(l.productoId),
-          title: l.titulo,
-          quantity: l.cantidad,
-          unit_price: l.precioUnit,
-          currency_id: 'ARS',
-        })),
+        items: [
+          ...lineas.map(l => ({
+            id: String(l.productoId),
+            title: l.titulo,
+            quantity: l.cantidad,
+            unit_price: l.precioUnit,
+            currency_id: 'ARS',
+          })),
+          ...(envio ? [{
+            id: 'envio',
+            title: envio.descripcion,
+            quantity: 1,
+            unit_price: envio.costo,
+            currency_id: 'ARS',
+          }] : []),
+        ],
         payer: { email: payerEmail },
         back_urls: {
           success: `${APP_URL}/checkout/exito`,
