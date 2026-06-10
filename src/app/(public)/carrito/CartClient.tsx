@@ -45,10 +45,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [guestErrors, setGuestErrors]     = useState<string | null>(null)
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
+  const [stocks, setStocks] = useState<Record<number, number | null>>({})
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Refrescar precios desde DB al montar
+  // Refrescar precios y stocks desde DB al montar
   useEffect(() => {
     if (!mounted || items.length === 0) return
     const ids = items.map(i => i.productoId)
@@ -58,7 +59,10 @@ export function CartClient({ user, mostrarPrecios }: Props) {
       body: JSON.stringify({ ids }),
     })
       .then(r => r.json())
-      .then(({ precios }) => { if (precios) updatePrecios(precios) })
+      .then(({ precios, stocks: st }) => {
+        if (precios) updatePrecios(precios)
+        if (st) setStocks(st)
+      })
       .catch(() => {})
   // Solo al montar — no re-ejecutar si items cambia
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,6 +160,16 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
+  // Stock: null = sin control, number = límite conocido
+  function stockDisponible(productoId: number): number | null {
+    return productoId in stocks ? stocks[productoId] : null
+  }
+  function exceedeStock(productoId: number, cantidad: number): boolean {
+    const s = stockDisponible(productoId)
+    return s !== null && cantidad > s
+  }
+  const hayProblemaStock = items.some(i => exceedeStock(i.productoId, i.cantidad))
+
   const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none'
   const inputStyle: React.CSSProperties = {
     borderColor: 'var(--color-acero-claro)',
@@ -218,6 +232,9 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               const multiplo = item.multiplo ?? 1
               const subtotal = item.precio * item.cantidad
               const esUltimo = idx === items.length - 1
+              const stockItem = stockDisponible(item.productoId)
+              const masAllaDelStock = exceedeStock(item.productoId, item.cantidad)
+              const plusDeshabilitado = stockItem !== null && item.cantidad + multiplo > stockItem
               return (
                 <div
                   key={item.productoId}
@@ -288,7 +305,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                         />
                         <button
                           onClick={() => updateCantidad(item.productoId, item.cantidad + multiplo)}
-                          className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]"
+                          disabled={plusDeshabilitado}
+                          className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)] disabled:opacity-30 disabled:cursor-not-allowed"
                           style={{ color: 'var(--color-granito)' }}
                           aria-label="Aumentar cantidad"
                         >
@@ -310,6 +328,12 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                         Eliminar
                       </button>
                     </div>
+
+                    {masAllaDelStock && (
+                      <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>
+                        Ingresa próximamente — reducí la cantidad para continuar.
+                      </p>
+                    )}
                   </div>
 
                   {/* Subtotal */}
@@ -384,7 +408,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
             <>
               <button
                 onClick={() => handlePagarMP()}
-                disabled={pagando}
+                disabled={pagando || hayProblemaStock}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >
@@ -451,7 +475,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
               <button
                 onClick={handlePagarGuest}
-                disabled={pagando}
+                disabled={pagando || hayProblemaStock}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >

@@ -118,7 +118,7 @@ export async function iniciarCheckoutMP(
     if (prod) {
       const stockDisponible = prod.stock_visible ?? prod.stock
       if (stockDisponible !== null && stockDisponible < item.cantidad) {
-        return { ok: false, error: `Stock insuficiente para "${prod.titulo}". Disponible: ${stockDisponible}.` }
+        return { ok: false, error: `"${prod.titulo}" ingresa próximamente. Reducí la cantidad para continuar.` }
       }
     }
   }

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista3, precio_lista5, moneda')
+      .select('id, precio_lista3, precio_lista5, moneda, stock, stock_visible')
       .in('id', ids)
       .eq('activo', true),
     service
@@ -34,11 +34,14 @@ export async function POST(req: NextRequest) {
   const tc = parseFloat(tcRow?.valor ?? '1') || 1
 
   const precios: Record<number, number> = {}
+  const stocks: Record<number, number | null> = {}
   for (const prod of productos ?? []) {
     const precioRaw = (prod[listaPrecio as 'precio_lista3' | 'precio_lista5'] ?? null) as number | null
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
     if (precio !== null) precios[prod.id] = precio
+    // stock_visible si está definido, si no stock; null = sin control de stock
+    stocks[prod.id] = prod.stock_visible ?? prod.stock ?? null
   }
 
-  return NextResponse.json({ precios })
+  return NextResponse.json({ precios, stocks })
 }

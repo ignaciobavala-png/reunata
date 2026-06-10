@@ -128,17 +128,13 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
               </p>
             )}
 
-            {producto.mostrar_stock && (
-              <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-                {(() => {
-                  const cantidad = producto.stock_visible ?? producto.stock
-                  if (cantidad === null) return null
-                  if (cantidad === 0) return <span style={{ color: '#ef4444' }}>Sin stock</span>
-                  if (cantidad <= 5) return <span style={{ color: '#f59e0b' }}>{cantidad} disponibles</span>
-                  return <span>{cantidad} disponibles</span>
-                })()}
-              </p>
-            )}
+            {producto.mostrar_stock && (() => {
+              const cantidad = producto.stock_visible ?? producto.stock
+              if (cantidad === null || cantidad > 0) return null
+              return (
+                <p className="text-xs mb-3" style={{ color: '#ef4444' }}>Sin stock</p>
+              )
+            })()}
 
             {multiplo > 1 && (
               <span
