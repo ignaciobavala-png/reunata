@@ -347,12 +347,12 @@ export function ProductoFichaDrawer({
 
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: 'var(--color-acero-claro)' }}>
-          {([
+          {(([
             { key: 'fotos', label: 'Fotos', icon: Camera },
             { key: 'canales', label: 'Canales', icon: Store },
             { key: 'descripcion', label: 'Descripción', icon: FileText },
             { key: 'envio', label: 'Envío', icon: Package },
-          ] as const).map(({ key, label, icon: Icon }) => (
+          ] as const).filter(t => t.key !== 'envio' || isMaster)).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
@@ -668,7 +668,7 @@ export function ProductoFichaDrawer({
 
               <button
                 onClick={handleGuardarDims}
-                disabled={guardandoDims}
+                disabled={guardandoDims || !isMaster}
                 className="self-end flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
                 style={{ background: 'var(--color-granito)', color: 'white' }}
               >
