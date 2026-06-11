@@ -1,15 +1,17 @@
 import { Header } from '@/components/layout/Header'
 import type { Metadata } from 'next'
 import { LoginForm } from './LoginForm'
+import { getHeaderData } from '@/lib/header'
 
 export const metadata: Metadata = { title: 'Ingresar' }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const { error, next } = await searchParams
+  const { headerUser, headerCategorias } = await getHeaderData()
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
-      <Header variant="dark" />
+      <Header variant="dark" user={headerUser} categorias={headerCategorias} />
       <main className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
         <div className="w-full max-w-sm">
 
