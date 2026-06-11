@@ -1,13 +1,15 @@
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { getHeaderData } from '@/lib/header'
 
 export const metadata: Metadata = { title: 'Recuperar contraseña — Reunata' }
 
-export default function RecuperarContrasenaPage() {
+export default async function RecuperarContrasenaPage() {
+  const { headerUser, headerCategorias } = await getHeaderData()
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-granito-oscuro)' }}>
-      <Header />
+      <Header user={headerUser} categorias={headerCategorias} />
       <main className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
         <div className="w-full max-w-sm">
           <div className="mb-10">
