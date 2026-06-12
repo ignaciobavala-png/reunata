@@ -57,12 +57,13 @@ interface GesuItem {
 function parseStockVariante(raw: string): { nombre: string; stock: number }[] | null {
   if (!raw?.trim()) return null
   try {
-    return raw.split(';').map(entry => {
+    const result = raw.split(';').map(entry => {
       const colonIdx = entry.lastIndexOf(':')
       const nombre = entry.slice(0, colonIdx).trim()
       const stock = parseFloat(entry.slice(colonIdx + 1))
       return { nombre, stock: isNaN(stock) ? 0 : stock }
     }).filter(v => v.nombre)
+    return result.length > 0 ? result : null
   } catch {
     return null
   }
