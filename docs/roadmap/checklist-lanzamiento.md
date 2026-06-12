@@ -47,8 +47,8 @@
   2. Conectar el botón con `supabase.auth.signInWithOAuth({ provider: 'google' })`
   3. Si el perfil no tiene razón social/CUIT → redirigir a formulario de completar datos
 
-- [ ] **Lupa de búsqueda funcional**
-  Ruta `/buscar?q=`, búsqueda con `ILIKE` o `tsvector` sobre `productos`, UI de resultados.
+- ✅ **Lupa de búsqueda funcional**
+  Header redirige a `/tienda?q=`, query ILIKE sobre `titulo` y `codigo_interno`, grilla de resultados con conteo.
 
 ### API de envíos — Enviopack
 
