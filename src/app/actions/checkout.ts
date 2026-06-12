@@ -162,6 +162,8 @@ export async function iniciarCheckoutMP(
     expira_en: expiraEn,
     costo_envio: envio?.costo ?? null,
     envio_descripcion: envio?.descripcion ?? null,
+    envio_codigo_postal: envioParams?.codigo_postal ?? null,
+    envio_provincia: envioParams?.provincia ?? null,
   }
 
   if (user) {
