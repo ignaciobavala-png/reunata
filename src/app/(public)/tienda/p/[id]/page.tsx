@@ -123,9 +123,14 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             </h1>
 
             {precio != null && (
-              <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                {formatPrecio(precio, monedaFinal)}
-              </p>
+              <div className="mb-2">
+                <p className="text-2xl font-medium" style={{ color: 'var(--foreground)' }}>
+                  {formatPrecio(precio, monedaFinal)}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Precio sin IVA
+                </p>
+              </div>
             )}
 
             {producto.mostrar_stock && (() => {

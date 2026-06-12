@@ -85,9 +85,14 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                     {foto.codigo_interno}
                   </p>
                   {foto.precio != null && (
-                    <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
-                      {formatPrecio(foto.precio, foto.moneda)}
-                    </p>
+                    <>
+                      <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(foto.precio, foto.moneda)}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Precio sin IVA
+                      </p>
+                    </>
                   )}
                 </button>
               )
