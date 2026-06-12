@@ -47,6 +47,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -140,7 +141,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
             {productosGrid.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
+            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} />
           )}
         </div>
       </main>
@@ -203,7 +204,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productosGrid.length} producto{productosGrid.length !== 1 ? 's' : ''}
         </p>
-        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
+        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} />
       </div>
     </main>
   )

@@ -77,7 +77,7 @@ export default async function Home() {
             <Hero />
             <PromoTicker />
             <CategoryGallery />
-            <ProductSlider fotos={fotos} />
+            <ProductSlider fotos={fotos} esMayorista={tipoCliente === 'mayorista'} />
             <InstagramSlider posts={postsInstagram ?? []} />
             <PromotionalBanner banner={banner} />
           </>
