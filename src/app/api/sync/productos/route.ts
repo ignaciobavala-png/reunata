@@ -28,11 +28,14 @@ interface GesuItem {
   titulo: string
   codigoInterno: string
   codigoBarras: string
+  codigoProveedor: string
   categoria: string
   subCategoria: string
   marca: string
   proveedor: string
+  ubicacionInterna: string
   stock: number | null
+  StockVariante: string
   stockMinimo: number
   monedaPrecioCompra: string
   precioFinalCompra: number
@@ -49,6 +52,21 @@ interface GesuItem {
   iva: number
   descripcion: string | null
   palabrasClave: string
+}
+
+function parseStockVariante(raw: string): { nombre: string; stock: number }[] | null {
+  if (!raw?.trim()) return null
+  try {
+    const result = raw.split(';').map(entry => {
+      const colonIdx = entry.lastIndexOf(':')
+      const nombre = entry.slice(0, colonIdx).trim()
+      const stock = parseFloat(entry.slice(colonIdx + 1))
+      return { nombre, stock: isNaN(stock) ? 0 : stock }
+    }).filter(v => v.nombre)
+    return result.length > 0 ? result : null
+  } catch {
+    return null
+  }
 }
 
 async function fetchPagina(pag: number): Promise<{ header: Record<string, number>; data: Record<string, GesuItem> }> {
@@ -185,6 +203,7 @@ async function syncProductos(desactivarNoReunata = false) {
       iva:             num(item.iva) ?? 0,
       descripcion:     item.descripcion || null,
       palabras_clave:  item.palabrasClave || null,
+      variantes:       parseStockVariante(item.StockVariante),
       ultima_sync:     new Date().toISOString(),
       activo:          true,
     }))

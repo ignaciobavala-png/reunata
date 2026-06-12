@@ -87,6 +87,7 @@ export function ProductGridPublic({
   function handleAgregar(p: ProductoPublico) {
     add({
       productoId: p.id,
+      itemKey: `${p.id}:`,
       codigo_interno: p.codigo_interno,
       titulo: p.titulo,
       precio: p.precio ?? 0,

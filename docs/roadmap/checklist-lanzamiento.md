@@ -52,17 +52,25 @@
 
 ### API de envíos — Enviopack
 
-> Documentado en detalle en `docs/enviopack.md`. Depende de charla con Gastón.
+> Documentado en detalle en `docs/integraciones/enviopack.md`.
 
-- [ ] Credenciales de Enviopack obtenidas:
-  - [ ] `ENVIOPACK_API_KEY`
-  - [ ] `ENVIOPACK_SECRET_KEY`
-  - [ ] `ENVIOPACK_CP_ORIGEN` (CP del depósito de despacho)
-- [ ] Decisión tomada: ¿peso/dimensiones global (tabla `configuracion`) o por producto (columnas en `productos`)?
-- [ ] Migración DB ejecutada (ver `docs/enviopack.md` → "Cambios en la base de datos")
-- [ ] Implementar cotización en `/carrito` → Route Handler `/api/envios/cotizar`
-- [ ] Decisión: ¿mostrar todas las opciones de correo o solo una fija (ej: Andreani)?
-- [ ] ¿Envío gratis a partir de cierto monto? Si sí, configurar umbral
+**Fase 1 (cotización) — ✅ implementada y lista para producción**
+- ✅ `ENVIOPACK_ACCESS_TOKEN` en Vercel (variable ya configurada)
+- ✅ Dimensiones por producto (`peso`, `alto`, `ancho`, `largo`, `enviar_solo` en `productos`)
+- ✅ Cotización en carrito (`/api/envio/cotizar` + `EnvioCotizador`)
+- ✅ Re-verificación server-side del costo al hacer checkout
+- ✅ Costo de envío como ítem separado en MercadoPago
+
+**Fase 1 — gap pendiente (pequeño, sin urgencia de bloqueo):**
+- [ ] Migración: agregar `envio_codigo_postal` + `envio_provincia` a tabla `pedidos`
+- [ ] Guardar esos campos en `actions/checkout.ts` al crear el pedido
+  *(sin esto, el dato de destino se pierde una vez pagado — afecta gestión manual)*
+
+**Fase 2 (etiquetas/tracking) — post-lanzamiento**
+- [ ] Formulario de dirección completa en carrito (calle, número, localidad)
+- [ ] `POST /api/enviopack/envios` desde webhook MP al detectar `status=approved`
+- [ ] Guardar `enviopack_envio_id` + `nro_seguimiento` en pedido
+- [ ] (Opcional) email al cliente con número de seguimiento
 
 ### Bugs altos
 

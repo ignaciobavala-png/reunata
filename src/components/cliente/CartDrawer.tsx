@@ -6,11 +6,12 @@ import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'luci
 import { useRouter, usePathname } from 'next/navigation'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
+import { VarianteBadge } from '@/components/sections/ColorPicker'
 
 const WHATSAPP = '5491132720974'
 
 function buildWhatsAppLink(items: CartItem[]) {
-  const lineas = items.map(i => `• ${i.titulo} x${i.cantidad}`)
+  const lineas = items.map(i => `• ${i.titulo}${i.variante ? ` (${i.variante})` : ''} x${i.cantidad}`)
   const texto = `Hola! Me gustaría hacer un pedido:\n\n${lineas.join('\n')}\n\nQuedo a la espera, gracias!`
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
 }
@@ -31,7 +32,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
     setEnviando(true)
     try {
       const pedidoId = await crearPedidoBorrador(
-        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))
+        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante }))
       )
       clear()
       setCartOpen(false)
@@ -119,15 +120,20 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                       <p className="text-xs leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
                         {item.titulo}
                       </p>
+                      {item.variante && (
+                        <div className="mt-1">
+                          <VarianteBadge variante={item.variante} />
+                        </div>
+                      )}
                     </div>
-                    <button onClick={() => remove(item.productoId)} aria-label={`Eliminar ${item.titulo}`}>
+                    <button onClick={() => remove(item.itemKey ?? `${item.productoId}:`)} aria-label={`Eliminar ${item.titulo}`}>
                       <Trash2 size={12} aria-hidden="true" style={{ color: 'var(--color-acero)' }} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad - (item.multiplo ?? 1))}
+                        onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad - (item.multiplo ?? 1))}
                         aria-label="Reducir cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
@@ -138,7 +144,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                         {item.cantidad}
                       </span>
                       <button
-                        onClick={() => updateCantidad(item.productoId, item.cantidad + (item.multiplo ?? 1))}
+                        onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad + (item.multiplo ?? 1))}
                         aria-label="Aumentar cantidad"
                         className="w-6 h-6 rounded border flex items-center justify-center"
                         style={{ borderColor: 'var(--color-acero-claro)' }}

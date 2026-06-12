@@ -1,3 +1,8 @@
+export interface Variante {
+  nombre: string
+  stock: number
+}
+
 export interface ProductoFull {
   id: number
   codigo_interno: string | null

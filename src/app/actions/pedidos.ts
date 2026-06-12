@@ -7,6 +7,7 @@ import { aplicarTipoCambio } from '@/lib/utils'
 interface LineaPedido {
   productoId: number
   cantidad: number
+  variante?: string
 }
 
 export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string> {
@@ -83,7 +84,7 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
     if (!precioRaw) return []
     const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs }]
+    return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs, variante: l.variante ?? null }]
   })
 
   if (lineasResueltas.length === 0) throw new Error('Ningún producto tiene precio configurado.')
@@ -104,6 +105,7 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
       producto_id: l.productoId,
       cantidad: l.cantidad,
       precio_unit: l.precioUnit,
+      variante: l.variante,
     }))
   )
 

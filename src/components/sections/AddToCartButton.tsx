@@ -4,6 +4,7 @@ import { Check, Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { supabaseImg } from '@/lib/images'
+import { ColorPicker, type Variante } from './ColorPicker'
 
 interface Props {
   producto: {
@@ -14,21 +15,26 @@ interface Props {
     multiplo: number
     foto_url: string | null
     supabaseUrl: string
+    variantes?: Variante[] | null
   }
 }
 
 export function AddToCartButton({ producto }: Props) {
-  const { add, items, updateCantidad, remove, setCartOpen } = useCartStore()
+  const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
   const [cantidad, setCantidad] = useState(multiplo)
+  const [varianteSeleccionada, setVarianteSeleccionada] = useState<string | null>(null)
 
-  const itemEnCarrito = items.find(i => i.productoId === producto.id)
+  const tieneVariantes = (producto.variantes?.length ?? 0) > 0
+
+  const itemKey = `${producto.id}:${varianteSeleccionada ?? ''}`
+  const itemEnCarrito = items.find(i => (i.itemKey ?? `${i.productoId}:`) === itemKey)
   const cantidadMostrada = itemEnCarrito?.cantidad ?? cantidad
 
   function handleMenos() {
     if (itemEnCarrito) {
       const nueva = itemEnCarrito.cantidad - multiplo
-      updateCantidad(producto.id, Math.max(multiplo, nueva))
+      updateCantidad(itemKey, Math.max(multiplo, nueva))
     } else {
       setCantidad(prev => Math.max(multiplo, prev - multiplo))
     }
@@ -36,7 +42,7 @@ export function AddToCartButton({ producto }: Props) {
 
   function handleMas() {
     if (itemEnCarrito) {
-      updateCantidad(producto.id, itemEnCarrito.cantidad + multiplo)
+      updateCantidad(itemKey, itemEnCarrito.cantidad + multiplo)
     } else {
       setCantidad(prev => prev + multiplo)
     }
@@ -45,14 +51,16 @@ export function AddToCartButton({ producto }: Props) {
   function handleAgregar() {
     add({
       productoId: producto.id,
+      itemKey,
       codigo_interno: producto.codigo_interno,
       titulo: producto.titulo,
       precio: producto.precio ?? 0,
       multiplo,
       foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
+      variante: varianteSeleccionada ?? undefined,
     })
     if (cantidad !== multiplo) {
-      updateCantidad(producto.id, cantidad)
+      updateCantidad(itemKey, cantidad)
     }
     setCartOpen(true)
   }
@@ -60,8 +68,19 @@ export function AddToCartButton({ producto }: Props) {
   const stepperBorder = { borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }
   const btnClass = 'w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]'
 
+  const agregarDeshabilitado = tieneVariantes && !varianteSeleccionada
+
   return (
     <div className="mt-6 flex flex-col gap-4">
+
+      {/* Selector de color */}
+      {tieneVariantes && (
+        <ColorPicker
+          variantes={producto.variantes!}
+          selected={varianteSeleccionada}
+          onSelect={setVarianteSeleccionada}
+        />
+      )}
 
       {/* Stepper */}
       <div className="flex items-center gap-4">
@@ -114,10 +133,11 @@ export function AddToCartButton({ producto }: Props) {
       ) : (
         <button
           onClick={handleAgregar}
-          className="w-full px-6 py-4 text-xs tracking-widest uppercase transition-colors duration-300"
+          disabled={agregarDeshabilitado}
+          className="w-full px-6 py-4 text-xs tracking-widest uppercase transition-colors duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
         >
-          + Agregar al carrito
+          {agregarDeshabilitado ? 'Elegí un color' : '+ Agregar al carrito'}
         </button>
       )}
     </div>

@@ -62,7 +62,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -162,6 +162,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                     multiplo,
                     foto_url: fotos[0]?.url ?? null,
                     supabaseUrl,
+                    variantes: (producto.variantes as { nombre: string; stock: number }[] | null) ?? null,
                   }}
                 />
                 <PaymentInfo esMayorista={['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')} />
