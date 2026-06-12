@@ -7,6 +7,7 @@ import { aplicarTipoCambio } from '@/lib/utils'
 interface LineaPedido {
   productoId: number
   cantidad: number
+  variante?: string
 }
 
 export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string> {
@@ -98,12 +99,14 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
 
   if (error || !pedido) throw new Error(error?.message ?? 'Error creando pedido')
 
+  const lineasMap = Object.fromEntries(lineas.map(l => [l.productoId, l]))
   await service.from('pedido_items').insert(
     lineasResueltas.map(l => ({
       pedido_id: pedido.id,
       producto_id: l.productoId,
       cantidad: l.cantidad,
       precio_unit: l.precioUnit,
+      variante: lineasMap[l.productoId]?.variante ?? null,
     }))
   )
 

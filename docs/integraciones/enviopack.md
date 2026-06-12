@@ -1,255 +1,139 @@
 # Enviopack — Integración de envíos
 
-Documentación técnica de la integración con [Enviopack](https://www.enviopack.com.ar/) para el módulo de envíos del carrito de Reunata.
+Documentación técnica de la integración con [Enviopack](https://www.enviopack.com.ar/).
 
-Referencia oficial: https://developers.enviopack.com.ar
-
----
-
-## Qué es Enviopack
-
-Plataforma argentina de gestión de envíos que actúa como intermediario entre la tienda y múltiples correos (Andreani, OCA, Correo Argentino, etc.). Permite cotizar, crear pedidos y generar etiquetas desde una sola API.
+Referencia oficial: https://ayuda.enviopack.com/es/articles/10581840-integra-tu-tienda-propia-o-software
 
 ---
 
-## Autenticación
+## Estado actual
 
-**Endpoint:** `POST https://api.enviopack.com/auth`
+### ✅ Implementado — Cotización (fase 1)
 
-**Credenciales:** Se obtienen en https://app.enviopack.com/configuraciones-api
+La cotización de envíos está completamente funcional antes del lanzamiento:
 
-```json
-{
-  "api-key": "TU_API_KEY",
-  "secret-key": "TU_SECRET_KEY"
-}
+| Componente | Archivo |
+|---|---|
+| Librería de cotización | `src/lib/enviopack.ts` |
+| Endpoint API con rate limiting | `src/app/api/envio/cotizar/route.ts` |
+| Widget cotizador en carrito | `src/components/cliente/EnvioCotizador.tsx` |
+| Integrado en `CartClient` | `src/app/(public)/carrito/CartClient.tsx:398` |
+| Re-verificación server-side al checkout | `src/app/actions/checkout.ts:141` |
+| Panel de dimensiones por producto (admin) | `src/components/admin/ProductoFichaDrawer.tsx` tab "Envío" |
+| `guardarDimensionesEnvio()` | `src/app/actions/productos.ts:30` |
+
+**Flujo implementado:**
+```
+Cliente agrega productos → va al carrito → ingresa provincia + CP
+→ /api/envio/cotizar (llama Enviopack a-domicilio) → elige opción
+→ checkout re-cotiza server-side → crea pedido con costo_envio
+→ genera preferencia MP con (subtotal + envío) como ítem separado
 ```
 
-**Respuesta:**
-```json
-{ "token": "eyJ..." }
-```
+**Columnas ya en `pedidos`:** `costo_envio`, `envio_descripcion`
 
-El token JWT dura **4 horas**. Todas las requests siguientes llevan `Authorization: Bearer <token>`.
+**Columnas ya en `productos`:** `peso`, `alto`, `ancho`, `largo`, `enviar_solo`
 
-**Variables de entorno necesarias en Vercel:**
-```
-ENVIOPACK_API_KEY=...
-ENVIOPACK_SECRET_KEY=...
-ENVIOPACK_CP_ORIGEN=...   # CP del depósito/domicilio de despacho de Reunata
-```
+**Visibilidad:** el cotizador aparece solo para `consumidor_final` y guests. Mayoristas coordinan por WhatsApp, sin envío cotizado.
+
+**Variable de entorno necesaria:** `ENVIOPACK_ACCESS_TOKEN` (access token de la cuenta Enviopack)
 
 ---
 
-## Flujo completo de integración
+### ❌ No implementado — Creación de envíos post-pago (fase 2)
 
-```
-1. Cliente agrega productos al carrito
-2. Cliente va al carrito → ingresa CP de destino
-3. Frontend llama a /api/envios/cotizar → devuelve opciones con precios
-4. Cliente elige opción de envío
-5. Cliente ingresa dirección completa de entrega
-6. Se genera preferencia de MP con (subtotal productos + costo envío)
-7. Cliente paga en MP
-8. Webhook /api/mp/webhook detecta pago aprobado
-9. Se llama a Enviopack POST /pedidos → se guarda enviopack_pedido_id en el pedido
-10. Cliente puede hacer seguimiento con el número de envío
-```
+Cuando el webhook de MP confirma un pago aprobado, **Enviopack no se entera**. El pedido queda en DB con el costo de envío pero sin etiqueta ni tracking.
+
+**Por ahora:** gestión manual desde el panel de Enviopack (`app.enviopack.com`) usando los datos del pedido.
 
 ---
 
-## Endpoints de Enviopack que usaremos
+## Gap pendiente antes de automatizar
 
-### 1. Cotizar envío
+Al crear el pedido en DB, se guarda `costo_envio` y `envio_descripcion` pero **no el CP ni la provincia de destino**. Esos datos son necesarios tanto para la gestión manual como para la automatización futura.
 
-```
-POST https://api.enviopack.com/cotizas
-```
-
-**Body:**
-```json
-{
-  "cp_destino": "1425",
-  "provincia_destino": "Buenos Aires",
-  "peso": 1.5,
-  "alto": 20,
-  "ancho": 30,
-  "largo": 40
-}
-```
-
-**Respuesta:** Array de opciones de correo con precio, plazo y servicio. Se filtrará y mostrará al cliente para que elija.
-
-**Nuestra API route interna:** `GET /api/envios/cotizar?cp=1425&peso=1.5&alto=20&ancho=30&largo=40`
-
-### 2. Crear pedido (post-pago)
-
-```
-POST https://api.enviopack.com/pedidos
-```
-
-Se llama desde el webhook de MP cuando `status === 'approved'`. Crea el pedido en Enviopack y genera la etiqueta.
-
-**Body mínimo:**
-```json
-{
-  "correo": "andreani",
-  "servicio": "estandar",
-  "destinatario": {
-    "nombre": "Juan Pérez",
-    "telefono": "1155556666",
-    "email": "juan@email.com"
-  },
-  "direccion_destino": {
-    "calle": "Av. Santa Fe",
-    "numero": "1234",
-    "localidad": "CABA",
-    "provincia": "Buenos Aires",
-    "cp": "1425"
-  },
-  "paquetes": [
-    { "peso": 1.5, "alto": 20, "ancho": 30, "largo": 40 }
-  ],
-  "referencia_externa": "PEDIDO-UUID"
-}
-```
-
-**Respuesta:** incluye `id` del pedido en Enviopack y `numero_seguimiento`.
-
----
-
-## Cambios en la base de datos
-
-### Tabla `productos` — nuevas columnas
-
-Peso y dimensiones son necesarios para cotizar. No vienen de Gesu → se gestionan manualmente.
-
-```sql
-ALTER TABLE productos
-  ADD COLUMN peso_kg     numeric(6,3) DEFAULT NULL,
-  ADD COLUMN alto_cm     integer      DEFAULT NULL,
-  ADD COLUMN ancho_cm    integer      DEFAULT NULL,
-  ADD COLUMN largo_cm    integer      DEFAULT NULL;
-```
-
-**Pregunta para Gastón:** ¿todos los productos tienen dimensiones similares? Si sí, podría usarse un valor global configurable en `configuracion` en lugar de por producto.
-
-### Tabla `pedidos` — nuevas columnas
+### Migración necesaria
 
 ```sql
 ALTER TABLE pedidos
-  ADD COLUMN envio_nombre      text,
-  ADD COLUMN envio_direccion   text,
-  ADD COLUMN envio_numero      text,
-  ADD COLUMN envio_piso        text,
-  ADD COLUMN envio_localidad   text,
-  ADD COLUMN envio_provincia   text,
-  ADD COLUMN envio_cp          text,
-  ADD COLUMN envio_correo      text,   -- ej: "andreani"
-  ADD COLUMN envio_servicio    text,   -- ej: "estandar"
-  ADD COLUMN envio_costo       numeric(12,2),
-  ADD COLUMN enviopack_pedido_id    text,
+  ADD COLUMN envio_codigo_postal text,
+  ADD COLUMN envio_provincia     text;
+```
+
+### Cambio en checkout
+
+En `src/app/actions/checkout.ts`, al insertar el pedido, agregar:
+
+```ts
+envio_codigo_postal: envioParams?.codigo_postal ?? null,
+envio_provincia:     envioParams?.provincia ?? null,
+```
+
+> Esto es un fix chico pero importante para no perder información operativa desde el primer pedido.
+
+---
+
+## Fase 2 — Automatización post-pago (pendiente)
+
+Cuando se quiera automatizar, el flujo completo es:
+
+```
+Webhook MP status=approved
+  → buscar pedido en DB (ya existe este paso)
+  → llamar POST https://api.enviopack.com/envios con:
+      - datos del destinatario (nombre, email, teléfono)
+      - dirección: envio_codigo_postal + envio_provincia (+ calle/número que no tenemos aún)
+      - servicio: servicioId guardado en pedido
+      - paquetes: peso/dims de cada producto × cantidad
+  → guardar enviopack_envio_id + nro_seguimiento en pedido
+  → (opcional) enviar email al cliente con tracking
+```
+
+### Columnas adicionales para fase 2
+
+```sql
+ALTER TABLE pedidos
+  ADD COLUMN envio_calle            text,
+  ADD COLUMN envio_numero           text,
+  ADD COLUMN envio_piso             text,
+  ADD COLUMN envio_localidad        text,
+  ADD COLUMN enviopack_envio_id     text,
   ADD COLUMN envio_nro_seguimiento  text;
 ```
 
----
-
-## Cambios en el frontend (carrito)
-
-### Paso nuevo antes del pago
-
-El `CartClient` actual tiene un botón directo a MP. Habría que agregar un paso intermedio:
-
-```
-[Resumen carrito] → [Datos de envío] → [Elegir correo] → [Pagar con MP]
-```
-
-O podría ser todo en la misma página como secciones que se van habilitando secuencialmente.
-
-**Componentes nuevos:**
-- `FormularioDireccionEnvio` — nombre, dirección, CP, localidad, provincia, teléfono
-- `SelectorEnvio` — lista de opciones cotizadas (correo, servicio, precio, plazo)
-
-### Cambio en `checkout.ts`
-
-```ts
-// Hoy
-total = suma de productos
-
-// Con envío
-total = suma de productos + envio_costo
-```
-
-El objeto de inserción en `pedidos` incluirá todos los campos de envío.
+Estas columnas requieren también agregar un formulario de dirección completa en el carrito antes del pago (hoy solo se pide CP + provincia para cotizar).
 
 ---
 
-## Cambios en el webhook MP
+## Autenticación con Enviopack
 
-En `src/app/api/mp/webhook/route.ts`, al detectar `status === 'approved'`:
+El access token actual (`ENVIOPACK_ACCESS_TOKEN`) se obtiene desde el panel de Enviopack y se usa directamente en la cotización como query param.
 
-```ts
-// 1. Marcar pedido como pagado (ya existe)
-// 2. NUEVO: Llamar a Enviopack para crear el pedido
-const envioRes = await crearPedidoEnviopack(pedidoId)
-await supabase.from('pedidos').update({
-  enviopack_pedido_id: envioRes.id,
-  envio_nro_seguimiento: envioRes.numero_seguimiento,
-}).eq('id', pedidoId)
+Para la fase 2 (crear envíos), la API usa `Bearer token` en el header, obtenido via:
+
+```
+POST https://api.enviopack.com/auth
+{ "api-key": "...", "secret-key": "..." }
+→ { "token": "eyJ..." }  // JWT, dura 4 horas
+```
+
+Variables de entorno adicionales para fase 2:
+```
+ENVIOPACK_API_KEY=...
+ENVIOPACK_SECRET_KEY=...
+ENVIOPACK_CP_ORIGEN=...   # CP del depósito de despacho de Reunata
 ```
 
 ---
 
-## SDK disponible
+## Checklist
 
-Existe `enviopack-node` en npm. Conviene revisarlo antes de implementar para no escribir el wrapper de autenticación + refresh manualmente.
-
-```bash
-npm install enviopack-node
-```
-
----
-
-## Preguntas clave para charla con Gastón
-
-Antes de implementar, resolver estos puntos:
-
-1. **¿Envío a todo el país o solo ciertas provincias?** Enviopack soporta múltiples correos pero no todos llegan a todos lados.
-
-2. **¿Dimensiones por producto o valor global?** Si los productos son similares en tamaño, un default configurable es más simple que gestionar por producto.
-
-3. **¿Quién despacha?** Necesitamos el CP y dirección de origen (depósito o domicilio de Reunata) fijos en la config.
-
-4. **¿Envío gratis a partir de cierto monto?** Habitual en e-commerce — si sí, ¿cuál es el umbral?
-
-5. **¿Envío solo para consumidor_final o también mayoristas?** Actualmente el checkout con MP es solo para `consumidor_final`. Los mayoristas coordinan por WhatsApp.
-
-6. **¿Mostrar opciones de correo o elegir uno fijo?** Podría mostrarse solo Andreani, o todas las opciones cotizadas. Definir con Gastón.
-
-7. **¿Retiro en punto de venta?** Enviopack soporta pickup points. ¿Reunata tiene local físico?
-
-8. **¿Facturación?** Algunos correos requieren datos fiscales (CUIT) para empresas. ¿El flujo lo necesita?
-
----
-
-## Archivos que se crearán/modificarán
-
-| Archivo | Tipo de cambio |
-|---|---|
-| `src/app/api/envios/cotizar/route.ts` | Nuevo — cotización desde el frontend |
-| `src/lib/enviopack.ts` | Nuevo — wrapper de autenticación y llamadas |
-| `src/app/actions/checkout.ts` | Modificar — incluir datos y costo de envío |
-| `src/app/api/mp/webhook/route.ts` | Modificar — crear pedido en Enviopack post-pago |
-| `src/app/(public)/carrito/CartClient.tsx` | Modificar — paso de dirección + selector de envío |
-| `src/stores/cartStore.ts` | Modificar — guardar opción de envío elegida |
-| `supabase/migrations/` | Nueva migración — columnas en `pedidos` y `productos` |
-
----
-
-## Estado
-
-- [ ] Charla con Gastón (puntos de arriba)
-- [ ] Credenciales de Enviopack (cuenta y API keys)
-- [ ] Decisión: dimensiones globales vs por producto
-- [ ] Migración DB
-- [ ] Implementación
+- [x] Credenciales de Enviopack — `ENVIOPACK_ACCESS_TOKEN` en Vercel
+- [x] Columnas de dimensiones en `productos`
+- [x] Cotización funcional en carrito
+- [x] Re-verificación server-side al checkout
+- [ ] Migración: `envio_codigo_postal` + `envio_provincia` en `pedidos`
+- [ ] Guardado de CP/provincia en checkout (cambio en `actions/checkout.ts`)
+- [ ] Fase 2: formulario dirección completa en carrito
+- [ ] Fase 2: migración columnas adicionales en `pedidos`
+- [ ] Fase 2: `crearEnvioEnviopack()` llamada desde webhook MP

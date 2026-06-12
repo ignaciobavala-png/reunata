@@ -9,6 +9,7 @@ import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
 import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
+import { VarianteBadge } from '@/components/sections/ColorPicker'
 
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
@@ -25,7 +26,7 @@ interface Props {
 
 function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items']) {
   const lineas = items.map(i =>
-    `• ${i.titulo} (${i.codigo_interno}) × ${i.cantidad}`
+    `• ${i.titulo} (${i.codigo_interno})${i.variante ? ` — ${i.variante}` : ''} × ${i.cantidad}`
   ).join('\n')
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}\n\nPor favor confirmame disponibilidad y precio.`)
 }
@@ -77,18 +78,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
   const esGuest     = !user
 
-  function handleMenos(productoId: number, cantidad: number, multiplo: number) {
+  function handleMenos(itemKey: string, cantidad: number, multiplo: number) {
     const base = cantidad - (cantidad % multiplo)
     const nueva = base - multiplo
-    if (nueva <= 0) remove(productoId)
-    else updateCantidad(productoId, nueva)
+    if (nueva <= 0) remove(itemKey)
+    else updateCantidad(itemKey, nueva)
   }
 
-  function handleInput(productoId: number, value: string, multiplo: number) {
+  function handleInput(itemKey: string, value: string, multiplo: number) {
     const n = parseInt(value)
     if (isNaN(n) || n <= 0) return
     const redondeado = Math.ceil(n / multiplo) * multiplo
-    updateCantidad(productoId, redondeado)
+    updateCantidad(itemKey, redondeado)
   }
 
   async function handlePagarMP(guestOverride?: { nombre: string; email: string; telefono?: string }) {
@@ -235,9 +236,10 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               const stockItem = stockDisponible(item.productoId)
               const masAllaDelStock = exceedeStock(item.productoId, item.cantidad)
               const plusDeshabilitado = stockItem !== null && item.cantidad + multiplo > stockItem
+              const itemKey = item.itemKey ?? `${item.productoId}:`
               return (
                 <div
-                  key={item.productoId}
+                  key={itemKey}
                   className="flex gap-4 p-5"
                   style={!esUltimo ? { borderBottom: '1px solid var(--color-acero-claro)' } : undefined}
                 >
@@ -273,6 +275,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
+                      {item.variante && (
+                        <div className="mt-1">
+                          <VarianteBadge variante={item.variante} />
+                        </div>
+                      )}
                       {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                           {formatPrecio(item.precio)} c/u
@@ -287,7 +294,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                         style={{ border: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}
                       >
                         <button
-                          onClick={() => handleMenos(item.productoId, item.cantidad, multiplo)}
+                          onClick={() => handleMenos(itemKey, item.cantidad, multiplo)}
                           className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]"
                           style={{ color: 'var(--color-granito)' }}
                           aria-label="Reducir cantidad"
@@ -299,12 +306,12 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                           value={item.cantidad}
                           min={multiplo}
                           step={multiplo}
-                          onChange={e => handleInput(item.productoId, e.target.value, multiplo)}
+                          onChange={e => handleInput(itemKey, e.target.value, multiplo)}
                           className="w-14 text-center text-base font-semibold tabular-nums outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           style={{ color: 'var(--foreground)' }}
                         />
                         <button
-                          onClick={() => updateCantidad(item.productoId, item.cantidad + multiplo)}
+                          onClick={() => updateCantidad(itemKey, item.cantidad + multiplo)}
                           disabled={plusDeshabilitado}
                           className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)] disabled:opacity-30 disabled:cursor-not-allowed"
                           style={{ color: 'var(--color-granito)' }}
@@ -321,7 +328,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       )}
 
                       <button
-                        onClick={() => remove(item.productoId)}
+                        onClick={() => remove(itemKey)}
                         className="text-sm transition-colors hover:underline"
                         style={{ color: '#ef4444' }}
                       >

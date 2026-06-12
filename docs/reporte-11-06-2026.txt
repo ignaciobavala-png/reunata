@@ -1,0 +1,61 @@
+REPORTE DE AVANCES — 11/06/2026
+Proyecto: Reunata Web
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. CORRECCIÓN: El carrito ya no se vacía solo
+
+   Cuando la sesión de un usuario expiraba automáticamente (por
+   tiempo de inactividad), el carrito se vaciaba sin aviso. Esto
+   estaba solucionado para cuando el usuario cerraba sesión
+   manualmente, pero no para las expiraciones automáticas.
+   Ahora los productos del carrito se mantienen en ambos casos.
+
+2. CORRECCIÓN: El menú de navegación ya funciona en todas las páginas
+
+   Las páginas de ingreso al sitio (login, registro, recuperar
+   contraseña) están en una zona separada del resto del sitio.
+   Por eso el menú de navegación no recibía correctamente las
+   categorías de productos ni los datos del usuario conectado.
+   Esto quedó corregido y el menú funciona igual en todo el sitio.
+
+3. CORRECCIÓN: Redirigir al usuario que ya inició sesión
+
+   Si alguien que ya estaba conectado intentaba entrar a la
+   página de login o registro, el sistema le mostraba el
+   formulario igualmente. Ahora lo redirige directamente al
+   inicio, evitando confusión.
+
+4. REVISIÓN: Estado de la integración con Enviopack (envíos)
+
+   Se revisó en detalle qué parte de la integración con Enviopack
+   (el servicio que calcula y gestiona los envíos) está hecha y
+   qué falta.
+
+   Lo que ya está funcionando:
+   - El cliente puede calcular el costo de envío desde el carrito
+     ingresando su provincia y código postal.
+   - El sistema muestra las opciones disponibles (estándar,
+     prioritario, express) con precio y días estimados.
+   - Al pagar, el costo de envío se suma al total y aparece como
+     ítem separado en MercadoPago.
+   - Los administradores pueden cargar el peso y dimensiones de
+     cada producto desde el panel.
+
+   Lo que falta para después del lanzamiento:
+   - Que el sistema genere automáticamente la etiqueta de envío
+     cuando un pago es aprobado. Por ahora eso se hace a mano
+     desde el panel de Enviopack.
+   - Guardar el código postal y provincia del destinatario en
+     el pedido (hoy se usa para calcular el precio pero no
+     queda registrado en el historial del pedido).
+
+   Todo esto quedó documentado para no perder el contexto.
+
+5. DEPLOY: Los cambios están publicados en producción
+
+   Se hizo una verificación técnica completa (build) que confirmó
+   que todo compila sin errores. Luego se subieron los cambios
+   al servidor y Vercel los desplegó automáticamente.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
