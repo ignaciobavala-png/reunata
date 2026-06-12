@@ -18,6 +18,7 @@ interface ProductoPublico {
   foto_url: string | null
   precio: number | null
   moneda?: string | null
+  iva?: number | null
   multiplo?: number
   supabaseUrl: string
 }
@@ -196,6 +197,9 @@ export function ProductGridPublic({
                     </p>
                     <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
                       Precio sin IVA
+                    </p>
+                    <p className="text-[11px] font-medium" style={{ color: 'var(--color-granito-claro)' }}>
+                      {formatPrecio(Math.round(p.precio * (1 + (p.iva ?? 21) / 100)), p.moneda)} c/ IVA
                     </p>
                   </>
                 )}

@@ -16,6 +16,7 @@ export interface FotoDestacada {
   codigo_interno: string
   precio: number | null
   moneda?: string | null
+  iva?: number | null
   supabaseUrl: string
 }
 
@@ -91,6 +92,9 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                       </p>
                       <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
                         Precio sin IVA
+                      </p>
+                      <p className="text-[11px] font-medium" style={{ color: 'var(--color-granito-claro)' }}>
+                        {formatPrecio(Math.round(foto.precio * (1 + (foto.iva ?? 21) / 100)), foto.moneda)} c/ IVA
                       </p>
                     </>
                   )}

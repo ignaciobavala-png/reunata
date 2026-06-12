@@ -62,7 +62,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -129,6 +129,9 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Precio sin IVA
+                </p>
+                <p className="text-base font-medium mt-1" style={{ color: 'var(--color-granito-claro)' }}>
+                  {formatPrecio(Math.round(precio * (1 + ((producto.iva as number | null) ?? 21) / 100)), monedaFinal)} c/ IVA
                 </p>
               </div>
             )}

@@ -31,7 +31,7 @@ export default async function Home() {
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
+    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, iva, precio_lista3, precio_lista5)')
     .eq('destacada', true)
     .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')
@@ -58,6 +58,7 @@ export default async function Home() {
       codigo_interno: producto?.codigo_interno ?? '',
       precio,
       moneda,
+      iva: (producto as Record<string, unknown>)?.iva as number ?? 21,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     }
   })
