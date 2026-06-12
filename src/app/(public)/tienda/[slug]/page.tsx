@@ -47,12 +47,13 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista3, precio_lista5, moneda'
+  const precioSelect = 'precio_lista3, precio_lista5, moneda, iva'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -64,6 +65,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     titulo: string
     codigo_interno: string
     moneda?: string | null
+    iva?: number | null
     precio_lista3?: number | null
     precio_lista5?: number | null
     producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null
@@ -77,6 +79,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       foto_url: fotos[0]?.url ?? null,
       precio,
       moneda,
+      iva: p.iva ?? 21,
       multiplo: multiplos[p.id] ?? 1,
       supabaseUrl,
     }
@@ -105,7 +108,19 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         query = query.order('created_at', { ascending: false }).limit(48)
       }
     } else {
-      query = query.eq('producto_fotos.destacada', true).order('titulo')
+      // Buscar IDs de productos que tienen al menos una foto destacada,
+      // pero traer TODAS sus fotos para que mapProducto elija la primera por orden.
+      const { data: conDestacada } = await supabase
+        .from('producto_fotos')
+        .select('producto_id')
+        .eq('destacada', true)
+        .in('producto_id', filterCanal)
+      const idsDestacados = [...new Set((conDestacada ?? []).map(f => f.producto_id as number))]
+      if (idsDestacados.length > 0) {
+        query = query.in('id', idsDestacados).order('titulo')
+      } else {
+        query = query.order('titulo').limit(48)
+      }
     }
 
     const { data: productos } = await query
@@ -126,7 +141,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
             {productosGrid.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
+            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} />
           )}
         </div>
       </main>
@@ -189,7 +204,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productosGrid.length} producto{productosGrid.length !== 1 ? 's' : ''}
         </p>
-        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
+        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} />
       </div>
     </main>
   )

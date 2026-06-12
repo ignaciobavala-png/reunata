@@ -16,10 +16,11 @@ export interface FotoDestacada {
   codigo_interno: string
   precio: number | null
   moneda?: string | null
+  iva?: number | null
   supabaseUrl: string
 }
 
-export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
+export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDestacada[]; esMayorista?: boolean }) {
   const [emblaRef] = useEmblaCarousel({
     align: 'start',
     containScroll: 'trimSnaps',
@@ -84,11 +85,34 @@ export function ProductSlider({ fotos }: { fotos: FotoDestacada[] }) {
                   <p className="text-[10px] tracking-wider text-[var(--color-acero-oscuro)]">
                     {foto.codigo_interno}
                   </p>
-                  {foto.precio != null && (
-                    <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
-                      {formatPrecio(foto.precio, foto.moneda)}
-                    </p>
-                  )}
+                  {foto.precio != null && (() => {
+                    const precioConIva = Math.round(foto.precio * (1 + (foto.iva ?? 21) / 100))
+                    return esMayorista ? (
+                      <>
+                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
+                          {formatPrecio(foto.precio, foto.moneda)}
+                        </p>
+                        <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          Precio s/ IVA
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          + IVA: {formatPrecio(precioConIva, foto.moneda)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
+                          {formatPrecio(precioConIva, foto.moneda)}
+                        </p>
+                        <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          IVA incluido
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          s/ IVA: {formatPrecio(foto.precio, foto.moneda)}
+                        </p>
+                      </>
+                    )
+                  })()}
                 </button>
               )
             })}

@@ -56,13 +56,14 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -122,11 +123,24 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
               {producto.titulo}
             </h1>
 
-            {precio != null && (
-              <p className="text-2xl font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                {formatPrecio(precio, monedaFinal)}
-              </p>
-            )}
+            {precio != null && (() => {
+              const precioConIva = Math.round(precio * (1 + ((producto.iva as number | null) ?? 21) / 100))
+              return (
+                <div className="mb-2">
+                  <p className="text-2xl font-medium" style={{ color: 'var(--foreground)' }}>
+                    {formatPrecio(esMayorista ? precio : precioConIva, monedaFinal)}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {esMayorista ? 'Precio s/ IVA' : 'IVA incluido'}
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {esMayorista
+                      ? `+ IVA: ${formatPrecio(precioConIva, monedaFinal)}`
+                      : `s/ IVA: ${formatPrecio(precio, monedaFinal)}`}
+                  </p>
+                </div>
+              )
+            })()}
 
             {producto.mostrar_stock && (() => {
               const cantidad = producto.stock_visible ?? producto.stock

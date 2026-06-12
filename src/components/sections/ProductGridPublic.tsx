@@ -18,6 +18,7 @@ interface ProductoPublico {
   foto_url: string | null
   precio: number | null
   moneda?: string | null
+  iva?: number | null
   multiplo?: number
   supabaseUrl: string
 }
@@ -27,11 +28,13 @@ export function ProductGridPublic({
   nombreCategoria,
   mostrarPrecios = false,
   estaLogueado = false,
+  esMayorista = false,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
   mostrarPrecios?: boolean
   estaLogueado?: boolean
+  esMayorista?: boolean
 }) {
   const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
@@ -189,11 +192,34 @@ export function ProductGridPublic({
                 <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
                   {p.codigo_interno}
                 </p>
-                {p.precio != null && (
-                  <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(p.precio, p.moneda)}
-                  </p>
-                )}
+                {p.precio != null && (() => {
+                  const precioConIva = Math.round(p.precio * (1 + (p.iva ?? 21) / 100))
+                  return esMayorista ? (
+                    <>
+                      <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(p.precio, p.moneda)}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Precio s/ IVA
+                      </p>
+                      <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        + IVA: {formatPrecio(precioConIva, p.moneda)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(precioConIva, p.moneda)}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        IVA incluido
+                      </p>
+                      <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        s/ IVA: {formatPrecio(p.precio, p.moneda)}
+                      </p>
+                    </>
+                  )
+                })()}
               </Link>
               {loginHint === p.id && (
                 <p className="text-xs mt-1" style={{ color: '#ef4444' }}>

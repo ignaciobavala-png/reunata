@@ -2,7 +2,7 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package, FileText } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
@@ -319,6 +319,7 @@ export function ProductosListaClient({
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Canales</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Envío</th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Desc.</th>
                 {TAGS.map(t => (
                   <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: t.color + '33', color: t.color }}>
@@ -442,8 +443,8 @@ export function ProductosListaClient({
                         </div>
                       </td>
 
-                      {/* Fotos + Envío + Tags — vacíos */}
-                      <td /><td /><td /><td /><td /><td />
+                      {/* Fotos + Envío + Desc + Tags — vacíos */}
+                      <td /><td /><td /><td /><td /><td /><td />
                     </tr>
 
                     {/* Productos individuales */}
@@ -544,6 +545,21 @@ export function ProductosListaClient({
                               </button>
                             )
                           })()}
+                        </td>
+
+                        {/* Descripción */}
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            onClick={() => setDrawerState({ producto: p, tab: 'descripcion' })}
+                            title={p.descripcion ? 'Editar descripción' : 'Sin descripción — click para agregar'}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors"
+                            style={{
+                              background: p.descripcion ? '#dcfce7' : '#fee2e2',
+                              color: p.descripcion ? '#16a34a' : '#dc2626',
+                            }}
+                          >
+                            <FileText size={11} />
+                          </button>
                         </td>
 
                         {TAGS.map(t => {
