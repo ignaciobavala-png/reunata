@@ -2,11 +2,12 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package, FileText } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package, FileText, LayoutList, Grid3X3 } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
 import { ProductoFichaDrawer, type FotoItem, type Canal, type DimensionesEnvio } from '@/components/admin/ProductoFichaDrawer'
+import { CanalesClient } from './CanalesClient'
 
 interface Producto {
   id: number
@@ -95,6 +96,7 @@ export function ProductosListaClient({
     }
     return map
   })
+  const [vista, setVista] = useState<'lista' | 'canales'>('lista')
 
   // Asignaciones masivas por categoría
   const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
@@ -271,31 +273,76 @@ export function ProductosListaClient({
   return (
     <>
     <div>
-      {/* Búsqueda */}
+      {/* Toolbar */}
       <div className="flex items-center gap-4 mb-6">
-        <div className="relative max-w-sm flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-acero)' }} />
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por producto, código o categoría…"
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border outline-none"
-            style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
-          />
+        {/* Toggle de vista */}
+        <div className="flex rounded-lg border overflow-hidden flex-shrink-0" style={{ borderColor: 'var(--color-acero-claro)' }}>
+          <button
+            onClick={() => setVista('lista')}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors"
+            style={{
+              background: vista === 'lista' ? 'var(--color-granito-oscuro)' : 'white',
+              color: vista === 'lista' ? 'white' : 'var(--color-acero-oscuro)',
+            }}
+          >
+            <LayoutList size={14} />
+            Lista
+          </button>
+          <button
+            onClick={() => setVista('canales')}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors border-l"
+            style={{
+              borderColor: 'var(--color-acero-claro)',
+              background: vista === 'canales' ? 'var(--color-granito-oscuro)' : 'white',
+              color: vista === 'canales' ? 'white' : 'var(--color-acero-oscuro)',
+            }}
+          >
+            <Grid3X3 size={14} />
+            Canales
+          </button>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-          <input
-            type="checkbox"
-            checked={ocultarSinActivos}
-            onChange={e => setOcultarSinActivos(e.target.checked)}
-            className="w-4 h-4 rounded accent-granito cursor-pointer"
-          />
-          Ocultar categorías sin activos
-        </label>
-        <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {filtrados.length} productos · {categoriasList.length} categorías
-        </span>
+
+        {vista === 'lista' && (
+          <>
+            <div className="relative max-w-sm flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-acero)' }} />
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar por producto, código o categoría…"
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border outline-none"
+                style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+              />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <input
+                type="checkbox"
+                checked={ocultarSinActivos}
+                onChange={e => setOcultarSinActivos(e.target.checked)}
+                className="w-4 h-4 rounded accent-granito cursor-pointer"
+              />
+              Ocultar categorías sin activos
+            </label>
+            <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+              {filtrados.length} productos · {categoriasList.length} categorías
+            </span>
+          </>
+        )}
       </div>
+
+      {/* Vista Canales */}
+      {vista === 'canales' && (
+        <CanalesClient
+          productos={productos.map(p => ({ id: p.id, codigo_interno: p.codigo_interno, titulo: p.titulo, categoria: p.categoria }))}
+          canales={canalesIniciales}
+          asignacionesIniciales={asignaciones}
+          multiplosIniciales={multiplos}
+          categorias={categoriasList}
+        />
+      )}
+
+      {/* Vista Lista */}
+      {vista === 'lista' && <div>
 
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
@@ -649,6 +696,7 @@ export function ProductosListaClient({
           </table>
         </div>
       </div>
+      </div>}
     </div>
 
       {drawerState && (
