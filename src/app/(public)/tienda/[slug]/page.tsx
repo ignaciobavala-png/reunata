@@ -119,7 +119,8 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       if (idsDestacados.length > 0) {
         query = query.in('id', idsDestacados).order('titulo')
       } else {
-        query = query.order('titulo').limit(48)
+        // Sin productos marcados como "Más elegidos" → no mostrar nada (igual que el slider de homepage)
+        query = query.in('id', [-1])
       }
     }
 

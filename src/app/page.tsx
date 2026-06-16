@@ -45,7 +45,7 @@ export default async function Home() {
   } : null
 
   const fotos = (fotosDestacadas ?? []).map((f) => {
-    const producto = Array.isArray(f.productos) ? f.productos[0] : null
+    const producto = (Array.isArray(f.productos) ? f.productos[0] : f.productos) ?? null
     const precioRaw = mostrarPrecios && listaPrecio && producto
       ? (producto[listaPrecio as keyof typeof producto] as number | null) ?? null
       : null

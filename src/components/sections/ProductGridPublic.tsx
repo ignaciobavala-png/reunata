@@ -88,12 +88,17 @@ export function ProductGridPublic({
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
+    const precioBase = p.precio ?? 0
+    // Mayoristas ven precio sin IVA; consumidores y guests ven precio con IVA
+    const precioCarrito = esMayorista
+      ? precioBase
+      : Math.round(precioBase * (1 + ((p.iva ?? 21) / 100)))
     add({
       productoId: p.id,
       itemKey: `${p.id}:`,
       codigo_interno: p.codigo_interno,
       titulo: p.titulo,
-      precio: p.precio ?? 0,
+      precio: precioCarrito,
       multiplo: p.multiplo ?? 1,
       foto_url: p.foto_url ? supabaseImg(p.supabaseUrl, p.foto_url, 200) : null,
     })

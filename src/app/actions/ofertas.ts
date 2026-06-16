@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export interface OfertaPublicItem {
@@ -151,6 +152,8 @@ export async function toggleDestacada(productoId: number, activo: boolean) {
       .eq('producto_id', productoId)
     if (error) return { ok: false, error: error.message }
   }
+  revalidatePath('/', 'page')
+  revalidatePath('/tienda', 'layout')
   return { ok: true }
 }
 

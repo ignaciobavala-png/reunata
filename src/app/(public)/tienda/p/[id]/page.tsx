@@ -168,11 +168,13 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             {mostrarPrecios ? (
               <>
                 <AddToCartButton
+                  esMayorista={esMayorista}
                   producto={{
                     id: producto.id,
                     codigo_interno: producto.codigo_interno,
                     titulo: producto.titulo,
                     precio,
+                    iva: (producto.iva as number | null) ?? 21,
                     multiplo,
                     foto_url: fotos[0]?.url ?? null,
                     supabaseUrl,

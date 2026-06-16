@@ -12,14 +12,16 @@ interface Props {
     codigo_interno: string
     titulo: string
     precio: number | null
+    iva?: number | null
     multiplo: number
     foto_url: string | null
     supabaseUrl: string
     variantes?: Variante[] | null
   }
+  esMayorista?: boolean
 }
 
-export function AddToCartButton({ producto }: Props) {
+export function AddToCartButton({ producto, esMayorista = false }: Props) {
   const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
   const [cantidad, setCantidad] = useState(multiplo)
@@ -49,12 +51,16 @@ export function AddToCartButton({ producto }: Props) {
   }
 
   function handleAgregar() {
+    const precioBase = producto.precio ?? 0
+    const precioCarrito = esMayorista
+      ? precioBase
+      : Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
     add({
       productoId: producto.id,
       itemKey,
       codigo_interno: producto.codigo_interno,
       titulo: producto.titulo,
-      precio: producto.precio ?? 0,
+      precio: precioCarrito,
       multiplo,
       foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
       variante: varianteSeleccionada ?? undefined,
