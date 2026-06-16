@@ -92,7 +92,9 @@ export async function iniciarCheckoutMP(
         const row = multiplosDb?.find(r => r.producto_id === item.productoId)
         const multiplo = row?.multiplo ?? 1
         if (multiplo > 1 && item.cantidad % multiplo !== 0) {
-          return { ok: false, error: `La cantidad de un producto debe ser múltiplo de ${multiplo}.` }
+          const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
+          const nombre = prod?.titulo ? `"${prod.titulo}"` : 'Un producto'
+          return { ok: false, error: `${nombre} debe comprarse en múltiplos de ${multiplo} unidades.` }
         }
       }
     }
@@ -101,7 +103,7 @@ export async function iniciarCheckoutMP(
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, precio_lista5, moneda, stock')
+      .select('id, titulo, precio_lista5, moneda, stock, iva')
       .in('id', items.map(i => i.productoId))
       .eq('activo', true),
     service
@@ -130,7 +132,10 @@ export async function iniciarCheckoutMP(
     if (!prod || !prod.precio_lista5) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioArs }]
+    // El checkout es solo para consumidor_final → aplicar IVA al precio neto
+    const ivaRate = ((prod.iva as number | null) ?? 21) / 100
+    const precioConIva = Math.round(precioArs * (1 + ivaRate))
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista3, precio_lista5, moneda, stock')
+      .select('id, precio_lista3, precio_lista5, moneda, stock, iva')
       .in('id', ids)
       .eq('activo', true),
     service
@@ -33,13 +33,17 @@ export async function POST(req: NextRequest) {
 
   const tc = parseFloat(tcRow?.valor ?? '1') || 1
 
+  const esConsumidor = listaPrecio === 'precio_lista5'
   const precios: Record<number, number> = {}
   const stocks: Record<number, number | null> = {}
   for (const prod of productos ?? []) {
     const precioRaw = (prod[listaPrecio as 'precio_lista3' | 'precio_lista5'] ?? null) as number | null
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
-    if (precio !== null) precios[prod.id] = precio
-    // stock_visible si está definido, si no stock; null = sin control de stock
+    if (precio !== null) {
+      // Consumidor final ve precios con IVA incluido — coherencia con la tienda
+      const ivaRate = esConsumidor ? ((prod.iva as number | null) ?? 21) / 100 : 0
+      precios[prod.id] = esConsumidor ? Math.round(precio * (1 + ivaRate)) : precio
+    }
     stocks[prod.id] = prod.stock ?? null
   }
 
