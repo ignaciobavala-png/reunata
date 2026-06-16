@@ -1,8 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 
 export interface OpcionEnvio {
-  id: string           // "N" | "P" | "X"
-  descripcion: string  // "Envío Estándar"
+  id: string
+  descripcion: string
   dias: number
   costo: number
 }
@@ -11,6 +11,40 @@ const SERVICIO_LABEL: Record<string, string> = {
   N: 'Estándar',
   P: 'Prioritario',
   X: 'Express',
+}
+
+// Token JWT — caduca cada 4h. Se renueva automáticamente.
+let cachedToken: string | null = null
+let tokenExpiresAt = 0
+
+async function getAccessToken(): Promise<string | null> {
+  const now = Date.now()
+  // Renovar 5 minutos antes de que expire
+  if (cachedToken && now < tokenExpiresAt - 300_000) return cachedToken
+
+  const apiKey    = process.env.ENVIOPACK_API_KEY
+  const secretKey = process.env.ENVIOPACK_SECRET_KEY
+  if (!apiKey || !secretKey) return null
+
+  try {
+    const res = await fetch('https://api.enviopack.com/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 'api-key': apiKey, 'secret-key': secretKey }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const jwt: string = data.token
+    if (!jwt) return null
+
+    // Leer exp del payload del JWT (sin verificar firma — solo para caché)
+    const payload = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString())
+    tokenExpiresAt = payload.exp * 1000
+    cachedToken = jwt
+    return cachedToken
+  } catch {
+    return null
+  }
 }
 
 export async function cotizarEnvio({
@@ -22,7 +56,7 @@ export async function cotizarEnvio({
   codigo_postal: string
   provincia: string
 }): Promise<{ opciones: OpcionEnvio[]; error?: string }> {
-  const token = process.env.ENVIOPACK_ACCESS_TOKEN
+  const token = await getAccessToken()
   if (!token) return { opciones: [], error: 'EnvioPack no configurado.' }
 
   const service = createServiceClient()
@@ -36,15 +70,12 @@ export async function cotizarEnvio({
 
   for (const item of items) {
     const prod = productos?.find(p => p.id === item.productoId)
-    // Fix #1: usar != null para que peso=0 sea válido
     const peso = prod?.peso != null ? Number(prod.peso) : 0.5
     pesoTotal += peso * item.cantidad
 
     if (prod?.alto && prod?.ancho && prod?.largo) {
       const dims = `${prod.alto}x${prod.ancho}x${prod.largo}`
-      // Fix #4: enviar_solo → cada unidad va en su propia entrada
-      const unidades = prod.enviar_solo ? item.cantidad : item.cantidad
-      for (let u = 0; u < unidades; u++) {
+      for (let u = 0; u < item.cantidad; u++) {
         paquetes.push(dims)
       }
     }
@@ -53,22 +84,25 @@ export async function cotizarEnvio({
   if (pesoTotal === 0) pesoTotal = 0.5
 
   const params = new URLSearchParams({
-    access_token: token,
     provincia,
     codigo_postal,
     peso: String(Math.round(pesoTotal * 100) / 100),
   })
 
-  // Fix #7: no truncar paquetes — enviar todos
   if (paquetes.length > 0) {
     params.set('paquetes', paquetes.join(','))
   }
 
   try {
     const res = await fetch(
-      `https://api.enviopack.com/cotizar/precio/a-domicilio?${params.toString()}`
+      `https://api.enviopack.com/cotizar/precio/a-domicilio?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     )
-    if (!res.ok) return { opciones: [], error: 'Error al consultar EnvioPack.' }
+    if (!res.ok) {
+      // Token rechazado — forzar renovación en el próximo intento
+      if (res.status === 401) cachedToken = null
+      return { opciones: [], error: 'Error al consultar EnvioPack.' }
+    }
 
     const raw: { servicio: string; valor: string; horas_entrega: number }[] = await res.json()
 
