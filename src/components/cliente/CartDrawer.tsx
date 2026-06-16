@@ -135,7 +135,8 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                       <button
                         onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad - (item.multiplo ?? 1))}
                         aria-label="Reducir cantidad"
-                        className="w-6 h-6 rounded border flex items-center justify-center"
+                        disabled={item.cantidad <= (item.multiplo ?? 1)}
+                        className="w-6 h-6 rounded border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                         style={{ borderColor: 'var(--color-acero-claro)' }}
                       >
                         <Minus size={10} aria-hidden="true" />
