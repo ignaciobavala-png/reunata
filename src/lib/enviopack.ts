@@ -22,9 +22,12 @@ async function getAccessToken(): Promise<string | null> {
   // Renovar 5 minutos antes de que expire
   if (cachedToken && now < tokenExpiresAt - 300_000) return cachedToken
 
-  const apiKey    = process.env.ENVIOPACK_API_KEY
-  const secretKey = process.env.ENVIOPACK_SECRET_KEY
-  if (!apiKey || !secretKey) return null
+  const apiKey    = process.env.ENVIOPACK_API_KEY?.trim()
+  const secretKey = process.env.ENVIOPACK_SECRET_KEY?.trim()
+  if (!apiKey || !secretKey) {
+    console.error('[enviopack] vars no configuradas:', { apiKey: !!apiKey, secretKey: !!secretKey })
+    return null
+  }
 
   try {
     const res = await fetch('https://api.enviopack.com/auth', {
@@ -32,10 +35,17 @@ async function getAccessToken(): Promise<string | null> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 'api-key': apiKey, 'secret-key': secretKey }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('[enviopack] auth falló:', res.status, body)
+      return null
+    }
     const data = await res.json()
     const jwt: string = data.token
-    if (!jwt) return null
+    if (!jwt) {
+      console.error('[enviopack] respuesta sin token:', JSON.stringify(data))
+      return null
+    }
 
     // Leer exp del payload del JWT (sin verificar firma — solo para caché)
     const payload = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString())
