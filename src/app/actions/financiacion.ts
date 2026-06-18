@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
+const MAYORISTAS = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
 async function getMayoristaId(): Promise<string | null> {
   const supabase = await createClient()

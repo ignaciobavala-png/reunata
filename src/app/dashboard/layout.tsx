@@ -25,13 +25,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (['master', 'empleado'].includes(profile.rol)) {
     const service = createServiceClient()
-    const { count } = await service
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('requiere_recontacto', true)
-      .in('rol', ['distribuidor', 'local', 'mercha'])
+    const [{ count: countRecontacto }, { count: countCredito }] = await Promise.all([
+      service
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('requiere_recontacto', true)
+        .in('rol', ['distribuidor', 'local', 'mercha']),
+      service
+        .from('solicitudes_credito')
+        .select('id', { count: 'exact', head: true })
+        .eq('estado', 'pendiente'),
+    ])
 
-    if (count) badges['/dashboard/admin/recontacto'] = count
+    if (countRecontacto) badges['/dashboard/admin/recontacto'] = countRecontacto
+    if (countCredito) badges['/dashboard/admin/financiacion'] = countCredito
   }
 
   return (
