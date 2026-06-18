@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 
 const ROLES_CON_DASHBOARD = ['master', 'empleado', 'comisionista']
@@ -20,9 +21,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!ROLES_CON_DASHBOARD.includes(profile.rol)) redirect('/')
 
+  const badges: Record<string, number> = {}
+
+  if (['master', 'empleado'].includes(profile.rol)) {
+    const service = createServiceClient()
+    const { count } = await service
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('requiere_recontacto', true)
+      .in('rol', ['distribuidor', 'local', 'mercha'])
+
+    if (count) badges['/dashboard/admin/recontacto'] = count
+  }
+
   return (
     <div data-dashboard className="flex h-screen overflow-hidden font-medium" style={{ background: 'var(--background)' }}>
-      <Sidebar rol={profile.rol} nombre={profile.nombre || profile.email} />
+      <Sidebar rol={profile.rol} nombre={profile.nombre || profile.email} badges={badges} />
       <main className="flex-1 overflow-auto" data-lenis-prevent>
         {children}
       </main>

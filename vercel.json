@@ -11,6 +11,10 @@
     {
       "path": "/api/pedidos/limpiar",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/recontacto",
+      "schedule": "0 8 * * *"
     }
   ]
 }

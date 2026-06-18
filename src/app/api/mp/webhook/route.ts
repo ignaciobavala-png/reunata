@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const yaConfirmado = pedidoActual?.estado === 'pago_confirmado'
 
-    await supabase
+    const { data: pedidoActualizado } = await supabase
       .from('pedidos')
       .update({
         estado: nuevoEstado,
@@ -87,6 +87,15 @@ export async function POST(req: NextRequest) {
           : {}),
       })
       .eq('id', pedidoId)
+      .select('cliente_id')
+      .single()
+
+    if (status === 'approved' && pedidoActualizado?.cliente_id) {
+      await supabase
+        .from('profiles')
+        .update({ ultima_compra_en: new Date().toISOString(), requiere_recontacto: false })
+        .eq('id', pedidoActualizado.cliente_id)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

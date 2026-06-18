@@ -9,12 +9,12 @@ import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
   Sparkles, ClipboardList, Megaphone, Building2, Camera,
-  ChevronDown, TrendingUp, FileText, Mail, CreditCard,
+  ChevronDown, TrendingUp, FileText, Mail, CreditCard, PhoneCall,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
 
-type NavLink = { label: string; href: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }
+type NavLink = { label: string; href: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; badge?: number }
 type NavGroup = {
   label: string
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
@@ -56,8 +56,9 @@ const navMaster: NavItem[] = [
     label: 'Marketing',
     icon: Megaphone,
     children: [
-      { label: 'Newsletter', href: '/dashboard/admin/newsletter', icon: Mail },
-      { label: 'Chatbot',    href: '/dashboard/admin/chatbot',    icon: Sparkles },
+      { label: 'Newsletter',  href: '/dashboard/admin/newsletter',  icon: Mail },
+      { label: 'Chatbot',     href: '/dashboard/admin/chatbot',     icon: Sparkles },
+      { label: 'Recontacto',  href: '/dashboard/admin/recontacto', icon: PhoneCall },
     ],
   },
   {
@@ -120,7 +121,7 @@ const LABEL_ROL: Record<Rol, string> = {
   mercha: 'Merchandising',
 }
 
-export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
+export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string; badges?: Record<string, number> }) {
   const pathname = usePathname()
   const nav = getNav(rol)
 
@@ -198,7 +199,15 @@ export function Sidebar({ rol, nombre }: { rol: Rol; nombre: string }) {
                           }}
                         >
                           <child.icon size={14} strokeWidth={1.5} />
-                          {child.label}
+                          <span className="flex-1">{child.label}</span>
+                          {(badges[child.href] ?? 0) > 0 && (
+                            <span
+                              className="text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
+                              style={{ background: '#ef4444', color: 'white' }}
+                            >
+                              {badges[child.href]}
+                            </span>
+                          )}
                         </Link>
                       )
                     })}
