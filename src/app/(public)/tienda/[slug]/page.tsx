@@ -47,13 +47,13 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')
+  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista3, precio_lista5, moneda, iva'
+  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, iva'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -66,8 +66,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     codigo_interno: string
     moneda?: string | null
     iva?: number | null
-    precio_lista3?: number | null
-    precio_lista5?: number | null
+    [key: string]: unknown
     producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null
   }) {
     const fotos = (p.producto_fotos ?? []).sort((a, b) => a.orden - b.orden)

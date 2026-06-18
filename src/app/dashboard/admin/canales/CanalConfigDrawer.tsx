@@ -15,7 +15,7 @@ const COLORES_CANAL: Record<string, string> = {
   fabricantes:      '#64748b',
 }
 
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
+const MAYORISTAS = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
 // Métodos de pago por tipo de canal
 const PAGOS_CONSUMIDOR = [

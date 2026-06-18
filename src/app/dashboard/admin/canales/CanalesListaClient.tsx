@@ -17,7 +17,7 @@ const COLORES_CANAL: Record<string, string> = {
   fabricantes:      '#64748b',
 }
 
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
+const MAYORISTAS = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
 export function CanalesListaClient({
   canales,

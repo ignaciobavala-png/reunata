@@ -18,7 +18,7 @@ export interface UserSession {
  * Fallback para usuarios sin sesión: canal "consumidor_final" (mismos productos, sin precios).
  * El canal "publico" no tiene gestión UI y no se usa como filtro de productos en la tienda.
  */
-const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha']
+const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
 export async function resolverCanalTienda(): Promise<{
   user: UserSession | null

@@ -56,14 +56,14 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')
+  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista3, precio_lista5, variantes, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, variantes, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -181,7 +181,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                     variantes: (producto.variantes as { nombre: string; stock: number }[] | null) ?? null,
                   }}
                 />
-                <PaymentInfo esMayorista={['distribuidor', 'local', 'mercha'].includes(user?.rol ?? '')} />
+                <PaymentInfo esMayorista={esMayorista} />
               </>
             ) : (
               <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
