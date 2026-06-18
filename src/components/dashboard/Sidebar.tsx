@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
   Sparkles, ClipboardList, Megaphone, Building2, Camera,
-  ChevronDown, TrendingUp, FileText, Mail, Layers,
+  ChevronDown, TrendingUp, FileText, Mail, CreditCard,
 } from 'lucide-react'
 
 type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
@@ -29,7 +29,6 @@ const navMaster: NavItem[] = [
     icon: Package,
     children: [
       { label: 'Productos',   href: '/dashboard/admin/productos', icon: Package },
-      { label: 'Canales',     href: '/dashboard/admin/canales',   icon: Layers },
       { label: 'Sincronizar', href: '/dashboard/admin/sync',      icon: RefreshCw },
     ],
   },
@@ -37,9 +36,10 @@ const navMaster: NavItem[] = [
     label: 'Ventas',
     icon: TrendingUp,
     children: [
-      { label: 'Pedidos',      href: '/dashboard/admin/pedidos',      icon: ShoppingCart },
-      { label: 'Clientes',     href: '/dashboard/admin/clientes',     icon: Users },
-      { label: 'Corporativos', href: '/dashboard/admin/corporativos', icon: Building2 },
+      { label: 'Pedidos',       href: '/dashboard/admin/pedidos',      icon: ShoppingCart },
+      { label: 'Clientes',      href: '/dashboard/admin/clientes',     icon: Users },
+      { label: 'Financiación',  href: '/dashboard/admin/financiacion', icon: CreditCard },
+      { label: 'Corporativos',  href: '/dashboard/admin/corporativos', icon: Building2 },
     ],
   },
   {

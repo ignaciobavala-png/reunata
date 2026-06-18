@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaForm } from './CuentaForm'
+import { CuentaNav } from '@/components/cuenta/CuentaNav'
 
 export const metadata: Metadata = { title: 'Mi cuenta', robots: { index: false, follow: false } }
+
+const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function MiCuentaPage({ searchParams }: { searchParams: Promise<{ guardado?: string }> }) {
   const { guardado } = await searchParams
@@ -17,14 +20,18 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
     .eq('id', user.id)
     .single()
 
+  const esMayorista = MAYORISTAS.includes(profile?.rol ?? '')
+
   return (
     <main className="pt-36 pb-24 px-6 md:px-16 max-w-2xl mx-auto">
       <h1 className="text-3xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Mi cuenta
       </h1>
-      <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
         Tus datos de contacto y facturación.
       </p>
+
+      <CuentaNav esMayorista={esMayorista} />
 
       {guardado && (
         <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>
