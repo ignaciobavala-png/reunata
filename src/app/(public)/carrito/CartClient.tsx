@@ -14,6 +14,34 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
+const METODOS_CONTADO = ['efectivo', 'transferencia_negro', 'transferencia_blanco', 'echeq_al_dia', 'cheque_fisico_al_dia']
+const METODO_LABEL: Record<string, string> = {
+  efectivo:              'Efectivo',
+  transferencia_negro:   'Transferencia (precio base)',
+  transferencia_blanco:  'Transferencia Blanco (factura A, +IVA)',
+  echeq_al_dia:          'E-cheq al día',
+  cheque_fisico_al_dia:  'Cheque físico al día',
+}
+
+interface ReglaCanal {
+  pagos_habilitados:         Record<string, { activo: boolean }>
+  minimo_compra:             number | null
+  desc_efectivo_pct:         number
+  recargo_transf_blanco_pct: number
+}
+
+interface DireccionEntrega {
+  id:             string
+  alias:          string
+  calle:          string
+  numero:         string
+  piso:           string | null
+  localidad:      string
+  provincia:      string
+  codigo_postal:  string
+  predeterminada: boolean
+}
+
 interface PageUser {
   nombre: string | null
   rol: string
@@ -24,11 +52,22 @@ interface Props {
   mostrarPrecios: boolean
 }
 
-function buildWhatsAppMsg(items: ReturnType<typeof useCartStore.getState>['items']) {
+function buildWhatsAppMsg(
+  items: ReturnType<typeof useCartStore.getState>['items'],
+  metodo?: string | null,
+  totalFinal?: number,
+  direccion?: DireccionEntrega | null,
+) {
   const lineas = items.map(i =>
     `• ${i.titulo} (${i.codigo_interno})${i.variante ? ` — ${i.variante}` : ''} × ${i.cantidad}`
   ).join('\n')
-  return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}\n\nPor favor confirmame disponibilidad y precio.`)
+  const pagoStr = metodo ? `\nForma de pago: ${METODO_LABEL[metodo] ?? metodo}` : ''
+  const totalStr = totalFinal ? `\nTotal estimado: ${totalFinal.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })}` : ''
+  const dirParts = direccion
+    ? [direccion.calle, direccion.numero, direccion.piso, direccion.localidad, direccion.provincia, direccion.codigo_postal].filter(Boolean).join(', ')
+    : null
+  const dirStr = dirParts ? `\nDirección de entrega: ${dirParts}` : ''
+  return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}${pagoStr}${dirStr}${totalStr}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
 export function CartClient({ user, mostrarPrecios }: Props) {
@@ -47,6 +86,10 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
+  const [reglas, setReglas] = useState<ReglaCanal | null>(null)
+  const [metodoPago, setMetodoPago] = useState<string | null>(null)
+  const [direcciones, setDirecciones] = useState<DireccionEntrega[]>([])
+  const [direccionId, setDireccionId] = useState<string | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -73,6 +116,23 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   useEffect(() => {
     if (mounted && guestItemsMerged) clearGuestMergedFlag()
   }, [mounted, guestItemsMerged, clearGuestMergedFlag])
+
+  // Cargar reglas y direcciones — solo mayoristas aprobados
+  useEffect(() => {
+    if (!mounted || !user?.rol || !ROLES_MAYORISTAS.includes(user.rol)) return
+    fetch('/api/carrito/reglas')
+      .then(r => r.json())
+      .then(({ reglas: r }) => { if (r) setReglas(r) })
+      .catch(() => {})
+    fetch('/api/cuenta/direcciones')
+      .then(r => r.json())
+      .then(({ direcciones: d }: { direcciones: DireccionEntrega[] }) => {
+        setDirecciones(d)
+        const predeterminada = d.find(x => x.predeterminada)
+        if (predeterminada) setDireccionId(predeterminada.id)
+      })
+      .catch(() => {})
+  }, [mounted, user?.rol])
 
   const esMinorista = user?.rol === 'consumidor_final'
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
@@ -159,6 +219,20 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   const totalGeneral = total()
   const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
+
+  // Ajuste por método de pago (mayoristas)
+  const metodosDisponibles = reglas
+    ? METODOS_CONTADO.filter(k => reglas.pagos_habilitados[k]?.activo)
+    : []
+  const ajuste = metodoPago && reglas
+    ? metodoPago === 'efectivo'
+      ? -Math.round(totalGeneral * (reglas.desc_efectivo_pct ?? 0) / 100)
+      : metodoPago === 'transferencia_blanco'
+        ? Math.round(totalGeneral * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+        : 0
+    : 0
+  const totalFinal = totalGeneral + ajuste + (envioSeleccionado?.costo ?? 0)
+  const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
   // Stock: null = sin control, number = límite conocido
@@ -390,10 +464,16 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                     <span>{formatPrecio(envioSeleccionado.costo)}</span>
                   </div>
                 )}
+                {ajuste !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: ajuste < 0 ? '#16a34a' : '#dc2626' }}>
+                    <span>{ajuste < 0 ? 'Descuento' : 'Recargo'} ({METODO_LABEL[metodoPago!] ?? metodoPago})</span>
+                    <span>{ajuste < 0 ? '-' : '+'}{formatPrecio(Math.abs(ajuste))}</span>
+                  </div>
+                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
-                  <span>{formatPrecio(totalConEnvio)}</span>
+                  <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
                 </div>
               </>
             )}
@@ -430,18 +510,114 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               )}
             </>
           ) : esMayorista ? (
-            <a
-              href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3 rounded-lg text-base font-medium text-center flex items-center justify-center gap-2 transition-opacity"
-              style={{ background: '#25D366', color: 'white' }}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-              Pedir por WhatsApp
-            </a>
+            <div className="flex flex-col gap-3">
+
+              {/* Selector de dirección de entrega */}
+              {direcciones.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Dirección de entrega
+                    </p>
+                    <a href="/cuenta/direcciones" className="text-xs underline"
+                      style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Gestionar
+                    </a>
+                  </div>
+                  <select
+                    value={direccionId ?? ''}
+                    onChange={e => setDireccionId(e.target.value || null)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+                    style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)', background: 'white' }}
+                  >
+                    <option value="">Sin especificar</option>
+                    {direcciones.map(d => {
+                      const label = [d.alias, d.calle, d.numero, d.localidad].filter(Boolean).join(', ')
+                      return <option key={d.id} value={d.id}>{label}</option>
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {direcciones.length === 0 && (
+                <a href="/cuenta/direcciones"
+                  className="text-xs py-2 px-3 rounded-lg border border-dashed text-center transition-colors"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
+                  + Agregar dirección de entrega
+                </a>
+              )}
+
+              {/* Selector de método de pago */}
+              {metodosDisponibles.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Forma de pago
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {metodosDisponibles.map(k => (
+                      <label
+                        key={k}
+                        className="flex items-center gap-2.5 cursor-pointer px-3 py-2 rounded-lg border transition-colors"
+                        style={{
+                          borderColor: metodoPago === k ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                          background:  metodoPago === k ? 'var(--color-acero-brillo)' : 'white',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="metodo_pago"
+                          value={k}
+                          checked={metodoPago === k}
+                          onChange={() => setMetodoPago(k)}
+                          className="flex-shrink-0"
+                        />
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>
+                          {METODO_LABEL[k] ?? k}
+                        </span>
+                        {k === 'efectivo' && reglas && reglas.desc_efectivo_pct > 0 && (
+                          <span className="text-xs font-medium" style={{ color: '#16a34a' }}>
+                            -{reglas.desc_efectivo_pct}%
+                          </span>
+                        )}
+                        {k === 'transferencia_blanco' && reglas && reglas.recargo_transf_blanco_pct > 0 && (
+                          <span className="text-xs font-medium" style={{ color: '#dc2626' }}>
+                            +{reglas.recargo_transf_blanco_pct}%
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso mínimo de compra */}
+              {minimoInsuficiente && reglas?.minimo_compra && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalGeneral)}.
+                </div>
+              )}
+
+              {/* Botón WhatsApp */}
+              <a
+                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-disabled={minimoInsuficiente}
+                className="w-full py-3 rounded-lg text-base font-medium text-center flex items-center justify-center gap-2 transition-opacity"
+                style={{
+                  background: '#25D366',
+                  color: 'white',
+                  opacity: minimoInsuficiente ? 0.4 : 1,
+                  pointerEvents: minimoInsuficiente ? 'none' : 'auto',
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Pedir por WhatsApp
+              </a>
+            </div>
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
             <>

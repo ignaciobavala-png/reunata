@@ -21,12 +21,12 @@ export default async function CheckoutExitoPage({
 
         <div>
           <h1 className="text-3xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-            ¡Pago confirmado!
+            ¡Gracias por tu compra!
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {user
-              ? 'Tu pedido fue recibido y el pago procesado correctamente. Te vamos a avisar cuando esté en camino.'
-              : 'Tu pedido fue recibido. Mercado Pago te enviará la confirmación a tu email.'
+              ? 'Tu pedido fue recibido. La confirmación del pago puede demorar unos minutos en procesarse.'
+              : 'Tu pedido fue recibido. Mercado Pago te enviará la confirmación a tu email en breve.'
             }
           </p>
         </div>

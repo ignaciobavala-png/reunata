@@ -58,7 +58,7 @@ function OfferDrawer({
                   key={item.id}
                   className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
                 >
-                  <div className="aspect-square bg-gray-100 relative">
+                  <div className="aspect-[3/4] bg-gray-100 relative">
                     {item.img ? (
                       <Image
                         src={item.img}

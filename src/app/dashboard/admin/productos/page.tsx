@@ -21,7 +21,7 @@ async function ListaContent() {
     : { data: null }
   const isMaster = profile?.rol === 'master'
 
-  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }] = await Promise.all([
+  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }, { data: todosLosCanales }, { data: configs }] = await Promise.all([
     supabase
       .from('productos')
       .select('id, codigo_interno, titulo, categoria, descripcion, stock, precio_lista3, precio_lista5, activo, alto, ancho, largo, peso, enviar_solo')
@@ -51,6 +51,13 @@ async function ListaContent() {
     supabase
       .from('producto_canales')
       .select('producto_id, canal_id, multiplo'),
+    supabase
+      .from('canales')
+      .select('id, slug, nombre, activo')
+      .order('id'),
+    supabase
+      .from('canales_config')
+      .select('*'),
   ])
 
   const ofertasSet = new Set(
@@ -70,6 +77,11 @@ async function ListaContent() {
     multiplosMap[`${a.producto_id}-${a.canal_id}`] = a.multiplo ?? 1
   }
 
+  const configMap: Record<number, Record<string, unknown>> = {}
+  for (const c of configs ?? []) {
+    configMap[c.canal_id] = c
+  }
+
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -86,6 +98,8 @@ async function ListaContent() {
         canalesIniciales={canales ?? []}
         asignacionesIniciales={asignacionesSet}
         multiplosIniciales={multiplosMap}
+        todosLosCanalesIniciales={todosLosCanales ?? []}
+        configsIniciales={configMap}
       />
     </div>
   )

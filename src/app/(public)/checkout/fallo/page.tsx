@@ -26,7 +26,7 @@ export default function CheckoutFalloPage() {
             className="flex-1 py-3 rounded-lg text-sm font-medium text-center transition-opacity hover:opacity-80"
             style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
           >
-            Volver al carrito
+            Volver a la tienda
           </Link>
           <a
             href="https://wa.me/5491132720974"

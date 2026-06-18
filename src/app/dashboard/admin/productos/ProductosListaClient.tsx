@@ -2,12 +2,13 @@
 
 import { useState, useMemo, Fragment, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package, FileText, LayoutList, Grid3X3 } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, AlertTriangle, Loader2, Camera, Package, FileText, LayoutList, Grid3X3, Layers } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { toggleOferta, toggleDestacada, toggleNovedad } from '@/app/actions/ofertas'
 import { asignarCanalMasivo } from '@/app/actions/canales'
 import { ProductoFichaDrawer, type FotoItem, type Canal, type DimensionesEnvio } from '@/components/admin/ProductoFichaDrawer'
 import { CanalesClient } from './CanalesClient'
+import { CanalesListaClient } from '../canales/CanalesListaClient'
 
 interface Producto {
   id: number
@@ -55,6 +56,8 @@ export function ProductosListaClient({
   canalesIniciales,
   asignacionesIniciales,
   multiplosIniciales,
+  todosLosCanalesIniciales,
+  configsIniciales,
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>
@@ -66,6 +69,8 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
+  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean }[]
+  configsIniciales: Record<number, Record<string, unknown>>
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -96,7 +101,7 @@ export function ProductosListaClient({
     }
     return map
   })
-  const [vista, setVista] = useState<'lista' | 'canales'>('lista')
+  const [vista, setVista] = useState<'lista' | 'asignaciones' | 'canales'>('lista')
 
   // Asignaciones masivas por categoría
   const [confirmandoCat, setConfirmandoCat] = useState<string | null>(null)
@@ -289,6 +294,18 @@ export function ProductosListaClient({
             Lista
           </button>
           <button
+            onClick={() => setVista('asignaciones')}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors border-l"
+            style={{
+              borderColor: 'var(--color-acero-claro)',
+              background: vista === 'asignaciones' ? 'var(--color-granito-oscuro)' : 'white',
+              color: vista === 'asignaciones' ? 'white' : 'var(--color-acero-oscuro)',
+            }}
+          >
+            <Grid3X3 size={14} />
+            Asignaciones
+          </button>
+          <button
             onClick={() => setVista('canales')}
             className="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors border-l"
             style={{
@@ -297,7 +314,7 @@ export function ProductosListaClient({
               color: vista === 'canales' ? 'white' : 'var(--color-acero-oscuro)',
             }}
           >
-            <Grid3X3 size={14} />
+            <Layers size={14} />
             Canales
           </button>
         </div>
@@ -330,14 +347,22 @@ export function ProductosListaClient({
         )}
       </div>
 
-      {/* Vista Canales */}
-      {vista === 'canales' && (
+      {/* Vista Asignaciones */}
+      {vista === 'asignaciones' && (
         <CanalesClient
           productos={productos.map(p => ({ id: p.id, codigo_interno: p.codigo_interno, titulo: p.titulo, categoria: p.categoria }))}
           canales={canalesIniciales}
           asignacionesIniciales={asignaciones}
           multiplosIniciales={multiplos}
           categorias={categoriasList}
+        />
+      )}
+
+      {/* Vista Canales (configuración por canal) */}
+      {vista === 'canales' && (
+        <CanalesListaClient
+          canales={todosLosCanalesIniciales}
+          configsIniciales={configsIniciales}
         />
       )}
 

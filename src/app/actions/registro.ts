@@ -73,8 +73,7 @@ export async function registrarse(data: RegistroInput) {
 
   const { error: updateError } = await serviceSupabase
     .from('profiles')
-    .update(profileUpdate)
-    .eq('id', userId)
+    .upsert({ id: userId, ...profileUpdate })
 
   if (updateError) {
     return { error: 'Cuenta creada pero hubo un error al guardar los datos.' }

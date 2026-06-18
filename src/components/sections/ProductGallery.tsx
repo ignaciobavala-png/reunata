@@ -29,14 +29,14 @@ export function ProductGallery({ fotos, titulo, supabaseUrl }: Props) {
     <div className="flex flex-col gap-3">
       {/* Foto principal */}
       <div
-        className="w-full relative overflow-hidden"
-        style={{ border: '1px solid var(--border)', aspectRatio: '3/4', maxHeight: '50vh', background: 'var(--color-acero-claro)' }}
+        className="w-full aspect-[3/4] relative overflow-hidden"
+        style={{ border: '1px solid var(--border)', background: 'var(--color-acero-claro)' }}
       >
         <Image
           src={supabaseImg(supabaseUrl, fotos[activa].url)}
           alt={titulo}
           fill
-          className="object-contain"
+          className="object-cover"
           sizes="(max-width: 768px) 100vw, 50vw"
           priority
         />
