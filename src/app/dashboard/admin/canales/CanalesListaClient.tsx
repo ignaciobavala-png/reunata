@@ -85,11 +85,17 @@ export function CanalesListaClient({
                     <span
                       className="px-2 py-0.5 rounded-full text-xs"
                       style={{
-                        background: MAYORISTAS.includes(canal.slug) ? '#e0f2fe' : '#ede9fe',
-                        color: MAYORISTAS.includes(canal.slug) ? '#0369a1' : '#6d28d9',
+                        background: MAYORISTAS.includes(canal.slug) ? '#e0f2fe'
+                          : canal.slug === 'fabricantes' ? '#f1f5f9'
+                          : '#ede9fe',
+                        color: MAYORISTAS.includes(canal.slug) ? '#0369a1'
+                          : canal.slug === 'fabricantes' ? '#475569'
+                          : '#6d28d9',
                       }}
                     >
-                      {MAYORISTAS.includes(canal.slug) ? 'Mayorista' : 'Minorista'}
+                      {MAYORISTAS.includes(canal.slug) ? 'Mayorista'
+                        : canal.slug === 'fabricantes' ? 'Especial'
+                        : 'Minorista'}
                     </span>
                   </td>
 

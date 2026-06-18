@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import { X, ChevronDown, Loader2, Check } from 'lucide-react'
 import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canales-config'
-import { formatPrecio } from '@/lib/utils'
 
 type Canal = { id: number; slug: string; nombre: string; activo: boolean }
 type Config = Record<string, unknown>
@@ -76,9 +75,11 @@ function buildDefaultConfig(canal: Canal): CanalConfigPayload {
 function mergeConfig(canal: Canal, saved: Config | undefined): CanalConfigPayload {
   const defaults = buildDefaultConfig(canal)
   if (!saved) return defaults
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { actualizado_en: _, ...savedClean } = saved as Record<string, unknown>
   return {
     ...defaults,
-    ...saved,
+    ...savedClean,
     canal_id: canal.id,
     pagos_habilitados: (saved.pagos_habilitados as Record<string, { activo: boolean }>) ?? defaults.pagos_habilitados,
   } as CanalConfigPayload

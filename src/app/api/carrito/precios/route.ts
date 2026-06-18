@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista3, precio_lista5, moneda, stock, iva')
+      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista5, moneda, stock, iva')
       .in('id', ids)
       .eq('activo', true),
     service
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const precios: Record<number, number> = {}
   const stocks: Record<number, number | null> = {}
   for (const prod of productos ?? []) {
-    const precioRaw = (prod[listaPrecio as 'precio_lista3' | 'precio_lista5'] ?? null) as number | null
+    const precioRaw = ((prod as Record<string, unknown>)[listaPrecio] ?? null) as number | null
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
     if (precio !== null) {
       // Consumidor final ve precios con IVA incluido — coherencia con la tienda
