@@ -12,8 +12,8 @@ const MP_ESTADO: Record<string, string> = {
 function verificarFirma(req: NextRequest, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET
   if (!secret) {
-    console.warn('[mp/webhook] MP_WEBHOOK_SECRET no configurado — firma omitida')
-    return true
+    console.error('[mp/webhook] MP_WEBHOOK_SECRET no configurado — rechazando request')
+    return false
   }
 
   const xSignature  = req.headers.get('x-signature') ?? ''
