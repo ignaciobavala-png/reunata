@@ -126,7 +126,7 @@ export function ProductGridPublic({
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
               <div
-                className="w-full aspect-[3/4] mb-3 relative overflow-hidden"
+                className="w-full aspect-square mb-3 relative overflow-hidden"
                 style={{
                   border: yaEsta ? '2px solid #10b981' : '1px solid var(--border)',
                   transition: 'border-color 0.3s',

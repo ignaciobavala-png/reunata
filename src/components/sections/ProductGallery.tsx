@@ -17,7 +17,7 @@ export function ProductGallery({ fotos, titulo, supabaseUrl }: Props) {
   if (fotos.length === 0) {
     return (
       <div
-        className="aspect-[3/4] flex items-center justify-center"
+        className="aspect-square flex items-center justify-center"
         style={{ background: 'var(--color-acero-claro)', border: '1px solid var(--border)' }}
       >
         <ImageIcon size={32} style={{ color: 'var(--color-acero-oscuro)' }} />
@@ -29,7 +29,7 @@ export function ProductGallery({ fotos, titulo, supabaseUrl }: Props) {
     <div className="flex flex-col gap-3">
       {/* Foto principal */}
       <div
-        className="w-full aspect-[3/4] relative overflow-hidden"
+        className="w-full aspect-square relative overflow-hidden"
         style={{ border: '1px solid var(--border)', background: 'var(--color-acero-claro)' }}
       >
         <Image
