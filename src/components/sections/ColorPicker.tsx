@@ -75,6 +75,7 @@ function resolveByPrefix(upper: string): string | null {
 }
 
 function capitalize(s: string) {
+  if (s.toUpperCase().includes('SURTIDO')) return 'Varios colores'
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
 
@@ -101,7 +102,7 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
               onClick={() => !sinStock && onSelect(v.nombre)}
               disabled={sinStock}
               title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
-              aria-label={`Color ${v.nombre}${sinStock ? ', sin stock' : ''}`}
+              aria-label={`${capitalize(v.nombre)}${sinStock ? ', sin stock' : ''}`}
               aria-pressed={isSelected}
               className="relative rounded transition-transform disabled:cursor-not-allowed"
               style={{
