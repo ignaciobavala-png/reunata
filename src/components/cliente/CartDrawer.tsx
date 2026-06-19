@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
@@ -121,9 +122,14 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                       <p className="text-xs font-mono truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
-                      <p className="text-xs leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
+                      <Link
+                        href={`/tienda/p/${item.productoId}`}
+                        onClick={() => setCartOpen(false)}
+                        className="text-xs leading-snug mt-0.5 block hover:underline"
+                        style={{ color: 'var(--foreground)' }}
+                      >
                         {item.titulo}
-                      </p>
+                      </Link>
                       {item.variante && (
                         <div className="mt-1">
                           <VarianteBadge variante={item.variante} />
