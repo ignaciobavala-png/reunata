@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { ClearCart } from './ClearCart'
 
 export const metadata: Metadata = { title: 'Pago confirmado — Reunata' }
 
@@ -16,6 +17,7 @@ export default async function CheckoutExitoPage({
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--background)' }}>
+      <ClearCart />
       <div className="max-w-md w-full text-center flex flex-col items-center gap-6 py-24">
         <CheckCircle size={56} strokeWidth={1.2} style={{ color: '#10b981' }} />
 

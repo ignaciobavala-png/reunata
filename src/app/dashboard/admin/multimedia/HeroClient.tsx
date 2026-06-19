@@ -39,7 +39,11 @@ export function HeroClient({
   initialSubtab?: 'carrusel' | 'banner'
   fallbackInicial?: HeroFallbackConfig
 }) {
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
   const [subtab, setSubtab] = useState<'carrusel' | 'banner'>(initialSubtab)
   const [assets, setAssets] = useState<HeroAsset[]>(assetsIniciales)
   const [pendingFiles, setPendingFiles] = useState<ArchivoPreview[]>([])
@@ -199,7 +203,7 @@ export function HeroClient({
       }
 
       const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await getSupabase().storage
         .from('multimedia')
         .upload(path, blob, { contentType: tipo === 'imagen' ? 'image/webp' : file.type, upsert: false })
       if (uploadError) {
@@ -212,7 +216,7 @@ export function HeroClient({
       }
 
       const maxOrden = assets.reduce((max, a) => Math.max(max, a.orden), 0)
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('hero_assets')
         .insert({ tipo, url: path, orden: maxOrden + nuevos.length + 1 })
         .select()
@@ -229,7 +233,7 @@ export function HeroClient({
 
   async function toggleActivo(asset: HeroAsset) {
     const nuevoValor = !asset.activo
-    await supabase.from('hero_assets').update({ activo: nuevoValor }).eq('id', asset.id)
+    await getSupabase().from('hero_assets').update({ activo: nuevoValor }).eq('id', asset.id)
     setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, activo: nuevoValor } : a))
   }
 
@@ -248,7 +252,7 @@ export function HeroClient({
     }
     setAgregandoYt(true)
     const maxOrden = assets.reduce((max, a) => Math.max(max, a.orden), 0)
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('hero_assets')
       .insert({ tipo: 'video', url, orden: maxOrden + 1 })
       .select()
@@ -264,8 +268,8 @@ export function HeroClient({
     if (!assetAEliminar) return
     // Solo borrar de Storage si es un path local (no URL externa)
     const esExterno = assetAEliminar.url.startsWith('http')
-    if (!esExterno) await supabase.storage.from('multimedia').remove([assetAEliminar.url])
-    await supabase.from('hero_assets').delete().eq('id', assetAEliminar.id)
+    if (!esExterno) await getSupabase().storage.from('multimedia').remove([assetAEliminar.url])
+    await getSupabase().from('hero_assets').delete().eq('id', assetAEliminar.id)
     setAssets(prev => prev.filter(a => a.id !== assetAEliminar.id))
     setAssetAEliminar(null)
     if (selectedAsset?.id === assetAEliminar.id) setSelectedAsset(null)
@@ -277,7 +281,7 @@ export function HeroClient({
     const otro = direccion === 'up' ? sorted[idx - 1] : sorted[idx + 1]
     if (!otro) return
 
-    await supabase.from('hero_assets').update({ orden: otro.orden }).eq('id', asset.id)
+    await getSupabase().from('hero_assets').update({ orden: otro.orden }).eq('id', asset.id)
     setAssets(prev => prev.map(a => {
       if (a.id === asset.id) return { ...a, orden: otro.orden }
       if (a.id === otro.id) return { ...a, orden: asset.orden }
@@ -294,7 +298,7 @@ export function HeroClient({
       boton_texto: asset.boton_texto,
       boton_url: asset.boton_url,
     }
-    const { error } = await supabase.from('hero_assets').update(payload).eq('id', asset.id)
+    const { error } = await getSupabase().from('hero_assets').update(payload).eq('id', asset.id)
     setGuardando(false)
     if (error) {
       mostrarToast('Error al guardar cambios')
@@ -314,7 +318,7 @@ export function HeroClient({
       { clave: 'hero_fallback_boton_texto', valor: fallback.boton_texto },
       { clave: 'hero_fallback_boton_url', valor: fallback.boton_url },
     ]
-    const { error } = await supabase.from('configuracion').upsert(entries, { onConflict: 'clave' })
+    const { error } = await getSupabase().from('configuracion').upsert(entries, { onConflict: 'clave' })
     setGuardandoFallback(false)
     mostrarToast(error ? 'Error al guardar el texto por defecto' : 'Texto por defecto guardado')
   }

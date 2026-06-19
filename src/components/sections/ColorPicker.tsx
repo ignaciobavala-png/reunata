@@ -75,6 +75,7 @@ function resolveByPrefix(upper: string): string | null {
 }
 
 function capitalize(s: string) {
+  if (s.toUpperCase().includes('SURTIDO')) return 'Varios colores'
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
 
@@ -101,26 +102,33 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
               onClick={() => !sinStock && onSelect(v.nombre)}
               disabled={sinStock}
               title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
-              aria-label={`Color ${v.nombre}${sinStock ? ', sin stock' : ''}`}
+              aria-label={`${capitalize(v.nombre)}${sinStock ? ', sin stock' : ''}`}
               aria-pressed={isSelected}
               className="relative rounded transition-transform disabled:cursor-not-allowed"
               style={{
                 width: 28,
                 height: 28,
                 ...getSwatchStyle(v.nombre),
-                opacity: sinStock ? 0.35 : 1,
+                opacity: sinStock ? 0.5 : 1,
                 outline: isSelected ? '2px solid var(--foreground)' : '2px solid transparent',
                 outlineOffset: 2,
                 border: '1px solid rgba(0,0,0,0.12)',
               }}
             >
               {sinStock && (
-                <span
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ fontSize: 14, color: 'rgba(0,0,0,0.5)', lineHeight: 1 }}
-                  aria-hidden="true"
-                >
-                  ×
+                <span className="absolute inset-0 overflow-hidden rounded" aria-hidden="true">
+                  <span
+                    className="absolute"
+                    style={{
+                      width: '140%',
+                      height: 1.5,
+                      background: 'rgba(255,255,255,0.8)',
+                      top: '50%',
+                      left: '-20%',
+                      transform: 'rotate(-45deg)',
+                      boxShadow: '0 0 0 0.5px rgba(0,0,0,0.3)',
+                    }}
+                  />
                 </span>
               )}
             </button>

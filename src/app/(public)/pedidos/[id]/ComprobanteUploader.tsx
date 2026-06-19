@@ -10,7 +10,11 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
   const [subiendo, setSubiendo] = useState(false)
   const [subido, setSubido] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   async function handleFile(file: File) {
     setSubiendo(true)
@@ -19,7 +23,7 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
     const ext = file.name.split('.').pop()
     const path = `comprobantes/${pedidoId}/${Date.now()}.${ext}`
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await getSupabase().storage
       .from('multimedia')
       .upload(path, file, { upsert: false })
 

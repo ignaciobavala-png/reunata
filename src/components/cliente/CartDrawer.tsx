@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
@@ -121,9 +122,14 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                       <p className="text-xs font-mono truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
                         {item.codigo_interno}
                       </p>
-                      <p className="text-xs leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
+                      <Link
+                        href={`/tienda/p/${item.productoId}`}
+                        onClick={() => setCartOpen(false)}
+                        className="text-xs leading-snug mt-0.5 block hover:underline"
+                        style={{ color: 'var(--foreground)' }}
+                      >
                         {item.titulo}
-                      </p>
+                      </Link>
                       {item.variante && (
                         <div className="mt-1">
                           <VarianteBadge variante={item.variante} />
@@ -136,15 +142,25 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad - (item.multiplo ?? 1))}
-                        aria-label="Reducir cantidad"
-                        disabled={item.cantidad <= (item.multiplo ?? 1)}
-                        className="w-6 h-6 rounded border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
-                        style={{ borderColor: 'var(--color-acero-claro)' }}
-                      >
-                        <Minus size={10} aria-hidden="true" />
-                      </button>
+                      {item.cantidad <= (item.multiplo ?? 1) ? (
+                        <button
+                          onClick={() => remove(item.itemKey ?? `${item.productoId}:`)}
+                          aria-label={`Eliminar ${item.titulo}`}
+                          className="w-6 h-6 rounded border flex items-center justify-center"
+                          style={{ borderColor: 'var(--color-acero-claro)' }}
+                        >
+                          <Trash2 size={10} aria-hidden="true" style={{ color: '#ef4444' }} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad - (item.multiplo ?? 1))}
+                          aria-label="Reducir cantidad"
+                          className="w-6 h-6 rounded border flex items-center justify-center"
+                          style={{ borderColor: 'var(--color-acero-claro)' }}
+                        >
+                          <Minus size={10} aria-hidden="true" />
+                        </button>
+                      )}
                       <span className="text-xs w-6 text-center" style={{ color: 'var(--foreground)' }}>
                         {item.cantidad}
                       </span>
