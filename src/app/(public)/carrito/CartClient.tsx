@@ -608,13 +608,13 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-disabled={minimoInsuficiente}
+                aria-disabled={minimoInsuficiente || hayProblemaStock}
                 className="w-full py-3 rounded-lg text-base font-medium text-center flex items-center justify-center gap-2 transition-opacity"
                 style={{
                   background: '#25D366',
                   color: 'white',
-                  opacity: minimoInsuficiente ? 0.4 : 1,
-                  pointerEvents: minimoInsuficiente ? 'none' : 'auto',
+                  opacity: minimoInsuficiente || hayProblemaStock ? 0.4 : 1,
+                  pointerEvents: minimoInsuficiente || hayProblemaStock ? 'none' : 'auto',
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">

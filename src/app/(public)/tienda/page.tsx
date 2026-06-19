@@ -42,12 +42,14 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   if (busqueda) {
     const { data: resultados } = await supabase
       .from('productos')
-      .select(`id, titulo, codigo_interno, moneda, precio_lista3, precio_lista5, producto_fotos(url, orden)`)
+      .select(`id, titulo, codigo_interno, moneda, iva, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)`)
       .eq('activo', true)
       .in('id', idsCanal.length > 0 ? idsCanal : [-1])
       .or(`titulo.ilike.%${busqueda}%,codigo_interno.ilike.%${busqueda}%`)
       .order('titulo')
       .limit(60)
+
+    const esMayoristaSearch = user?.rol ? ['distribuidor', 'local', 'mercha'].includes(user.rol) : false
 
     const productosGrid = (resultados ?? []).map(p => {
       const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
@@ -55,7 +57,18 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
         ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
         : null
       const { precio, moneda } = aplicarTipoCambio(precioRaw, p.moneda ?? null, tipoCambioUsd)
-      return { id: p.id, titulo: p.titulo, codigo_interno: p.codigo_interno, foto_url: fotos[0]?.url ?? null, precio, moneda, multiplo: multiplos[p.id] ?? 1, supabaseUrl }
+      return {
+        id: p.id,
+        titulo: p.titulo,
+        codigo_interno: p.codigo_interno,
+        foto_url: fotos[0]?.url ?? null,
+        precio,
+        moneda,
+        iva: (p.iva as number | null) ?? 21,
+        multiplo: multiplos[p.id] ?? 1,
+        supabaseUrl,
+        variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
+      }
     })
 
     return (
@@ -75,7 +88,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
               : 'Sin resultados para esta búsqueda.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria="búsqueda" mostrarPrecios={mostrarPrecios} estaLogueado={!!user} />
+            <ProductGridPublic productos={productosGrid} nombreCategoria="búsqueda" mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayoristaSearch} />
           )}
         </div>
       </main>

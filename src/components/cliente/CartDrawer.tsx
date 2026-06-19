@@ -19,6 +19,7 @@ function buildWhatsAppLink(items: CartItem[]) {
 export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'mayorista' | 'minorista'; aprobado?: boolean }) {
   const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
   const [enviando, setEnviando] = useState(false)
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -30,6 +31,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
   async function handleEnviarPedido() {
     if (items.length === 0) return
     setEnviando(true)
+    setErrorEnvio(null)
     try {
       const pedidoId = await crearPedidoBorrador(
         items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante }))
@@ -37,6 +39,8 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
       clear()
       setCartOpen(false)
       router.push(`/dashboard/cliente/pedidos/${pedidoId}`)
+    } catch (e) {
+      setErrorEnvio(e instanceof Error ? e.message : 'Error al enviar el pedido. Intentá de nuevo.')
     } finally {
       setEnviando(false)
     }
@@ -91,7 +95,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
             <div className="flex flex-col gap-3">
               {items.map(item => (
                 <div
-                  key={item.productoId}
+                  key={item.itemKey ?? `${item.productoId}:`}
                   className="flex gap-3 rounded-lg border p-3"
                   style={{ borderColor: 'var(--color-acero-claro)' }}
                 >
@@ -177,31 +181,34 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
             </div>
 
             {esMayorista ? (
-              aprobado ? (
-                <button
-                  onClick={handleEnviarPedido}
-                  disabled={enviando}
-                  className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
-                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-                >
-                  {enviando && <Loader2 size={14} className="animate-spin" />}
-                  {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
-                </button>
-              ) : (
-                <p className="text-xs text-center py-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Tu cuenta está pendiente de aprobación.
-                </p>
-              )
-            ) : (
               <>
-                <a
-                  href="/carrito"
-                  className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
-                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-                >
-                  Ver carrito y finalizar
-                </a>
+                {aprobado ? (
+                  <button
+                    onClick={handleEnviarPedido}
+                    disabled={enviando}
+                    className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
+                    style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                  >
+                    {enviando && <Loader2 size={14} className="animate-spin" />}
+                    {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
+                  </button>
+                ) : (
+                  <p className="text-xs text-center py-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Tu cuenta está pendiente de aprobación.
+                  </p>
+                )}
+                {errorEnvio && (
+                  <p className="text-xs mt-2 text-center" style={{ color: '#ef4444' }}>{errorEnvio}</p>
+                )}
               </>
+            ) : (
+              <a
+                href="/carrito"
+                className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+              >
+                Ver carrito y finalizar
+              </a>
             )}
           </div>
         )}

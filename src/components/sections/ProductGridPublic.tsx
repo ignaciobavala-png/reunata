@@ -21,6 +21,7 @@ interface ProductoPublico {
   iva?: number | null
   multiplo?: number
   supabaseUrl: string
+  variantes?: { nombre: string; stock: number }[] | null
 }
 
 export function ProductGridPublic({
@@ -88,8 +89,12 @@ export function ProductGridPublic({
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
+    const tieneVariantes = (p.variantes?.length ?? 0) > 0
+    if (tieneVariantes) {
+      router.push(`/tienda/p/${p.id}`)
+      return
+    }
     const precioBase = p.precio ?? 0
-    // Mayoristas ven precio sin IVA; consumidores y guests ven precio con IVA
     const precioCarrito = esMayorista
       ? precioBase
       : Math.round(precioBase * (1 + ((p.iva ?? 21) / 100)))
@@ -183,9 +188,9 @@ export function ProductGridPublic({
                     onClick={() => yaEsta ? router.push('/carrito') : handleAgregar(p)}
                     className="absolute inset-x-0 bottom-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
                     style={{ background: yaEsta ? '#10b981' : 'var(--color-granito-oscuro)', color: 'white' }}
-                    aria-label={yaEsta ? 'Ver carrito' : `Agregar ${p.titulo}`}
+                    aria-label={yaEsta ? 'Ver carrito' : (p.variantes?.length ?? 0) > 0 ? `Elegir color de ${p.titulo}` : `Agregar ${p.titulo}`}
                   >
-                    {yaEsta ? '✓ Ver carrito' : '+ Agregar'}
+                    {yaEsta ? '✓ Ver carrito' : (p.variantes?.length ?? 0) > 0 ? 'Elegir color →' : '+ Agregar'}
                   </button>
                 )}
               </div>

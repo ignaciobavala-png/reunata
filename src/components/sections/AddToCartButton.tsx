@@ -65,18 +65,22 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
     const precioCarrito = esMayorista
       ? precioBase
       : Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
-    add({
-      productoId: producto.id,
-      itemKey,
-      codigo_interno: producto.codigo_interno,
-      titulo: producto.titulo,
-      precio: precioCarrito,
-      multiplo,
-      foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
-      variante: varianteSeleccionada ?? undefined,
-    })
-    if (cantidad !== multiplo) {
-      updateCantidad(itemKey, cantidad)
+    if (itemEnCarrito) {
+      updateCantidad(itemKey, itemEnCarrito.cantidad + cantidad)
+    } else {
+      add({
+        productoId: producto.id,
+        itemKey,
+        codigo_interno: producto.codigo_interno,
+        titulo: producto.titulo,
+        precio: precioCarrito,
+        multiplo,
+        foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
+        variante: varianteSeleccionada ?? undefined,
+      })
+      if (cantidad !== multiplo) {
+        updateCantidad(itemKey, cantidad)
+      }
     }
     setCartOpen(true)
   }

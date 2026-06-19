@@ -81,6 +81,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       iva: p.iva ?? 21,
       multiplo: multiplos[p.id] ?? 1,
       supabaseUrl,
+      variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
     }
   }
 
@@ -90,7 +91,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
     let query = supabase
       .from('productos')
-      .select(`id, titulo, codigo_interno, ${precioSelect}, producto_fotos(url, orden, destacada)`)
+      .select(`id, titulo, codigo_interno, variantes, ${precioSelect}, producto_fotos(url, orden, destacada)`)
       .eq('activo', true)
       .in('id', filterCanal)
 
@@ -162,7 +163,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
   const { data: productos } = await supabase
     .from('productos')
-    .select(`id, titulo, codigo_interno, ${precioSelect}, producto_fotos(url, orden)`)
+    .select(`id, titulo, codigo_interno, variantes, ${precioSelect}, producto_fotos(url, orden)`)
     .eq('activo', true)
     .in('id', filterCanal)
     .in('categoria', categoriaKeys)

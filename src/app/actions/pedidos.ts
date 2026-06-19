@@ -93,7 +93,7 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
 
   const { data: pedido, error } = await service
     .from('pedidos')
-    .insert({ cliente_id: user.id, estado: 'pendiente_pago', total_usd: total })
+    .insert({ cliente_id: user.id, estado: 'borrador', total_usd: total })
     .select('id')
     .single()
 
