@@ -176,7 +176,6 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     )
 
     if (result.ok && result.init_point) {
-      clear()
       window.location.href = result.init_point
     } else {
       setErrorPago(result.error ?? 'Error inesperado. Intentá de nuevo.')
