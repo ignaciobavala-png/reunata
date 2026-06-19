@@ -4,9 +4,9 @@ import { guardarConfiguracion } from '@/app/actions/configuracion'
 export default async function ConfiguracionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ guardado?: string }>
+  searchParams: Promise<{ guardado?: string; error?: string }>
 }) {
-  const { guardado } = await searchParams
+  const { guardado, error: errorParam } = await searchParams
   const supabase = await createClient()
 
   const { data: config } = await supabase
@@ -34,6 +34,11 @@ export default async function ConfiguracionPage({
           Configuración guardada correctamente.
         </div>
       )}
+      {errorParam && (
+        <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#ef444422', color: '#ef4444' }}>
+          No se pudo guardar la configuración. Intentá de nuevo.
+        </div>
+      )}
 
       <form
         action={async (formData: FormData) => {
@@ -50,7 +55,8 @@ export default async function ConfiguracionPage({
             'tipo_cambio_usd',
           ]
           const rows = claves.map(clave => ({ clave, valor: (formData.get(clave) as string) ?? '' }))
-          await sb.from('configuracion').upsert(rows, { onConflict: 'clave' })
+          const { error } = await sb.from('configuracion').upsert(rows, { onConflict: 'clave' })
+          if (error) redirect('/dashboard/admin/configuracion?error=1')
           revalidatePath('/dashboard/admin/configuracion')
           redirect('/dashboard/admin/configuracion?guardado=1')
         }}

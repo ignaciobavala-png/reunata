@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { actualizarPerfil } from '@/app/actions/cuenta'
@@ -29,13 +29,19 @@ const CONDICION_FISCAL = [
 
 export function CuentaForm({ profile, userId }: { profile: Profile; userId: string }) {
   const [isPending, startTransition] = useTransition()
+  const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
   const router = useRouter()
   const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile.rol ?? '')
 
   function handleSubmit(formData: FormData) {
+    setErrorGuardado(null)
     startTransition(async () => {
-      await actualizarPerfil(userId, formData)
-      router.push('/cuenta?guardado=1')
+      try {
+        await actualizarPerfil(userId, formData)
+        router.push('/cuenta?guardado=1')
+      } catch {
+        setErrorGuardado('No se pudieron guardar los cambios. Intentá de nuevo.')
+      }
     })
   }
 
@@ -88,6 +94,9 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
         </div>
       )}
 
+      {errorGuardado && (
+        <p className="text-sm text-center" style={{ color: '#ef4444' }}>{errorGuardado}</p>
+      )}
       <button
         type="submit"
         disabled={isPending}
