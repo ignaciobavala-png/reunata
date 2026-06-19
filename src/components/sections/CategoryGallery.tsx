@@ -93,7 +93,7 @@ export function CategoryGallery() {
               <Link
                 key={cat.id}
                 href={cat.href ?? '/tienda'}
-                className="group relative aspect-[3/4] overflow-hidden block"
+                className="group relative aspect-square overflow-hidden block"
               >
                 {fotoPrincipal ? (
                   <Image
