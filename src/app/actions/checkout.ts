@@ -12,6 +12,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 interface CheckoutItem {
   productoId: number
   cantidad: number
+  variante?: string
 }
 
 interface GuestData {
@@ -135,7 +136,7 @@ export async function iniciarCheckoutMP(
     // El checkout es solo para consumidor_final → aplicar IVA al precio neto
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     const precioConIva = Math.round(precioArs * (1 + ivaRate))
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva }]
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, variante: item.variante ?? null }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -193,6 +194,7 @@ export async function iniciarCheckoutMP(
       producto_id: l.productoId,
       cantidad: l.cantidad,
       precio_unit: l.precioUnit,
+      variante: l.variante ?? null,
     }))
   )
   if (itemsError) {

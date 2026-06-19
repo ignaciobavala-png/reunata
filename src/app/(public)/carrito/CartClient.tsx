@@ -145,10 +145,15 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     else updateCantidad(itemKey, nueva)
   }
 
-  function handleInput(itemKey: string, value: string, multiplo: number) {
+  function handleInput(itemKey: string, value: string, multiplo: number, productoId: number) {
     const n = parseInt(value)
     if (isNaN(n) || n <= 0) return
-    const redondeado = Math.ceil(n / multiplo) * multiplo
+    let redondeado = Math.ceil(n / multiplo) * multiplo
+    const stockDisponible = stocks[productoId]
+    if (stockDisponible != null && redondeado > stockDisponible) {
+      redondeado = Math.floor(stockDisponible / multiplo) * multiplo
+      if (redondeado <= 0) return
+    }
     updateCantidad(itemKey, redondeado)
   }
 
@@ -159,7 +164,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     setGuestErrors(null)
 
     const result = await iniciarCheckoutMP(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
       guestOverride,
       envioSeleccionado
         ? {
@@ -380,7 +385,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                           value={item.cantidad}
                           min={multiplo}
                           step={multiplo}
-                          onChange={e => handleInput(itemKey, e.target.value, multiplo)}
+                          onChange={e => handleInput(itemKey, e.target.value, multiplo, item.productoId)}
                           className="w-14 text-center text-base font-semibold tabular-nums outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           style={{ color: 'var(--foreground)' }}
                         />
