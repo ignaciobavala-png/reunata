@@ -98,11 +98,12 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
           return (
             <button
               key={v.nombre}
-              onClick={() => onSelect(v.nombre)}
+              onClick={() => !sinStock && onSelect(v.nombre)}
+              disabled={sinStock}
               title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
               aria-label={`Color ${v.nombre}${sinStock ? ', sin stock' : ''}`}
               aria-pressed={isSelected}
-              className="relative rounded transition-transform"
+              className="relative rounded transition-transform disabled:cursor-not-allowed"
               style={{
                 width: 28,
                 height: 28,

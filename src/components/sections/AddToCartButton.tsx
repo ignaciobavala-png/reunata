@@ -29,6 +29,14 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
 
   const tieneVariantes = (producto.variantes?.length ?? 0) > 0
 
+  function handleSelectVariante(nombre: string) {
+    setVarianteSeleccionada(nombre)
+    setCantidad(multiplo)
+  }
+
+  const varianteActual = producto.variantes?.find(v => v.nombre === varianteSeleccionada) ?? null
+  const stockVariante = varianteActual?.stock ?? Infinity
+
   const itemKey = `${producto.id}:${varianteSeleccionada ?? ''}`
   const itemEnCarrito = items.find(i => (i.itemKey ?? `${i.productoId}:`) === itemKey)
   const cantidadMostrada = itemEnCarrito?.cantidad ?? cantidad
@@ -43,10 +51,12 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
   }
 
   function handleMas() {
+    const maxCantidad = stockVariante > 0 ? stockVariante : Infinity
     if (itemEnCarrito) {
-      updateCantidad(itemKey, itemEnCarrito.cantidad + multiplo)
+      const nueva = itemEnCarrito.cantidad + multiplo
+      updateCantidad(itemKey, Math.min(nueva, maxCantidad))
     } else {
-      setCantidad(prev => prev + multiplo)
+      setCantidad(prev => Math.min(prev + multiplo, maxCantidad))
     }
   }
 
@@ -84,7 +94,7 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
         <ColorPicker
           variantes={producto.variantes!}
           selected={varianteSeleccionada}
-          onSelect={setVarianteSeleccionada}
+          onSelect={handleSelectVariante}
         />
       )}
 
