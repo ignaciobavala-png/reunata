@@ -83,6 +83,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [guestEmail, setGuestEmail]       = useState('')
   const [guestTelefono, setGuestTelefono] = useState('')
   const [guestErrors, setGuestErrors]     = useState<string | null>(null)
+  const [guestModalOpen, setGuestModalOpen] = useState(false)
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
@@ -633,43 +634,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
             <>
-              <div>
-                <p className="text-xs font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  Tus datos para el pedido
-                </p>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    placeholder="Nombre y apellido *"
-                    value={guestNombre}
-                    onChange={e => { setGuestNombre(e.target.value); setGuestErrors(null) }}
-                    className={inputClass}
-                    style={inputStyle}
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email *"
-                    value={guestEmail}
-                    onChange={e => { setGuestEmail(e.target.value); setGuestErrors(null) }}
-                    className={inputClass}
-                    style={inputStyle}
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Teléfono (opcional)"
-                    value={guestTelefono}
-                    onChange={e => setGuestTelefono(e.target.value)}
-                    className={inputClass}
-                    style={inputStyle}
-                  />
-                </div>
-                {guestErrors && (
-                  <p className="text-xs mt-1.5" style={{ color: '#ef4444' }}>{guestErrors}</p>
-                )}
-              </div>
-
               <button
-                onClick={handlePagarGuest}
+                onClick={() => setGuestModalOpen(true)}
                 disabled={pagando || hayProblemaStock}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
@@ -705,6 +671,79 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           )}
         </div>
       </div>
+
+      {/* Modal datos de compra sin cuenta */}
+      {guestModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) setGuestModalOpen(false) }}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl p-6 flex flex-col gap-4"
+            style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                Tus datos para el pedido
+              </p>
+              <button
+                onClick={() => setGuestModalOpen(false)}
+                aria-label="Cerrar"
+                className="w-7 h-7 flex items-center justify-center rounded-full"
+                style={{ background: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                placeholder="Nombre y apellido *"
+                value={guestNombre}
+                onChange={e => { setGuestNombre(e.target.value); setGuestErrors(null) }}
+                className={inputClass}
+                style={inputStyle}
+                autoFocus
+              />
+              <input
+                type="email"
+                placeholder="Email *"
+                value={guestEmail}
+                onChange={e => { setGuestEmail(e.target.value); setGuestErrors(null) }}
+                className={inputClass}
+                style={inputStyle}
+              />
+              <input
+                type="tel"
+                placeholder="Teléfono (opcional)"
+                value={guestTelefono}
+                onChange={e => setGuestTelefono(e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              />
+            </div>
+
+            {guestErrors && (
+              <p className="text-xs" style={{ color: '#ef4444' }}>{guestErrors}</p>
+            )}
+
+            <button
+              onClick={handlePagarGuest}
+              disabled={pagando}
+              className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+              style={{ background: '#009ee3', color: 'white' }}
+            >
+              {pagando ? (
+                <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+              ) : (
+                'Confirmar y pagar'
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Banner medios de pago — ancho completo, solo minoristas y guests */}
       {!esMayorista && (
