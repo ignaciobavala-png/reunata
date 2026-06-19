@@ -93,6 +93,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   useEffect(() => { setMounted(true) }, [])
 
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') setPagando(false)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
   // Refrescar precios y stocks desde DB al montar
   useEffect(() => {
     if (!mounted || items.length === 0) return
