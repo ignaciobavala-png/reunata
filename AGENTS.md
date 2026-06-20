@@ -159,7 +159,7 @@ Para `useEffect`-only: instanciar dentro del efecto.
 | **#7** | ✅ resuelto | `expira_en` en DB + cron `/api/pedidos/limpiar` a las 3am en `vercel.json` |
 | **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
 | **#13** | `app/auth/callback/route.ts:66` | Usar `.upsert()` en lugar de `.update()` para evitar race condition con el trigger `handle_new_user()` |
-| **H** | `app/(public)/tienda/[slug]/page.tsx:55` | `precioSelect` solo incluye `lista3` y `lista5`; distribuidores (lista1) y locales (lista2) ven precio null en todas las páginas de categoría, novedades y más elegidos |
+| **H** | ✅ resuelto | `precioSelect` ya incluye las 5 listas; `extraerPrecio()` usa `listaPrecio` del canal del usuario |
 | **F5/B6** | `carrito/page.tsx` + nuevo endpoint | Precios del carrito no se refrescan contra DB al cargar; requiere `/api/carrito/precios` que CartClient consulte al montar |
 
 ### Mejoras (cuando haya bandwidth)
