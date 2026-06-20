@@ -134,15 +134,17 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - **Loading skeletons** — 8 rutas con `loading.tsx`: `/tienda`, `/tienda/[slug]`, `/tienda/p/[id]`, `/catalogo`, `/favoritos`, `/dashboard`, `/dashboard/admin/productos`, `/dashboard/admin/multimedia`
 - **Detalle de pedido** — muestra desglose Subtotal + Envío cuando hay costo de envío; `PagoInstrucciones` también lo desglosa en instrucciones de transferencia
 - **Botón "Ver tienda"** — hero redirige correctamente a `/tienda` (se removió el Hero duplicado que tenía esa página)
+- **Admin pedidos — detalle y gestión** — `/dashboard/admin/pedidos/[id]`: ítems, cliente (registrado o "No registrado"), medio de pago, notas, comprobantes con signed URL 1h. `EstadoActions` permite avanzar estado según máquina de estados (pendiente→confirmado→preparación→enviado→entregado / cancelar). `actualizarEstadoPedido` escribe `fecha_pago` al confirmar. Lista con botón "Ver / Gestionar" por fila.
+- **Webhook MP corregido** — `MP_WEBHOOK_SECRET` tenía `\n` en Vercel; re-cargado sin newline. Webhooks de MP ahora verifican HMAC correctamente y actualizan pedidos automáticamente.
 <!-- END:features -->
 
 <!-- BEGIN:pending -->
 ## Pendiente
 
 ### Variables de entorno para producción
-- `MP_ACCESS_TOKEN` — token real de MercadoPago (no sandbox)
-- `NEXT_PUBLIC_APP_URL` — dominio de producción
-- `MP_WEBHOOK_SECRET` — secret del webhook en el dashboard de MP (requerido para verificación HMAC)
+- `MP_ACCESS_TOKEN` — ✅ configurado con token de producción
+- `NEXT_PUBLIC_APP_URL` — ✅ `https://reunata.vercel.app` (actualizar cuando haya dominio propio)
+- `MP_WEBHOOK_SECRET` — ✅ configurado y verificado (sin `\n` al final)
 
 ### Pre-lanzamiento obligatorio (ver `docs/auditorias/auditoria.md` y `docs/roadmap/checklist-lanzamiento.md`)
 - **Email confirmación Supabase** — verificar que el template apunte al dominio de producción, no localhost
@@ -154,7 +156,7 @@ Para `useEffect`-only: instanciar dentro del efecto.
 | # | Archivo | Fix |
 |---|---------|-----|
 | **#8** | `components/sections/FloatingActions.tsx:83` | Usar `formatPrecio(item.precio)` en OfferDrawer (precio crudo sin formato) |
-| **#7** | `pedidos` tabla + cron | Agregar `expira_en` y cron/edge function que cancele pedidos `pendiente_pago` > 24h |
+| **#7** | ✅ resuelto | `expira_en` en DB + cron `/api/pedidos/limpiar` a las 3am en `vercel.json` |
 | **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
 | **#13** | `app/auth/callback/route.ts:66` | Usar `.upsert()` en lugar de `.update()` para evitar race condition con el trigger `handle_new_user()` |
 | **H** | `app/(public)/tienda/[slug]/page.tsx:55` | `precioSelect` solo incluye `lista3` y `lista5`; distribuidores (lista1) y locales (lista2) ven precio null en todas las páginas de categoría, novedades y más elegidos |
