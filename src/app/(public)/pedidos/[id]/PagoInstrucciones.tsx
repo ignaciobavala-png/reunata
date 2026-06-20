@@ -36,11 +36,13 @@ function Copiable({ value, label }: { value: string; label: string }) {
 export function PagoInstrucciones({
   pedidoId,
   total,
+  costoEnvio,
   cfg,
   estado,
 }: {
   pedidoId: string
   total: number
+  costoEnvio?: number
   cfg: Record<string, string>
   estado: string
 }) {
@@ -82,7 +84,15 @@ export function PagoInstrucciones({
           <Copiable label="Banco"         value={cfg['banco_nombre'] ?? ''} />
           <Copiable label="Titular"       value={cfg['banco_razon_social'] ?? ''} />
           <Copiable label="CUIT"          value={cfg['banco_cuit'] ?? ''} />
-          <Copiable label="Monto exacto"  value={formatPrecio(total)} />
+          {costoEnvio && costoEnvio > 0 ? (
+            <>
+              <Copiable label="Subtotal productos" value={formatPrecio(total - costoEnvio)} />
+              <Copiable label="Envío"              value={formatPrecio(costoEnvio)} />
+              <Copiable label="Monto exacto"       value={formatPrecio(total)} />
+            </>
+          ) : (
+            <Copiable label="Monto exacto" value={formatPrecio(total)} />
+          )}
           <Copiable label="Referencia"    value={`Pedido #${ref}`} />
         </div>
       )}

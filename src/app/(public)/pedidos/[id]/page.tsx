@@ -36,7 +36,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, estado, medio_pago, total_usd, notas, created_at,
+      id, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -110,6 +110,26 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                 </tr>
               )
             })}
+            {(pedido.costo_envio ?? 0) > 0 && (
+              <>
+                <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                  <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Subtotal productos
+                  </td>
+                  <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {formatPrecio(Number(pedido.total_usd) - Number(pedido.costo_envio))}
+                  </td>
+                </tr>
+                <tr style={{ background: 'var(--color-acero-brillo)' }}>
+                  <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {pedido.envio_descripcion ? `Envío · ${pedido.envio_descripcion}` : 'Envío'}
+                  </td>
+                  <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {formatPrecio(Number(pedido.costo_envio))}
+                  </td>
+                </tr>
+              </>
+            )}
             <tr style={{ borderTop: '2px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
               <td colSpan={3} className="px-4 py-3 text-right font-medium text-sm" style={{ color: 'var(--foreground)' }}>
                 Total
@@ -126,6 +146,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
         <PagoInstrucciones
           pedidoId={pedido.id}
           total={Number(pedido.total_usd)}
+          costoEnvio={pedido.costo_envio ? Number(pedido.costo_envio) : undefined}
           cfg={cfg}
           estado={pedido.estado}
         />
