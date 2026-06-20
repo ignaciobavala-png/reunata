@@ -1,0 +1,59 @@
+RESUMEN DE MEJORAS — Reunata Web
+Sesión 16 de junio de 2026
+================================
+
+Esto es lo que arreglamos y mejoramos hoy:
+
+---
+
+1. PANEL DE PRODUCTOS: VISTA DE CANALES Y BULTOS
+   Gastón no podía ver ni editar los "múltiplos de compra" (bultos).
+   Ahora en el panel de Productos hay dos vistas: "Lista" y "Canales".
+   En la vista Canales se ve la grilla completa de qué productos están
+   habilitados para cada canal de venta, y cuántas unidades mínimas pide
+   cada uno. Además, si quitás y volvés a poner un producto en un canal,
+   el número de bultos ya configurado no se borra.
+
+2. SECCIÓN "MÁS ELEGIDOS": MISMA CANTIDAD EN TODOS LADOS
+   La sección "Más elegidos" mostraba distinta cantidad de productos
+   según si se entraba desde el inicio o desde el menú. Ahora siempre
+   muestra los mismos productos y la misma cantidad en todos lados.
+
+3. SCROLL AL VOLVER ATRÁS
+   Cuando alguien entraba a la ficha de un producto y apretaba "volver",
+   la página quedaba posicionada al fondo en lugar de arrancar desde
+   arriba. Eso está arreglado: ahora siempre vuelve al inicio de la página.
+
+4. PRECIOS EN "AR$" EN VEZ DE "$"
+   Los precios se mostraban con el signo "$" que puede confundirse con
+   dólares. Ahora aparecen como "AR$ 7.840" para que quede claro que
+   son pesos argentinos.
+
+5. MERCADO PAGO: CONEXIÓN RESTABLECIDA
+   El checkout de Mercado Pago no conectaba porque le faltaba saber
+   cuál es la dirección del sitio en producción. Eso fue configurado.
+   Ahora cuando un cliente quiere pagar con tarjeta, el proceso debería
+   funcionar correctamente.
+
+6. RECUPERACIÓN DE CONTRASEÑA
+   Antes, si alguien olvidaba su contraseña, la página solo decía
+   "escribinos por WhatsApp". Ahora hay un formulario real: el cliente
+   ingresa su email, recibe un link, hace clic y elige una contraseña nueva.
+   Todo automático, sin intervención manual.
+
+7. PRECIOS COHERENTES EN TODO EL PROCESO DE COMPRA (MINORISTAS)
+   Los precios que se ven en la tienda ya incluyen el IVA. Antes, esos
+   mismos precios aparecían sin IVA dentro del carrito y era lo que se
+   terminaba cobrando. Ahora el precio que se ve en la tienda es
+   exactamente el mismo que aparece en el carrito y el que cobra
+   Mercado Pago. Sin sorpresas.
+   (Los mayoristas no se ven afectados — para ellos el precio sin IVA
+   sigue siendo el precio operativo, como siempre.)
+
+---
+
+PENDIENTE ANTES DE QUE FUNCIONE LA RECUPERACIÓN DE CONTRASEÑA:
+   Hay que agregar una URL en el panel de Supabase para que los emails
+   de recuperación funcionen en producción. Ignacio tiene el detalle.
+
+================================

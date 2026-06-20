@@ -1,0 +1,24 @@
+MERCADO PAGO — ACCIÓN REQUERIDA DE GASTÓN
+==========================================
+
+La integración con Mercado Pago está lista del lado técnico.
+El problema es que la cuenta de Mercado Pago de Gastón no está
+habilitada para recibir pagos reales.
+
+QUÉ TIENE QUE HACER GASTÓN
+---------------------------
+
+Entrar a mercadopago.com.ar (no al panel de desarrolladores)
+con su cuenta y verificar que:
+
+1. Tiene el DNI o CUIT cargado y verificado.
+2. Tiene una cuenta bancaria o CVU vinculada para recibir el dinero.
+3. El estado de la cuenta aparece como "Habilitada para cobrar".
+
+Hasta que esto no esté completo, Mercado Pago muestra el error
+"Una de las partes con la que intentás hacer el pago es de prueba"
+a cualquier persona que intente comprar, sin importar lo que haga
+el comprador.
+
+Una vez que Gastón complete la verificación, el checkout funciona
+automáticamente sin necesidad de ningún cambio adicional.
