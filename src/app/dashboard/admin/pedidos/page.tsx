@@ -124,7 +124,7 @@ export default async function PedidosPage({
                         <p style={{ color: 'var(--foreground)' }}>{nombreMostrado}</p>
                         {esGuest && (
                           <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f59e0b22', color: '#f59e0b' }}>
-                            Invitado
+                            No registrado
                           </span>
                         )}
                       </div>

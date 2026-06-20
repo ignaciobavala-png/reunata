@@ -108,14 +108,14 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       {/* Info del cliente */}
       <div className="rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {esGuest ? 'Comprador invitado' : 'Cliente'}
+          {esGuest ? 'Comprador no registrado' : 'Cliente'}
         </h2>
         <div className="flex flex-col gap-1">
           <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
             {nombreCliente}
             {esGuest && (
               <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: '#f59e0b22', color: '#f59e0b' }}>
-                Invitado
+                No registrado
               </span>
             )}
           </p>
