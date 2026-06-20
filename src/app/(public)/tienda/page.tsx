@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Hero } from '@/components/sections/Hero'
 
 export const metadata: Metadata = {
   title: 'Tienda — Mates, termos y accesorios',
@@ -129,7 +128,6 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <Hero />
       <PromoTicker />
       <CategoryGallery />
       <ProductSlider fotos={fotos} />
