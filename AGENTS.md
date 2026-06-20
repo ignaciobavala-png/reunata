@@ -131,6 +131,9 @@ Para `useEffect`-only: instanciar dentro del efecto.
 - **Roles** — `consumidor_final|distribuidor|local|mercha` no tienen `/dashboard`; rutas públicas `/cuenta` y `/pedidos`
 - **Navbar** — sesión server-side, dropdown según rol, categorías desde DB
 - **Páginas provisorias** — 12 rutas cubiertas: `/eventos`, `/franquicias`, `/faq`, `/terminos`, etc.
+- **Loading skeletons** — 8 rutas con `loading.tsx`: `/tienda`, `/tienda/[slug]`, `/tienda/p/[id]`, `/catalogo`, `/favoritos`, `/dashboard`, `/dashboard/admin/productos`, `/dashboard/admin/multimedia`
+- **Detalle de pedido** — muestra desglose Subtotal + Envío cuando hay costo de envío; `PagoInstrucciones` también lo desglosa en instrucciones de transferencia
+- **Botón "Ver tienda"** — hero redirige correctamente a `/tienda` (se removió el Hero duplicado que tenía esa página)
 <!-- END:features -->
 
 <!-- BEGIN:pending -->
