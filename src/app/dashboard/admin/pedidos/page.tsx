@@ -150,7 +150,7 @@ export default async function PedidosPage({
                         className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-70"
                         style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
                       >
-                        Ver
+                        Ver / Gestionar
                       </Link>
                     </td>
                   </tr>
