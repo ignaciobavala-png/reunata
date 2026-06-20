@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ShoppingCart } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
+import Link from 'next/link'
 
 const LABEL_ESTADO: Record<string, string> = {
   borrador:           'Borrador',
@@ -93,7 +94,7 @@ export default async function PedidosPage({
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--color-granito-oscuro)' }}>
-                {['Nº Pedido', 'Cliente', 'Estado', 'Medio de pago', 'Total', 'Fecha'].map(h => (
+                {['Nº Pedido', 'Cliente', 'Estado', 'Medio de pago', 'Total', 'Fecha', ''].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     {h}
                   </th>
@@ -142,6 +143,15 @@ export default async function PedidosPage({
                     </td>
                     <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
                       {new Date(p.created_at).toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/dashboard/admin/pedidos/${p.id}`}
+                        className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-70"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                      >
+                        Ver
+                      </Link>
                     </td>
                   </tr>
                 )

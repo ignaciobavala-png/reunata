@@ -136,7 +136,10 @@ export async function confirmarPago(pedidoId: string, medioPago: string, referen
 
 export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
   const supabase = await createClient()
-  await supabase.from('pedidos').update({ estado }).eq('id', pedidoId)
+  const updates: Record<string, unknown> = { estado }
+  if (estado === 'pago_confirmado') updates.fecha_pago = new Date().toISOString()
+  await supabase.from('pedidos').update(updates).eq('id', pedidoId)
   revalidatePath('/dashboard/admin/pedidos')
+  revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
   revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
 }
