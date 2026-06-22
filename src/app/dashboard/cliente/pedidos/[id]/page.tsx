@@ -33,7 +33,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at,
+      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -60,7 +60,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-            Pedido #{id.slice(-8).toUpperCase()}
+            Pedido #{pedido.numero}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {new Date(pedido.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -144,7 +144,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
       {/* Instrucciones de pago */}
       {mostrarInstrucciones && (
         <PagoInstrucciones
-          pedidoId={pedido.id}
+          numero={pedido.numero}
           total={Number(pedido.total_usd)}
           costoEnvio={pedido.costo_envio ? Number(pedido.costo_envio) : undefined}
           cfg={cfg}

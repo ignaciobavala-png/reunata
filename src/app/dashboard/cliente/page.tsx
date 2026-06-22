@@ -47,7 +47,7 @@ export default async function ClienteDashboardPage() {
   const [pedidosRes, canalRes] = await Promise.all([
     supabase
       .from('pedidos')
-      .select('id, estado, created_at, total_usd', { count: 'exact' })
+      .select('id, numero, estado, created_at, total_usd', { count: 'exact' })
       .eq('cliente_id', user.id)
       .neq('estado', 'borrador')
       .order('created_at', { ascending: false })
@@ -174,7 +174,7 @@ export default async function ClienteDashboardPage() {
               >
                 <div>
                   <span className="font-mono text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    #{p.id.slice(-8).toUpperCase()}
+                    #{p.numero}
                   </span>
                   <span className="ml-3 text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {new Date(p.created_at).toLocaleDateString('es-AR')}

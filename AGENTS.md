@@ -155,7 +155,7 @@ Para `useEffect`-only: instanciar dentro del efecto.
 
 | # | Archivo | Fix |
 |---|---------|-----|
-| **#8** | `components/sections/FloatingActions.tsx:83` | Usar `formatPrecio(item.precio)` en OfferDrawer (precio crudo sin formato) |
+| **#8** | ✅ resuelto | `formatPrecio()` ya aplicado en OfferDrawer |
 | **#7** | ✅ resuelto | `expira_en` en DB + cron `/api/pedidos/limpiar` a las 3am en `vercel.json` |
 | **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
 | **#13** | `app/auth/callback/route.ts:66` | Usar `.upsert()` en lugar de `.update()` para evitar race condition con el trigger `handle_new_user()` |

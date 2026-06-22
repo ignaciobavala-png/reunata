@@ -15,6 +15,12 @@ export default async function CheckoutExitoPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  let numeroPedido: number | null = null
+  if (pedidoId) {
+    const { data } = await supabase.from('pedidos').select('numero').eq('id', pedidoId).single()
+    numeroPedido = data?.numero ?? null
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--background)' }}>
       <ClearCart />
@@ -33,9 +39,9 @@ export default async function CheckoutExitoPage({
           </p>
         </div>
 
-        {pedidoId && (
+        {numeroPedido && (
           <p className="text-xs font-mono px-3 py-1.5 rounded" style={{ background: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
-            Pedido # {pedidoId.slice(0, 8).toUpperCase()}
+            Pedido #{numeroPedido}
           </p>
         )}
 

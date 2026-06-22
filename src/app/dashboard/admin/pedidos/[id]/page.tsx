@@ -36,7 +36,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
+      id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       guest_nombre, guest_email, guest_telefono,
       pedido_items (
@@ -86,7 +86,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             Volver a pedidos
           </Link>
           <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-            Pedido #{id.slice(0, 8).toUpperCase()}
+            Pedido #{pedido.numero}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {new Date(pedido.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
