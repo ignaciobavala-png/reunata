@@ -144,7 +144,16 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
             {producto.mostrar_stock && (() => {
               const cantidad = producto.stock_visible ?? producto.stock
-              if (cantidad === null || cantidad > 0) return null
+              if (cantidad === null || cantidad > 0) {
+                if (cantidad !== null && cantidad > 0 && cantidad <= 5) {
+                  return (
+                    <p className="text-xs mb-3 font-medium" style={{ color: '#f59e0b' }}>
+                      Últimas {cantidad} unidades
+                    </p>
+                  )
+                }
+                return null
+              }
               return (
                 <p className="text-xs mb-3" style={{ color: '#ef4444' }}>Sin stock</p>
               )
@@ -180,6 +189,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                     foto_url: fotos[0]?.url ?? null,
                     supabaseUrl,
                     variantes: (producto.variantes as { nombre: string; stock: number }[] | null) ?? null,
+                    stock: producto.stock ?? null,
                   }}
                 />
                 <PaymentInfo esMayorista={esMayorista} />

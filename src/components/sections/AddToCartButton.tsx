@@ -17,6 +17,7 @@ interface Props {
     foto_url: string | null
     supabaseUrl: string
     variantes?: Variante[] | null
+    stock?: number | null
   }
   esMayorista?: boolean
   // Fuente canónica para aritmética de IVA — derivada de listaPrecio en el server.
@@ -38,7 +39,11 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
   }
 
   const varianteActual = producto.variantes?.find(v => v.nombre === varianteSeleccionada) ?? null
-  const stockVariante = varianteActual?.stock ?? Infinity
+  // Para productos con variantes: usar stock de la variante seleccionada (cada color es independiente).
+  // Para productos sin variantes: usar producto.stock como límite si está disponible.
+  const stockVariante = tieneVariantes
+    ? (varianteActual?.stock ?? Infinity)
+    : (producto.stock != null ? producto.stock : Infinity)
 
   const itemKey = `${producto.id}:${varianteSeleccionada ?? ''}`
   const itemEnCarrito = items.find(i => (i.itemKey ?? `${i.productoId}:`) === itemKey)
@@ -125,7 +130,8 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
           </span>
           <button
             onClick={handleMas}
-            className={btnClass}
+            disabled={stockVariante !== Infinity && cantidadMostrada + multiplo > stockVariante}
+            className={`${btnClass} disabled:opacity-30 disabled:cursor-not-allowed`}
             style={{ color: 'var(--color-granito)' }}
             aria-label="Aumentar cantidad"
           >
