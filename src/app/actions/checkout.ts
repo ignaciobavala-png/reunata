@@ -130,7 +130,7 @@ export async function iniciarCheckoutMP(
 
   const lineas = items.flatMap(item => {
     const prod = productos.find(p => p.id === item.productoId)
-    if (!prod || !prod.precio_lista5) return []
+    if (!prod || prod.precio_lista5 == null) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
     // El checkout es solo para consumidor_final → aplicar IVA al precio neto
