@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { logout } from '@/app/actions/auth'
+import { LogoutButton } from '@/components/LogoutButton'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
@@ -246,16 +246,13 @@ export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string
             {LABEL_ROL[rol]}
           </p>
         </div>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150"
-            style={{ color: 'var(--color-acero-oscuro)' }}
-          >
-            <LogOut size={14} strokeWidth={1.5} />
-            Cerrar sesión
-          </button>
-        </form>
+        <LogoutButton
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150"
+          style={{ color: 'var(--color-acero-oscuro)' }}
+        >
+          <LogOut size={14} strokeWidth={1.5} />
+          Cerrar sesión
+        </LogoutButton>
       </div>
     </aside>
   )

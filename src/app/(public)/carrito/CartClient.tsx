@@ -235,7 +235,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   // Ajuste por método de pago (mayoristas)
   const metodosDisponibles = reglas
-    ? METODOS_CONTADO.filter(k => reglas.pagos_habilitados[k]?.activo)
+    ? METODOS_CONTADO.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
@@ -369,7 +369,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       )}
                       {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          {formatPrecio(item.precio)} c/u
+                          {formatPrecio(item.precio)} c/u{esMayorista ? ' s/ IVA' : ''}
                         </p>
                       )}
                     </div>
@@ -485,7 +485,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
-                  <span>Total</span>
+                  <span>Total{esMayorista ? ' s/ IVA' : ''}</span>
                   <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
                 </div>
               </>

@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Search, Menu, X, ChevronDown, User } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
-import { logout } from '@/app/actions/auth'
+import { LogoutButton } from '@/components/LogoutButton'
 
 const ROLES_INTERNOS = ['master', 'empleado', 'comisionista']
 
@@ -390,15 +390,12 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                     </>
                   )}
                   <div className="mx-5 h-px" style={{ background: 'var(--color-acero-claro)' }} />
-                  <form action={logout}>
-                    <button
-                      type="submit"
-                      className="block w-full text-left px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                      style={{ color: 'var(--color-acero-oscuro)' }}
-                    >
-                      Cerrar sesión
-                    </button>
-                  </form>
+                  <LogoutButton
+                    className="block w-full text-left px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
+                    style={{ color: 'var(--color-acero-oscuro)' }}
+                  >
+                    Cerrar sesión
+                  </LogoutButton>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -549,15 +546,12 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                 </Link>
               </>
             )}
-            <form action={logout}>
-              <button
-                type="submit"
-                className="text-lg text-[var(--color-acero-oscuro)] py-1 text-left"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Cerrar sesión
-              </button>
-            </form>
+            <LogoutButton
+              className="text-lg text-[var(--color-acero-oscuro)] py-1 text-left"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Cerrar sesión
+            </LogoutButton>
           </div>
         ) : (
           <Link

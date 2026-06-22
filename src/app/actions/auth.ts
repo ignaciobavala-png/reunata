@@ -14,7 +14,8 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    redirect('/login?error=credenciales_invalidas')
+    const email = encodeURIComponent((formData.get('email') as string) ?? '')
+    redirect(`/login?error=credenciales_invalidas&email=${email}`)
   }
 
   const { data: { user } } = await supabase.auth.getUser()
