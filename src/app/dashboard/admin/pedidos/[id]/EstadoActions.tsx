@@ -6,6 +6,10 @@ import { actualizarEstadoPedido } from '@/app/actions/pedidos'
 import { Loader2 } from 'lucide-react'
 
 const TRANSICIONES: Record<string, { label: string; estado: string; danger?: boolean }[]> = {
+  borrador:           [
+    { label: 'Confirmar pedido', estado: 'pendiente_pago' },
+    { label: 'Cancelar pedido',  estado: 'cancelado', danger: true },
+  ],
   pendiente_pago:     [
     { label: 'Confirmar pago',   estado: 'pago_confirmado' },
     { label: 'Cancelar pedido',  estado: 'cancelado', danger: true },

@@ -36,14 +36,14 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
+      id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       guest_nombre, guest_email, guest_telefono,
       pedido_items (
         id, cantidad, precio_unit, variante,
         producto:producto_id ( id, codigo_interno, titulo )
       ),
-      cliente:cliente_id ( nombre, email, telefono, rol )
+      cliente:cliente_id ( nombre, razon_social, email, telefono, rol, cuit_dni, direccion, localidad, sitio_web, puntos_venta )
     `)
     .eq('id', id)
     .single()
@@ -65,12 +65,16 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   )
 
   const col = COLOR_ESTADO[pedido.estado] ?? { bg: '#88888822', text: '#888888' }
-  const cliente = pedido.cliente as { nombre?: string; email?: string; telefono?: string; rol?: string } | null
+  const cliente = pedido.cliente as {
+    nombre?: string; razon_social?: string; email?: string; telefono?: string; rol?: string
+    cuit_dni?: string; direccion?: string; localidad?: string; sitio_web?: string; puntos_venta?: number
+  } | null
   const esGuest = !cliente
 
   const nombreCliente = cliente?.nombre ?? (pedido as any).guest_nombre ?? '—'
   const emailCliente  = cliente?.email  ?? (pedido as any).guest_email  ?? ''
   const telCliente    = cliente?.telefono ?? (pedido as any).guest_telefono ?? ''
+  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(cliente?.rol ?? '')
 
   return (
     <div className="p-8 max-w-3xl">
@@ -86,7 +90,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             Volver a pedidos
           </Link>
           <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-            Pedido #{id.slice(0, 8).toUpperCase()}
+            Pedido #{pedido.numero}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
             {new Date(pedido.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -112,13 +116,16 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
         </h2>
         <div className="flex flex-col gap-1">
           <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
-            {nombreCliente}
+            {esMayorista && cliente?.razon_social ? cliente.razon_social : nombreCliente}
             {esGuest && (
               <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: '#f59e0b22', color: '#f59e0b' }}>
                 No registrado
               </span>
             )}
           </p>
+          {esMayorista && cliente?.razon_social && (
+            <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>Contacto: {nombreCliente}</p>
+          )}
           {emailCliente && (
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{emailCliente}</p>
           )}
@@ -129,6 +136,24 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             <p className="text-xs capitalize mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
               Rol: {cliente.rol.replace('_', ' ')}
             </p>
+          )}
+          {esMayorista && (cliente?.cuit_dni || cliente?.direccion || cliente?.localidad || cliente?.sitio_web || cliente?.puntos_venta != null) && (
+            <div className="mt-2 pt-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+              {cliente?.cuit_dni && (
+                <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>CUIT/DNI: {cliente.cuit_dni}</p>
+              )}
+              {(cliente?.direccion || cliente?.localidad) && (
+                <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  {[cliente?.direccion, cliente?.localidad].filter(Boolean).join(', ')}
+                </p>
+              )}
+              {cliente?.sitio_web && (
+                <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{cliente.sitio_web}</p>
+              )}
+              {cliente?.puntos_venta != null && (
+                <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Puntos de venta: {cliente.puntos_venta}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

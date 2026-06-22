@@ -17,11 +17,15 @@ interface Props {
     foto_url: string | null
     supabaseUrl: string
     variantes?: Variante[] | null
+    stock?: number | null
   }
   esMayorista?: boolean
+  // Fuente canónica para aritmética de IVA — derivada de listaPrecio en el server.
+  // Cuando se pasa explícitamente, tiene precedencia sobre `!esMayorista`.
+  aplicaIva?: boolean
 }
 
-export function AddToCartButton({ producto, esMayorista = false }: Props) {
+export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Props) {
   const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
   const [cantidad, setCantidad] = useState(multiplo)
@@ -35,7 +39,11 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
   }
 
   const varianteActual = producto.variantes?.find(v => v.nombre === varianteSeleccionada) ?? null
-  const stockVariante = varianteActual?.stock ?? Infinity
+  // Para productos con variantes: usar stock de la variante seleccionada (cada color es independiente).
+  // Para productos sin variantes: usar producto.stock como límite si está disponible.
+  const stockVariante = tieneVariantes
+    ? (varianteActual?.stock ?? Infinity)
+    : (producto.stock != null ? producto.stock : Infinity)
 
   const itemKey = `${producto.id}:${varianteSeleccionada ?? ''}`
   const itemEnCarrito = items.find(i => (i.itemKey ?? `${i.productoId}:`) === itemKey)
@@ -62,9 +70,10 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
 
   function handleAgregar() {
     const precioBase = producto.precio ?? 0
-    const precioCarrito = esMayorista
-      ? precioBase
-      : Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
+    const debeAplicarIva = aplicaIva ?? !esMayorista
+    const precioCarrito = debeAplicarIva
+      ? Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
+      : precioBase
     if (itemEnCarrito) {
       updateCantidad(itemKey, itemEnCarrito.cantidad + cantidad)
     } else {
@@ -121,7 +130,8 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
           </span>
           <button
             onClick={handleMas}
-            className={btnClass}
+            disabled={stockVariante !== Infinity && cantidadMostrada + multiplo > stockVariante}
+            className={`${btnClass} disabled:opacity-30 disabled:cursor-not-allowed`}
             style={{ color: 'var(--color-granito)' }}
             aria-label="Aumentar cantidad"
           >

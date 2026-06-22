@@ -76,6 +76,9 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
+  const [refreshingPrecios, setRefreshingPrecios] = useState(false)
+  const [preciosCambiaron, setPreciosCambiaron] = useState(false)
+  const [refreshFallo, setRefreshFallo] = useState(false)
   const router = useRouter()
 
   // Formulario de invitado
@@ -106,6 +109,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   useEffect(() => {
     if (!mounted || items.length === 0) return
     const ids = items.map(i => i.productoId)
+    const preciosSnapshot = Object.fromEntries(items.map(i => [i.productoId, i.precio]))
+    setRefreshingPrecios(true)
     fetch('/api/carrito/precios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,10 +118,20 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     })
       .then(r => r.json())
       .then(({ precios, stocks: st }) => {
-        if (precios) updatePrecios(precios)
+        if (precios) {
+          const cambiaron = ids.some(
+            id => precios[id] !== undefined && precios[id] !== preciosSnapshot[id]
+          )
+          updatePrecios(precios)
+          if (cambiaron) setPreciosCambiaron(true)
+        }
         if (st) setStocks(st)
+        setRefreshingPrecios(false)
       })
-      .catch(() => {})
+      .catch(() => {
+        setRefreshFallo(true)
+        setRefreshingPrecios(false)
+      })
   // Solo al montar — no re-ejecutar si items cambia
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted])
@@ -235,7 +250,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   // Ajuste por método de pago (mayoristas)
   const metodosDisponibles = reglas
-    ? METODOS_CONTADO.filter(k => reglas.pagos_habilitados[k]?.activo)
+    ? METODOS_CONTADO.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
@@ -270,6 +285,16 @@ export function CartClient({ user, mostrarPrecios }: Props) {
       {guestItemsMerged && user && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
           Mantuvimos los productos que habías agregado antes de iniciar sesión.
+        </div>
+      )}
+      {preciosCambiaron && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+          Los precios de tu carrito se actualizaron. Revisá el total antes de continuar.
+        </div>
+      )}
+      {refreshFallo && !preciosCambiaron && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+          No pudimos verificar los precios actuales. Los montos podrían no estar al día.
         </div>
       )}
       <div className="flex items-start justify-between mb-2">
@@ -369,7 +394,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       )}
                       {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          {formatPrecio(item.precio)} c/u
+                          {formatPrecio(item.precio)} c/u{esMayorista ? ' s/ IVA' : ''}
                         </p>
                       )}
                     </div>
@@ -485,9 +510,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
-                  <span>Total</span>
+                  <span>Total{esMayorista ? ' s/ IVA' : ''}</span>
                   <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
                 </div>
+                {!esMayorista && (
+                  <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Precio de contado. Si pagás en cuotas con tarjeta, Mercado Pago aplica el interés de tu banco.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -508,12 +538,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
             <>
               <button
                 onClick={() => handlePagarMP()}
-                disabled={pagando || hayProblemaStock}
+                disabled={pagando || hayProblemaStock || refreshingPrecios}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >
                 {pagando ? (
                   <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+                ) : refreshingPrecios ? (
+                  <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
                 ) : (
                   'Pagar con Mercado Pago'
                 )}
@@ -636,12 +668,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
             <>
               <button
                 onClick={() => setGuestModalOpen(true)}
-                disabled={pagando || hayProblemaStock}
+                disabled={pagando || hayProblemaStock || refreshingPrecios}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >
                 {pagando ? (
                   <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+                ) : refreshingPrecios ? (
+                  <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
                 ) : (
                   'Pagar con Mercado Pago'
                 )}

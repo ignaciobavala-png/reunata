@@ -118,6 +118,7 @@ export async function subirComprobante(pedidoId: string, path: string) {
   await supabase.from('comprobantes').insert({ pedido_id: pedidoId, url: path })
   await supabase.from('pedidos').update({ estado: 'comprobante_subido' }).eq('id', pedidoId)
   revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
+  revalidatePath(`/pedidos/${pedidoId}`)
 }
 
 export async function confirmarPago(pedidoId: string, medioPago: string, referencia?: string) {

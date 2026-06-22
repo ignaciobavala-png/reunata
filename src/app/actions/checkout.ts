@@ -130,7 +130,7 @@ export async function iniciarCheckoutMP(
 
   const lineas = items.flatMap(item => {
     const prod = productos.find(p => p.id === item.productoId)
-    if (!prod || !prod.precio_lista5) return []
+    if (!prod || prod.precio_lista5 == null) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
     // El checkout es solo para consumidor_final → aplicar IVA al precio neto
@@ -253,7 +253,7 @@ export async function iniciarCheckoutMP(
     return { ok: true, init_point: url }
   } catch (err) {
     await service.from('pedidos').delete().eq('id', pedido.id)
-    console.error('[checkout/mp]', err)
+    console.error('[checkout/mp]', err instanceof Error ? err.message : String(err))
     return { ok: false, error: 'Error al conectar con Mercado Pago. Intentá de nuevo.' }
   }
 }

@@ -39,7 +39,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
       )
       clear()
       setCartOpen(false)
-      router.push(`/dashboard/cliente/pedidos/${pedidoId}`)
+      router.push(`/pedidos/${pedidoId}`)
     } catch (e) {
       setErrorEnvio(e instanceof Error ? e.message : 'Error al enviar el pedido. Intentá de nuevo.')
     } finally {

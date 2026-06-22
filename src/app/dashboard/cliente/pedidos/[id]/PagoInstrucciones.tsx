@@ -34,20 +34,20 @@ function Copiable({ value, label }: { value: string; label: string }) {
 }
 
 export function PagoInstrucciones({
-  pedidoId,
+  numero,
   total,
   costoEnvio,
   cfg,
   estado,
 }: {
-  pedidoId: string
+  numero: number
   total: number
   costoEnvio?: number
   cfg: Record<string, string>
   estado: string
 }) {
   const [metodo, setMetodo] = useState('transferencia_blanco')
-  const ref = pedidoId.slice(-8).toUpperCase()
+  const ref = String(numero)
 
   const waText = encodeURIComponent(
     `Hola Reunata! Quiero avisar que pagué el pedido #${ref} por ${formatPrecio(total)}. Medio: ${metodo.replace('_', ' ')}.`

@@ -34,7 +34,7 @@ export default async function MisPedidosPage() {
 
   const { data: pedidos } = await supabase
     .from('pedidos')
-    .select('id, estado, medio_pago, total_usd, created_at')
+    .select('id, numero, estado, medio_pago, total_usd, created_at')
     .eq('cliente_id', user.id)
     .neq('estado', 'borrador')
     .order('created_at', { ascending: false })
@@ -64,7 +64,7 @@ export default async function MisPedidosPage() {
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    #{p.id.slice(-8).toUpperCase()}
+                    #{p.numero}
                   </span>
                   <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}

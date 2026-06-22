@@ -8,8 +8,8 @@ const ROLES_INTERNOS = ['master', 'empleado', 'comisionista']
 
 export const metadata: Metadata = { title: 'Ingresar' }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
-  const { error, next } = await searchParams
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string; email?: string }> }) {
+  const { error, next, email } = await searchParams
   const { headerUser, headerCategorias } = await getHeaderData()
 
   if (headerUser) {
@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </p>
           </div>
 
-          <LoginForm error={error} next={next} />
+          <LoginForm error={error} next={next} email={email} />
         </div>
       </main>
     </div>

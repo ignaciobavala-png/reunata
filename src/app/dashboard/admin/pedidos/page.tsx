@@ -36,7 +36,7 @@ export default async function PedidosPage({
   let query = supabase
     .from('pedidos')
     .select(`
-      id, estado, medio_pago, total_usd, created_at,
+      id, numero, estado, medio_pago, total_usd, created_at,
       guest_nombre, guest_email,
       cliente:cliente_id ( nombre, email ),
       empleado:empleado_id ( nombre )
@@ -117,7 +117,7 @@ export default async function PedidosPage({
                     }}
                   >
                     <td className="px-4 py-3 font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      {p.id.slice(0, 8).toUpperCase()}
+                      #{p.numero}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

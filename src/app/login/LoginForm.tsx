@@ -26,7 +26,7 @@ function SubmitButton() {
   )
 }
 
-export function LoginForm({ error, next }: { error?: string; next?: string }) {
+export function LoginForm({ error, next, email }: { error?: string; next?: string; email?: string }) {
   return (
     <>
       {error === 'credenciales_invalidas' && (
@@ -43,7 +43,7 @@ export function LoginForm({ error, next }: { error?: string; next?: string }) {
             Email
           </label>
           <input
-            id="email" name="email" type="email" autoComplete="email" required placeholder="tu@email.com"
+            id="email" name="email" type="email" autoComplete="email" required placeholder="tu@email.com" defaultValue={email ?? ''}
             className="w-full rounded-md px-4 py-3 text-sm outline-none transition-colors duration-200"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(168,176,187,0.25)', color: 'var(--color-acero-brillo)' }}
           />
