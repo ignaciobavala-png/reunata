@@ -169,6 +169,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
               <>
                 <AddToCartButton
                   esMayorista={esMayorista}
+                  aplicaIva={listaPrecio === 'precio_lista5'}
                   producto={{
                     id: producto.id,
                     codigo_interno: producto.codigo_interno,

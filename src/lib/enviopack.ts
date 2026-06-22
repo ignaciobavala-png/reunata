@@ -37,13 +37,13 @@ async function getAccessToken(): Promise<string | null> {
     })
     if (!res.ok) {
       const body = await res.text()
-      console.error('[enviopack] auth falló:', res.status, body)
+      console.error('[enviopack] auth falló:', res.status, body.slice(0, 120))
       return null
     }
     const data = await res.json()
     const jwt: string = data.token
     if (!jwt) {
-      console.error('[enviopack] respuesta sin token:', JSON.stringify(data))
+      console.error('[enviopack] respuesta sin token: keys =', Object.keys(data ?? {}))
       return null
     }
 

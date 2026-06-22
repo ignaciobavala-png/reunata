@@ -30,12 +30,14 @@ export function ProductGridPublic({
   mostrarPrecios = false,
   estaLogueado = false,
   esMayorista = false,
+  aplicaIva,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
   mostrarPrecios?: boolean
   estaLogueado?: boolean
   esMayorista?: boolean
+  aplicaIva?: boolean
 }) {
   const { add, items, setCartOpen } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
@@ -95,9 +97,10 @@ export function ProductGridPublic({
       return
     }
     const precioBase = p.precio ?? 0
-    const precioCarrito = esMayorista
-      ? precioBase
-      : Math.round(precioBase * (1 + ((p.iva ?? 21) / 100)))
+    const debeAplicarIva = aplicaIva ?? !esMayorista
+    const precioCarrito = debeAplicarIva
+      ? Math.round(precioBase * (1 + ((p.iva ?? 21) / 100)))
+      : precioBase
     add({
       productoId: p.id,
       itemKey: `${p.id}:`,

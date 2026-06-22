@@ -19,9 +19,12 @@ interface Props {
     variantes?: Variante[] | null
   }
   esMayorista?: boolean
+  // Fuente canónica para aritmética de IVA — derivada de listaPrecio en el server.
+  // Cuando se pasa explícitamente, tiene precedencia sobre `!esMayorista`.
+  aplicaIva?: boolean
 }
 
-export function AddToCartButton({ producto, esMayorista = false }: Props) {
+export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Props) {
   const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
   const [cantidad, setCantidad] = useState(multiplo)
@@ -62,9 +65,10 @@ export function AddToCartButton({ producto, esMayorista = false }: Props) {
 
   function handleAgregar() {
     const precioBase = producto.precio ?? 0
-    const precioCarrito = esMayorista
-      ? precioBase
-      : Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
+    const debeAplicarIva = aplicaIva ?? !esMayorista
+    const precioCarrito = debeAplicarIva
+      ? Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
+      : precioBase
     if (itemEnCarrito) {
       updateCantidad(itemKey, itemEnCarrito.cantidad + cantidad)
     } else {

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const [{ data: productos }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista5, moneda, stock, iva')
+      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock, iva')
       .in('id', ids)
       .eq('activo', true),
     service

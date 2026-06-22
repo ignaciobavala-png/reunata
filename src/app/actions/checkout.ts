@@ -253,7 +253,7 @@ export async function iniciarCheckoutMP(
     return { ok: true, init_point: url }
   } catch (err) {
     await service.from('pedidos').delete().eq('id', pedido.id)
-    console.error('[checkout/mp]', err)
+    console.error('[checkout/mp]', err instanceof Error ? err.message : String(err))
     return { ok: false, error: 'Error al conectar con Mercado Pago. Intentá de nuevo.' }
   }
 }

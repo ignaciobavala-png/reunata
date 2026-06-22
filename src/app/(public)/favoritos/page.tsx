@@ -126,6 +126,8 @@ export default async function FavoritosPage() {
             nombreCategoria="Favoritos"
             mostrarPrecios={mostrarPrecios}
             estaLogueado={!!user}
+            esMayorista={['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')}
+            aplicaIva={listaPrecio === 'precio_lista5'}
           />
         )}
       </div>
