@@ -488,6 +488,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   <span>Total{esMayorista ? ' s/ IVA' : ''}</span>
                   <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
                 </div>
+                {!esMayorista && (
+                  <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Precio de contado. Si pagás en cuotas con tarjeta, Mercado Pago aplica el interés de tu banco.
+                  </p>
+                )}
               </>
             )}
           </div>
