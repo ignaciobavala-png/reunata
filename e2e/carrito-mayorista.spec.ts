@@ -22,7 +22,7 @@ test.describe('Mayorista (local) — logueado y aprobado', () => {
     await page.goto('/carrito')
     await expect(page.getByText(/total s\/ iva/i)).toBeVisible()
     // Mayorista ve botón de WhatsApp, no MP
-    await expect(page.getByRole('link', { name: /enviar pedido/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /pedir por whatsapp/i })).toBeVisible()
     // No debe ver botón de MP
     await expect(page.getByText(/pagar con mercado pago/i)).not.toBeVisible()
   })
