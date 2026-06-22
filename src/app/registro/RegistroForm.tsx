@@ -54,6 +54,7 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
       nombre: data.get('nombre') as string,
       telefono: data.get('telefono') as string,
       rol,
+      razon_social: data.get('razon_social') as string | undefined || undefined,
       cuit_dni: data.get('cuit_dni') as string,
       direccion: data.get('direccion') as string,
       localidad: data.get('localidad') as string,
@@ -139,7 +140,11 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
             <input name="cuit_dni" required className={inputClass} style={inputStyle} placeholder="XX-XXXXXXXX-X" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Nombre y Apellido</label>
+            <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Razón social / Nombre del negocio</label>
+            <input name="razon_social" required className={inputClass} style={inputStyle} placeholder="Mi Empresa S.A." />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Nombre y Apellido del contacto</label>
             <input name="nombre" required className={inputClass} style={inputStyle} placeholder="Nombre del contacto" />
           </div>
           <div className="flex flex-col gap-1.5">
