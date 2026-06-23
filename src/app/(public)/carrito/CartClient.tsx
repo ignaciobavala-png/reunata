@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, Loader2, Minus, Plus, Trash2 } from 'lucide-react'
+import { ShoppingBag, Loader2, Trash2 } from 'lucide-react'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
@@ -197,24 +198,6 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     setEnvioSeleccionado(gratis ? { ...opcion, costo: 0 } : opcion)
   }
 
-  function handleMenos(itemKey: string, cantidad: number, multiplo: number) {
-    const base = cantidad - (cantidad % multiplo)
-    const nueva = base - multiplo
-    if (nueva <= 0) remove(itemKey)
-    else updateCantidad(itemKey, nueva)
-  }
-
-  function handleInput(itemKey: string, value: string, multiplo: number, productoId: number) {
-    const n = parseInt(value)
-    if (isNaN(n) || n <= 0) return
-    let redondeado = Math.ceil(n / multiplo) * multiplo
-    const stockDisponible = stocks[productoId]
-    if (stockDisponible != null && redondeado > stockDisponible) {
-      redondeado = Math.floor(stockDisponible / multiplo) * multiplo
-      if (redondeado <= 0) return
-    }
-    updateCantidad(itemKey, redondeado)
-  }
 
   async function handlePagarMP(guestOverride?: { nombre: string; email: string; telefono?: string }) {
     if (!items.length || pagando) return
@@ -450,37 +433,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
                     {/* Stepper + Eliminar */}
                     <div className="flex items-center gap-4 flex-wrap">
-                      <div
-                        className="flex items-center rounded-lg overflow-hidden"
-                        style={{ border: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}
-                      >
-                        <button
-                          onClick={() => handleMenos(itemKey, item.cantidad, multiplo)}
-                          className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]"
-                          style={{ color: 'var(--color-granito)' }}
-                          aria-label="Reducir cantidad"
-                        >
-                          <Minus size={13} strokeWidth={2.5} />
-                        </button>
-                        <input
-                          type="number"
-                          value={item.cantidad}
-                          min={multiplo}
-                          step={multiplo}
-                          onChange={e => handleInput(itemKey, e.target.value, multiplo, item.productoId)}
-                          className="w-14 text-center text-base font-semibold tabular-nums outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          style={{ color: 'var(--foreground)' }}
-                        />
-                        <button
-                          onClick={() => updateCantidad(itemKey, item.cantidad + multiplo)}
-                          disabled={plusDeshabilitado}
-                          className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)] disabled:opacity-30 disabled:cursor-not-allowed"
-                          style={{ color: 'var(--color-granito)' }}
-                          aria-label="Aumentar cantidad"
-                        >
-                          <Plus size={13} strokeWidth={2.5} />
-                        </button>
-                      </div>
+                      <QuantityStepper
+                        value={item.cantidad}
+                        multiplo={multiplo}
+                        max={stocks[item.productoId]}
+                        plusDisabled={plusDeshabilitado}
+                        onCommit={n => updateCantidad(itemKey, n)}
+                        onRemove={() => remove(itemKey)}
+                      />
 
                       {multiplo > 1 && (
                         <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>

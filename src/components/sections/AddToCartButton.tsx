@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, Minus, Plus } from 'lucide-react'
+import { Check } from 'lucide-react'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useState } from 'react'
 import { useCartStore } from '@/stores/cartStore'
 import { supabaseImg } from '@/lib/images'
@@ -49,25 +50,6 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
   const itemEnCarrito = items.find(i => (i.itemKey ?? `${i.productoId}:`) === itemKey)
   const cantidadMostrada = itemEnCarrito?.cantidad ?? cantidad
 
-  function handleMenos() {
-    if (itemEnCarrito) {
-      const nueva = itemEnCarrito.cantidad - multiplo
-      updateCantidad(itemKey, Math.max(multiplo, nueva))
-    } else {
-      setCantidad(prev => Math.max(multiplo, prev - multiplo))
-    }
-  }
-
-  function handleMas() {
-    const maxCantidad = stockVariante > 0 ? stockVariante : Infinity
-    if (itemEnCarrito) {
-      const nueva = itemEnCarrito.cantidad + multiplo
-      updateCantidad(itemKey, Math.min(nueva, maxCantidad))
-    } else {
-      setCantidad(prev => Math.min(prev + multiplo, maxCantidad))
-    }
-  }
-
   function handleAgregar() {
     const precioBase = producto.precio ?? 0
     const debeAplicarIva = aplicaIva ?? !esMayorista
@@ -94,10 +76,16 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
     setCartOpen(true)
   }
 
-  const stepperBorder = { borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }
-  const btnClass = 'w-10 h-10 flex items-center justify-center transition-colors hover:bg-[var(--color-acero-claro)]'
-
   const agregarDeshabilitado = tieneVariantes && !varianteSeleccionada
+
+  function handleCommit(n: number) {
+    const capped = stockVariante !== Infinity ? Math.min(n, stockVariante) : n
+    if (itemEnCarrito) {
+      updateCantidad(itemKey, capped)
+    } else {
+      setCantidad(capped)
+    }
+  }
 
   return (
     <div className="mt-6 flex flex-col gap-4">
@@ -113,31 +101,13 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
 
       {/* Stepper */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center rounded-lg overflow-hidden border" style={stepperBorder}>
-          <button
-            onClick={handleMenos}
-            className={btnClass}
-            style={{ color: 'var(--color-granito)' }}
-            aria-label="Reducir cantidad"
-          >
-            <Minus size={13} strokeWidth={2.5} />
-          </button>
-          <span
-            className="w-12 text-center text-base font-semibold tabular-nums select-none"
-            style={{ color: 'var(--foreground)' }}
-          >
-            {cantidadMostrada}
-          </span>
-          <button
-            onClick={handleMas}
-            disabled={stockVariante !== Infinity && cantidadMostrada + multiplo > stockVariante}
-            className={`${btnClass} disabled:opacity-30 disabled:cursor-not-allowed`}
-            style={{ color: 'var(--color-granito)' }}
-            aria-label="Aumentar cantidad"
-          >
-            <Plus size={13} strokeWidth={2.5} />
-          </button>
-        </div>
+        <QuantityStepper
+          value={cantidadMostrada}
+          multiplo={multiplo}
+          max={stockVariante !== Infinity ? stockVariante : null}
+          plusDisabled={stockVariante !== Infinity && cantidadMostrada + multiplo > stockVariante}
+          onCommit={handleCommit}
+        />
         {multiplo > 1 && (
           <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
             múltiplo de {multiplo}

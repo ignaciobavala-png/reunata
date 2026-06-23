@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
-import { ShoppingCart, ShoppingBag, X, Plus, Minus, Trash2, Loader2 } from 'lucide-react'
+import { ShoppingCart, ShoppingBag, X, Loader2, Trash2 } from 'lucide-react'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
@@ -141,38 +142,13 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {item.cantidad <= (item.multiplo ?? 1) ? (
-                        <button
-                          onClick={() => remove(item.itemKey ?? `${item.productoId}:`)}
-                          aria-label={`Eliminar ${item.titulo}`}
-                          className="w-6 h-6 rounded border flex items-center justify-center"
-                          style={{ borderColor: 'var(--color-acero-claro)' }}
-                        >
-                          <Trash2 size={10} aria-hidden="true" style={{ color: '#ef4444' }} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad - (item.multiplo ?? 1))}
-                          aria-label="Reducir cantidad"
-                          className="w-6 h-6 rounded border flex items-center justify-center"
-                          style={{ borderColor: 'var(--color-acero-claro)' }}
-                        >
-                          <Minus size={10} aria-hidden="true" />
-                        </button>
-                      )}
-                      <span className="text-xs w-6 text-center" style={{ color: 'var(--foreground)' }}>
-                        {item.cantidad}
-                      </span>
-                      <button
-                        onClick={() => updateCantidad(item.itemKey ?? `${item.productoId}:`, item.cantidad + (item.multiplo ?? 1))}
-                        aria-label="Aumentar cantidad"
-                        className="w-6 h-6 rounded border flex items-center justify-center"
-                        style={{ borderColor: 'var(--color-acero-claro)' }}
-                      >
-                        <Plus size={10} aria-hidden="true" />
-                      </button>
-                    </div>
+                    <QuantityStepper
+                      size="sm"
+                      value={item.cantidad}
+                      multiplo={item.multiplo ?? 1}
+                      onCommit={n => updateCantidad(item.itemKey ?? `${item.productoId}:`, n)}
+                      onRemove={() => remove(item.itemKey ?? `${item.productoId}:`)}
+                    />
                     <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                       {formatPrecio(item.precio * item.cantidad)}
                     </span>
