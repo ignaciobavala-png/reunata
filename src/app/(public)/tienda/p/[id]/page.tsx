@@ -168,12 +168,6 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
               </span>
             )}
 
-            {producto.descripcion && (
-              <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
-                {producto.descripcion}
-              </p>
-            )}
-
             {mostrarPrecios ? (
               <>
                 <AddToCartButton
@@ -230,6 +224,12 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                   )}
                 </div>
               </div>
+            )}
+
+            {producto.descripcion && (
+              <p className="text-sm leading-relaxed mt-6 pt-6" style={{ color: 'var(--color-acero-oscuro)', borderTop: '1px solid var(--color-acero-claro)' }}>
+                {producto.descripcion}
+              </p>
             )}
           </div>
         </div>
