@@ -271,7 +271,14 @@ export function CanalesListaClient({
 
                   {/* Formas de pago */}
                   <td className="px-4 py-3.5">
-                    {pagos.length === 0 ? (
+                    {canal.tipo === 'minorista' ? (
+                      <span
+                        className="px-1.5 py-0.5 rounded text-xs"
+                        style={{ background: '#e0f2fe', color: '#0369a1' }}
+                      >
+                        Mercado Pago
+                      </span>
+                    ) : pagos.length === 0 ? (
                       <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Sin configurar</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
