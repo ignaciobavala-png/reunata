@@ -1,0 +1,177 @@
+MANUAL DE LANZAMIENTO — CONECTAR DOMINIO PROPIO
+================================================
+Reunata — para ejecutar cuando el dominio esté listo
+================================================
+
+
+ANTES DE EMPEZAR
+----------------
+Para hacer esto necesitás acceso a cuatro cosas:
+  1. El panel de tu registrador de dominio (donde compraste el dominio,
+     por ejemplo NIC.ar, GoDaddy, Namecheap, etc.)
+  2. Google Search Console (console.search.google.com)
+  3. Google Cloud Console (console.cloud.google.com) — lo maneja Ignacio
+  4. Vercel — lo maneja Ignacio
+  5. Supabase — lo maneja Ignacio
+
+Las tareas del cliente están marcadas con [CLIENTE].
+Las tareas del desarrollador están marcadas con [IGNACIO].
+
+
+================================================
+PASO 1 — Conectar el dominio en Vercel
+================================================
+[IGNACIO]
+
+1. Entrar a vercel.com con la cuenta del proyecto Reunata.
+2. Ir al proyecto → Settings → Domains.
+3. Escribir el dominio (ej: reunata.com.ar) y hacer clic en Add.
+4. Vercel va a mostrar dos registros DNS. Copiarlos, se usan en el Paso 2.
+   Generalmente son:
+     - Un registro tipo A: apunta a una IP de Vercel
+     - O un registro tipo CNAME: apunta a cname.vercel-dns.com
+5. NO cerrar esta pantalla todavía.
+
+
+================================================
+PASO 2 — Verificar el dominio en Google Search Console
+================================================
+[IGNACIO — obtiene el código TXT]
+[CLIENTE — lo pega en su DNS]
+
+Parte A — Obtener el código de verificación:
+
+1. Entrar a search.google.com/search-console
+2. Hacer clic en "Agregar propiedad".
+3. Elegir la opción "Dominio" (no "Prefijo de URL").
+4. Escribir el dominio sin www (ej: reunata.com.ar) y continuar.
+5. Google va a mostrar un texto que empieza con "google-site-verification=..."
+   Copiarlo — ese es el código TXT.
+6. Pasarle ese código al cliente junto con los registros DNS del Paso 1.
+
+Parte B — El cliente agrega los registros en su registrador de dominio:
+
+1. Entrar al panel donde compraron el dominio.
+2. Ir a la sección DNS, Zone Editor, o Gestión de DNS (el nombre varía
+   según el proveedor).
+3. Agregar TODOS estos registros de una sola vez:
+     a) El registro A o CNAME que dio Vercel (Paso 1)
+     b) El registro TXT de Google (el texto "google-site-verification=...")
+4. Guardar los cambios.
+
+IMPORTANTE: Los cambios de DNS pueden tardar entre 15 minutos y 48 horas
+en verse. Lo normal es menos de 1 hora.
+
+Parte C — Verificar en Search Console:
+
+1. Una vez que pasó la hora, volver a Google Search Console.
+2. Hacer clic en "Verificar".
+3. Si dice "Verificado" → listo, seguir con el Paso 3.
+4. Si todavía no verificó → esperar un poco más e intentar de nuevo.
+
+
+================================================
+PASO 3 — Actualizar el login con Google
+================================================
+[IGNACIO]
+
+Ahora que el dominio está verificado, hay que actualizar la aplicación
+de login para que use el dominio nuevo en lugar del anterior.
+
+1. Entrar a console.cloud.google.com
+2. Ir al proyecto de Reunata.
+3. Menú izquierdo → APIs y Servicios → Pantalla de consentimiento de OAuth.
+4. Hacer clic en "Editar app".
+5. Cambiar estos dos campos:
+     - Página principal de la aplicación:
+       antes: https://reunata.vercel.app
+       ahora: https://[dominio-del-cliente]
+     - Enlace a la política de privacidad:
+       antes: https://reunata.vercel.app/politicas
+       ahora: https://[dominio-del-cliente]/politicas
+6. Guardar.
+7. En la misma pantalla, buscar el botón "Publicar app" y hacer clic.
+   (Esto hace que cualquier persona pueda entrar con Google,
+    no solo los usuarios de prueba.)
+8. Google puede pedir una confirmación — aceptar.
+
+
+================================================
+PASO 4 — Actualizar la autenticación en Supabase
+================================================
+[IGNACIO]
+
+Supabase es el sistema que maneja los usuarios y el login.
+Hay que avisarle cuál es el dominio oficial del sitio.
+
+1. Entrar a supabase.com → proyecto Reunata.
+2. Menú izquierdo → Authentication → URL Configuration.
+3. Cambiar "Site URL":
+     antes: https://reunata.vercel.app
+     ahora: https://[dominio-del-cliente]
+4. En "Redirect URLs", agregar:
+     https://[dominio-del-cliente]/**
+   (dejar también el de reunata.vercel.app para que no se rompa nada)
+5. Guardar.
+
+
+================================================
+PASO 5 — Actualizar la variable de entorno en Vercel
+================================================
+[IGNACIO]
+
+Esta variable le dice al sitio cuál es su propia dirección,
+y la usa para enviarle al cliente el link de pago correcto.
+
+1. Vercel → proyecto Reunata → Settings → Environment Variables.
+2. Buscar la variable: NEXT_PUBLIC_APP_URL
+3. Cambiar el valor:
+     antes: https://reunata.vercel.app
+     ahora: https://[dominio-del-cliente]
+4. Guardar.
+5. Hacer un nuevo deploy para que el cambio tome efecto.
+   (Settings → Deployments → Redeploy, o hacer un commit nuevo.)
+
+
+================================================
+PASO 6 — Verificación final (5 minutos)
+================================================
+[IGNACIO + CLIENTE]
+
+Antes de anunciar el lanzamiento, hacer estas pruebas rápidas:
+
+  [ ] Entrar al sitio con el dominio nuevo — carga correctamente
+  [ ] Hacer login con Google — funciona sin errores ni advertencias
+  [ ] Hacer login con email — llega el mail de confirmación al correo
+  [ ] Agregar un producto al carrito — funciona
+  [ ] Completar una compra de prueba con Mercado Pago (monto mínimo)
+      — llega la confirmación del pedido
+  [ ] Entrar al panel de admin — se ve el pedido de prueba
+
+
+================================================
+NOTA SOBRE EL DOMINIO VIEJO (reunata.vercel.app)
+================================================
+
+No hay que hacer nada con el dominio viejo.
+Va a seguir funcionando automáticamente como URL secundaria.
+Si alguien tiene guardado ese link, va a seguir entrando sin problemas.
+
+
+================================================
+RESUMEN RÁPIDO — QUIÉN HACE QUÉ
+================================================
+
+  CLIENTE:
+    - Agregar los registros DNS en su registrador de dominio (Paso 2B)
+    - Eso es todo.
+
+  IGNACIO:
+    - Conectar dominio en Vercel (Paso 1)
+    - Obtener código de verificación de Google (Paso 2A)
+    - Actualizar y publicar la app de login en Google (Paso 3)
+    - Actualizar Supabase (Paso 4)
+    - Actualizar variable de entorno (Paso 5)
+    - Verificación final (Paso 6)
+
+Tiempo estimado total (una vez que el DNS propagó): 30 minutos.

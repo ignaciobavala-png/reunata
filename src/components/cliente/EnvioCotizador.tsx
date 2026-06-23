@@ -35,26 +35,35 @@ const PROVINCIAS = [
 export interface EnvioSeleccionado {
   descripcion: string
   costo: number
-  // Params para re-cotizar server-side en checkout (fix #3)
   provincia: string
   codigo_postal: string
   servicioId: string
+  calle: string
+  numero: string
+  piso?: string
 }
 
 interface Props {
   items: { productoId: number; cantidad: number }[]
   onSelect: (opcion: EnvioSeleccionado | null) => void
   seleccionada: EnvioSeleccionado | null
+  defaultOpen?: boolean
 }
 
-export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
-  const [abierto, setAbierto] = useState(false)
+export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = false }: Props) {
+  const [abierto, setAbierto] = useState(defaultOpen)
   const [provincia, setProvincia] = useState('')
   const [cp, setCp] = useState('')
   const [cargando, setCargando] = useState(false)
   const [opciones, setOpciones] = useState<OpcionEnvio[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null)
+  const [opcionElegida, setOpcionElegida] = useState<OpcionEnvio | null>(null)
+
+  // Dirección exacta — aparece tras elegir servicio
+  const [calle, setCalle]   = useState('')
+  const [numero, setNumero] = useState('')
+  const [piso, setPiso]     = useState('')
+  const [dirError, setDirError] = useState<string | null>(null)
 
   async function calcular() {
     if (!provincia || cp.length < 4) return
@@ -62,7 +71,11 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
     setError(null)
     setOpciones(null)
     onSelect(null)
-    setSeleccionadaId(null)
+    setOpcionElegida(null)
+    setCalle('')
+    setNumero('')
+    setPiso('')
+    setDirError(null)
 
     try {
       const res = await fetch('/api/envio/cotizar', {
@@ -86,15 +99,27 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
     }
   }
 
-  function handleSelect(opcion: OpcionEnvio) {
-    setSeleccionadaId(opcion.id)
+  function handleElegirOpcion(opcion: OpcionEnvio) {
+    setOpcionElegida(opcion)
+    onSelect(null) // resetear hasta confirmar dirección
+    setDirError(null)
+  }
+
+  function handleConfirmar() {
+    if (!calle.trim())   { setDirError('Ingresá la calle.'); return }
+    if (!numero.trim())  { setDirError('Ingresá el número.'); return }
+    if (!opcionElegida)  return
     onSelect({
-      descripcion: `${opcion.descripcion} · ${opcion.dias} día${opcion.dias !== 1 ? 's' : ''}`,
-      costo: opcion.costo,
+      descripcion: `${opcionElegida.descripcion} · ${opcionElegida.dias} día${opcionElegida.dias !== 1 ? 's' : ''}`,
+      costo: opcionElegida.costo,
       provincia,
       codigo_postal: cp,
-      servicioId: opcion.id,
+      servicioId: opcionElegida.id,
+      calle: calle.trim(),
+      numero: numero.trim(),
+      piso: piso.trim() || undefined,
     })
+    setAbierto(false)
   }
 
   const inputClass = 'w-full px-2.5 py-1.5 text-xs rounded-lg border outline-none'
@@ -115,7 +140,9 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
         <div className="flex items-center gap-2">
           <Truck size={13} style={{ color: seleccionada ? '#16a34a' : 'var(--color-acero-oscuro)' }} />
           <span className="font-medium text-xs">
-            {seleccionada ? seleccionada.descripcion : 'Calcular envío'}
+            {seleccionada
+              ? `${seleccionada.descripcion} — ${seleccionada.calle} ${seleccionada.numero}${seleccionada.piso ? `, ${seleccionada.piso}` : ''}`
+              : 'Calcular envío'}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -134,10 +161,10 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
       {/* Panel expandible */}
       {abierto && (
         <div className="px-3 pb-3 pt-1 flex flex-col gap-2.5" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
-          {/* Inputs */}
+          {/* Provincia + CP */}
           <select
             value={provincia}
-            onChange={e => { setProvincia(e.target.value); setOpciones(null); setError(null) }}
+            onChange={e => { setProvincia(e.target.value); setOpciones(null); setError(null); setOpcionElegida(null); onSelect(null) }}
             className={inputClass}
             style={inputStyle}
           >
@@ -154,7 +181,7 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
               maxLength={4}
               placeholder="Código postal"
               value={cp}
-              onChange={e => { setCp(e.target.value.replace(/\D/g, '')); setOpciones(null); setError(null) }}
+              onChange={e => { setCp(e.target.value.replace(/\D/g, '')); setOpciones(null); setError(null); setOpcionElegida(null); onSelect(null) }}
               className={inputClass}
               style={inputStyle}
             />
@@ -168,12 +195,11 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
             </button>
           </div>
 
-          {/* Error */}
           {error && (
             <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>
           )}
 
-          {/* Opciones */}
+          {/* Opciones de courier */}
           {opciones && opciones.length > 0 && (
             <div className="flex flex-col gap-1">
               {opciones.map(op => (
@@ -181,16 +207,16 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
                   key={op.id}
                   className="flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors"
                   style={{
-                    border: `1.5px solid ${seleccionadaId === op.id ? 'var(--color-granito)' : 'var(--color-acero-claro)'}`,
-                    background: seleccionadaId === op.id ? 'var(--color-acero-brillo)' : 'white',
+                    border: `1.5px solid ${opcionElegida?.id === op.id ? 'var(--color-granito)' : 'var(--color-acero-claro)'}`,
+                    background: opcionElegida?.id === op.id ? 'var(--color-acero-brillo)' : 'white',
                   }}
                 >
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       name="envio-opcion"
-                      checked={seleccionadaId === op.id}
-                      onChange={() => handleSelect(op)}
+                      checked={opcionElegida?.id === op.id}
+                      onChange={() => handleElegirOpcion(op)}
                       className="accent-granito"
                     />
                     <div>
@@ -205,6 +231,51 @@ export function EnvioCotizador({ items, onSelect, seleccionada }: Props) {
                   </span>
                 </label>
               ))}
+            </div>
+          )}
+
+          {/* Dirección exacta — aparece tras elegir courier */}
+          {opcionElegida && (
+            <div className="flex flex-col gap-2 pt-1" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+              <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                Dirección de entrega
+              </p>
+              <input
+                type="text"
+                placeholder="Calle *"
+                value={calle}
+                onChange={e => { setCalle(e.target.value); setDirError(null) }}
+                className={inputClass}
+                style={inputStyle}
+              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Número *"
+                  value={numero}
+                  onChange={e => { setNumero(e.target.value); setDirError(null) }}
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                <input
+                  type="text"
+                  placeholder="Piso / Depto"
+                  value={piso}
+                  onChange={e => setPiso(e.target.value)}
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              {dirError && (
+                <p className="text-xs" style={{ color: '#ef4444' }}>{dirError}</p>
+              )}
+              <button
+                onClick={handleConfirmar}
+                className="w-full py-2 rounded-lg text-xs font-medium transition-opacity"
+                style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+              >
+                Confirmar envío
+              </button>
             </div>
           )}
         </div>
