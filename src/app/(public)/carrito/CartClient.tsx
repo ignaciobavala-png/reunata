@@ -195,6 +195,9 @@ export function CartClient({ user, mostrarPrecios }: Props) {
             provincia: envioSeleccionado.provincia,
             codigo_postal: envioSeleccionado.codigo_postal,
             servicioId: envioSeleccionado.servicioId,
+            calle: envioSeleccionado.calle,
+            numero: envioSeleccionado.numero,
+            piso: envioSeleccionado.piso,
           }
         : undefined
     )
@@ -524,21 +527,27 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
 
-          {/* Cotizador de envío — solo minoristas y guests */}
+          {/* Cotizador de envío — obligatorio para minoristas y guests */}
           {(esMinorista || esGuest) && (
             <EnvioCotizador
               items={items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))}
               seleccionada={envioSeleccionado}
               onSelect={setEnvioSeleccionado}
+              defaultOpen
             />
           )}
 
           {/* CTA según rol */}
           {esMinorista ? (
             <>
+              {!envioSeleccionado && (
+                <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Calculá el envío para continuar.
+                </p>
+              )}
               <button
                 onClick={() => handlePagarMP()}
-                disabled={pagando || hayProblemaStock || refreshingPrecios}
+                disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >
@@ -666,9 +675,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
             <>
+              {!envioSeleccionado && (
+                <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Calculá el envío para continuar.
+                </p>
+              )}
               <button
                 onClick={() => setGuestModalOpen(true)}
-                disabled={pagando || hayProblemaStock || refreshingPrecios}
+                disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >

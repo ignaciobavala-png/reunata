@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Hero } from '@/components/sections/Hero'
-import { CategoryGallery } from '@/components/sections/CategoryGallery'
+import { CategoryGallery, type CategoriaHome } from '@/components/sections/CategoryGallery'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
@@ -19,9 +19,10 @@ const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 export default async function Home() {
   const supabase = createServiceClient()
 
-  const [canalInfo, { data: categoriasRows }, { data: bannerData }, { data: postsInstagram }] = await Promise.all([
+  const [canalInfo, { data: categoriasRows }, { data: categoriasGallery }, { data: bannerData }, { data: postsInstagram }] = await Promise.all([
     resolverCanalTienda(),
     supabase.from('categorias_home').select('nombre, href').eq('activo', true).not('href', 'is', null).order('orden'),
+    supabase.from('categorias_home').select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url').eq('activo', true).order('orden'),
     supabase.from('banners').select('url, titulo, link_url').eq('activo', true).order('id', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('comunidad_fotos').select('id, thumbnail_url, caption, username, permalink, url_instagram').eq('activo', true).order('orden'),
   ])
@@ -76,7 +77,7 @@ export default async function Home() {
           <>
             <Hero />
             <PromoTicker />
-            <CategoryGallery />
+            <CategoryGallery initialCategorias={(categoriasGallery ?? []) as CategoriaHome[]} />
             <ProductSlider fotos={fotos} esMayorista={tipoCliente === 'mayorista'} />
             <InstagramSlider posts={postsInstagram ?? []} />
             <PromotionalBanner banner={banner} />

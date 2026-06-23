@@ -9,7 +9,7 @@ import { supabaseImg } from '@/lib/images'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-interface CategoriaHome {
+export interface CategoriaHome {
   id: number
   nombre: string
   descripcion: string
@@ -21,22 +21,30 @@ interface CategoriaHome {
 
 type Foto = { url: string }
 
-export function CategoryGallery() {
-  const [categorias, setCategorias] = useState<CategoriaHome[]>([])
+interface Props {
+  initialCategorias?: CategoriaHome[]
+}
+
+export function CategoryGallery({ initialCategorias }: Props) {
+  const [categorias, setCategorias] = useState<CategoriaHome[]>(initialCategorias ?? [])
   const [fotosPorCat, setFotosPorCat] = useState<Record<number, string[]>>({})
 
   useEffect(() => {
     async function loadData() {
       const supabase = createClient()
-      const { data: cats } = await supabase
-        .from('categorias_home')
-        .select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url')
-        .eq('activo', true)
-        .order('orden')
 
-      if (!cats?.length) return
-
-      setCategorias(cats)
+      // Solo fetch de categorías si no vinieron del servidor
+      let cats = categorias
+      if (!cats.length) {
+        const { data } = await supabase
+          .from('categorias_home')
+          .select('id, nombre, descripcion, href, gradient, categoria_keys, foto_url')
+          .eq('activo', true)
+          .order('orden')
+        if (!data?.length) return
+        cats = data
+        setCategorias(cats)
+      }
 
       const allKeys = [...new Set(cats.flatMap(c => c.categoria_keys ?? []))]
 
@@ -61,12 +69,13 @@ export function CategoryGallery() {
     }
 
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (categorias.length === 0) return null
 
   return (
-    <section className="px-4 md:px-6 pt-6 md:pt-10 pb-16 md:pb-24">
+    <section id="categorias" className="px-4 md:px-6 pt-6 md:pt-10 pb-16 md:pb-24">
       <FadeIn className="mb-10 flex items-end justify-between px-2">
         <h2
           className="text-3xl md:text-4xl text-[var(--foreground)]"

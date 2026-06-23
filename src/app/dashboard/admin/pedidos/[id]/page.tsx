@@ -37,6 +37,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     .from('pedidos')
     .select(`
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
+      envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       guest_nombre, guest_email, guest_telefono,
       pedido_items (
@@ -235,6 +236,42 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
           </tbody>
         </table>
       </div>
+
+      {/* Envío */}
+      {((pedido as any).envio_descripcion || (pedido as any).envio_calle) && (
+        <div className="rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
+          <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>Envío</h2>
+          <div className="flex flex-col gap-1.5 text-sm">
+            {(pedido as any).envio_descripcion && (
+              <p style={{ color: 'var(--foreground)' }}>
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>Servicio: </span>
+                {(pedido as any).envio_descripcion}
+              </p>
+            )}
+            {(pedido as any).envio_calle && (
+              <p style={{ color: 'var(--foreground)' }}>
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>Dirección: </span>
+                {[
+                  `${(pedido as any).envio_calle} ${(pedido as any).envio_numero ?? ''}`.trim(),
+                  (pedido as any).envio_piso,
+                ].filter(Boolean).join(', ')}
+              </p>
+            )}
+            {((pedido as any).envio_codigo_postal || (pedido as any).envio_provincia) && (
+              <p style={{ color: 'var(--foreground)' }}>
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>CP / Provincia: </span>
+                {[(pedido as any).envio_codigo_postal, (pedido as any).envio_provincia].filter(Boolean).join(' · ')}
+              </p>
+            )}
+            {(pedido.costo_envio ?? 0) > 0 && (
+              <p style={{ color: 'var(--foreground)' }}>
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>Costo: </span>
+                {formatPrecio(Number(pedido.costo_envio))}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Medio de pago + referencias */}
       {(pedido.medio_pago || pedido.mp_payment_id || pedido.referencia_pago) && (

@@ -25,6 +25,9 @@ interface EnvioParams {
   provincia: string
   codigo_postal: string
   servicioId: string
+  calle: string
+  numero: string
+  piso?: string
 }
 
 // Datos de envío resueltos server-side (nunca del cliente)
@@ -170,6 +173,9 @@ export async function iniciarCheckoutMP(
     envio_descripcion: envio?.descripcion ?? null,
     envio_codigo_postal: envioParams?.codigo_postal ?? null,
     envio_provincia: envioParams?.provincia ?? null,
+    envio_calle: envioParams?.calle ?? null,
+    envio_numero: envioParams?.numero ?? null,
+    envio_piso: envioParams?.piso ?? null,
   }
 
   if (user) {

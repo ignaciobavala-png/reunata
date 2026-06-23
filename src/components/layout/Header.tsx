@@ -32,6 +32,12 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
   const pathname = usePathname()
   const router = useRouter()
   const isHome = pathname === '/' && variant === 'light'
+  const logoHref = (
+    pathname.startsWith('/tienda') ||
+    pathname === '/carrito' ||
+    pathname === '/favoritos' ||
+    pathname === '/historial'
+  ) ? '/#categorias' : '/'
 
   const [open, setOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -127,7 +133,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
         />
 
         {/* Logo */}
-        <Link href="/" className="relative z-10 flex-shrink-0">
+        <Link href={logoHref} className="relative z-10 flex-shrink-0">
           <Image
             src="/logo.png"
             alt="Reunata"
