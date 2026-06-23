@@ -280,6 +280,15 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                             </div>
                           )}
                         </div>
+                        <div className="px-8 pb-4">
+                          <a
+                            href={`/dashboard/admin/clientes/${c.id}`}
+                            className="text-xs transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--color-acero-oscuro)' }}
+                          >
+                            Ver historial completo (pedidos + crédito) →
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -39,7 +39,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
-      guest_nombre, guest_email, guest_telefono,
+      cliente_id, guest_nombre, guest_email, guest_telefono,
       pedido_items (
         id, cantidad, precio_unit, variante,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -112,9 +112,20 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
 
       {/* Info del cliente */}
       <div className="rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {esGuest ? 'Comprador no registrado' : 'Cliente'}
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {esGuest ? 'Comprador no registrado' : 'Cliente'}
+          </h2>
+          {!esGuest && pedido.cliente_id && (
+            <Link
+              href={`/dashboard/admin/clientes/${pedido.cliente_id}`}
+              className="text-xs transition-opacity hover:opacity-70"
+              style={{ color: 'var(--color-acero-oscuro)' }}
+            >
+              Ver perfil completo →
+            </Link>
+          )}
+        </div>
         <div className="flex flex-col gap-1">
           <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
             {esMayorista && cliente?.razon_social ? cliente.razon_social : nombreCliente}

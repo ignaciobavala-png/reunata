@@ -36,7 +36,7 @@ export default async function PedidosPage({
   let query = supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, created_at,
+      id, numero, estado, medio_pago, total_usd, created_at, cliente_id,
       guest_nombre, guest_email,
       cliente:cliente_id ( nombre, email ),
       empleado:empleado_id ( nombre )
@@ -121,7 +121,17 @@ export default async function PedidosPage({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <p style={{ color: 'var(--foreground)' }}>{nombreMostrado}</p>
+                        {!esGuest && p.cliente_id ? (
+                          <Link
+                            href={`/dashboard/admin/clientes/${p.cliente_id}`}
+                            className="font-medium hover:underline"
+                            style={{ color: 'var(--foreground)' }}
+                          >
+                            {nombreMostrado}
+                          </Link>
+                        ) : (
+                          <p style={{ color: 'var(--foreground)' }}>{nombreMostrado}</p>
+                        )}
                         {esGuest && (
                           <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f59e0b22', color: '#f59e0b' }}>
                             No registrado

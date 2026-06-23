@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { responderSolicitudCredito } from '@/app/actions/financiacion'
 import { formatPrecio } from '@/lib/utils'
@@ -14,6 +15,7 @@ interface Solicitud {
   estado: string
   respuesta: string | null
   created_at: string
+  cliente_id: string | null
   profiles: { nombre: string | null; email: string | null; razon_social: string | null } | null
 }
 
@@ -50,7 +52,18 @@ function SolicitudRow({ s }: { s: Solicitud }) {
         className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors"
         style={{ background: open ? 'var(--color-acero-brillo)' : 'white' }}>
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{cliente}</span>
+          {s.cliente_id ? (
+            <Link
+              href={`/dashboard/admin/clientes/${s.cliente_id}`}
+              onClick={e => e.stopPropagation()}
+              className="text-sm font-medium hover:underline"
+              style={{ color: 'var(--foreground)' }}
+            >
+              {cliente}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{cliente}</span>
+          )}
           {s.monto && (
             <span className="text-sm tabular-nums" style={{ color: 'var(--color-acero-oscuro)' }}>
               {formatPrecio(s.monto)}

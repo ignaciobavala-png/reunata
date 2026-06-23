@@ -17,7 +17,7 @@ export default async function FinanciacionAdminPage() {
 
   const { data: solicitudes } = await supabase
     .from('solicitudes_credito')
-    .select('id, monto, plazo_dias, garantias, notas, estado, respuesta, created_at, profiles(nombre, email, razon_social)')
+    .select('id, monto, plazo_dias, garantias, notas, estado, respuesta, created_at, cliente_id, profiles(nombre, email, razon_social)')
     .order('created_at', { ascending: false })
 
   // Supabase devuelve profiles como array en joins; normalizamos a objeto único
