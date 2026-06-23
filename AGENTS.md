@@ -160,7 +160,7 @@ Para `useEffect`-only: instanciar dentro del efecto.
 | **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
 | **#13** | ✅ resuelto | `auth/callback` ya usa `.upsert()` — race condition con `handle_new_user()` cubierta |
 | **H** | ✅ resuelto | `precioSelect` ya incluye las 5 listas; `extraerPrecio()` usa `listaPrecio` del canal del usuario |
-| **F5/B6** | `carrito/page.tsx` + nuevo endpoint | Precios del carrito no se refrescan contra DB al cargar; requiere `/api/carrito/precios` que CartClient consulte al montar |
+| **F5/B6** | ✅ resuelto | `/api/carrito/precios` existe y CartClient lo llama al montar; muestra banner si los precios cambiaron |
 
 ### Mejoras (cuando haya bandwidth)
 
