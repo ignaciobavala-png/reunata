@@ -11,7 +11,7 @@ export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
 
-  const [{ data }, { count }] = await Promise.all([
+  const [{ data }, { count }, { data: credito }] = await Promise.all([
     service
       .from('canales_config')
       .select(
@@ -29,10 +29,22 @@ export async function GET() {
           .eq('cliente_id', user.id)
           .neq('estado', 'cancelado')
       : Promise.resolve({ count: 0 }),
+    user
+      ? service
+          .from('solicitudes_credito')
+          .select('id')
+          .eq('cliente_id', user.id)
+          .eq('estado', 'aprobado')
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   const reglas = data
-    ? { ...(data as unknown as Record<string, unknown>), es_primera_compra: (count ?? 0) === 0 }
+    ? {
+        ...(data as unknown as Record<string, unknown>),
+        es_primera_compra: (count ?? 0) === 0,
+        credito_aprobado: credito !== null,
+      }
     : null
   return NextResponse.json({ reglas })
 }

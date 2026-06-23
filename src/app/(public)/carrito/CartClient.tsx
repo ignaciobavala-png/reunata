@@ -15,13 +15,14 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
-const METODOS_CONTADO = ['efectivo', 'transferencia_negro', 'transferencia_blanco', 'echeq_al_dia', 'cheque_fisico_al_dia']
+const METODOS_CONTADO = ['efectivo', 'transferencia_negro', 'transferencia_blanco', 'echeq_al_dia', 'cheque_fisico_al_dia', 'cheque_fisico_financiado']
 const METODO_LABEL: Record<string, string> = {
-  efectivo:              'Efectivo',
-  transferencia_negro:   'Transferencia (precio base)',
-  transferencia_blanco:  'Transferencia Blanco (factura A, +IVA)',
-  echeq_al_dia:          'E-cheq al día',
-  cheque_fisico_al_dia:  'Cheque físico al día',
+  efectivo:                 'Efectivo',
+  transferencia_negro:      'Transferencia (precio base)',
+  transferencia_blanco:     'Transferencia Blanco (factura A, +IVA)',
+  echeq_al_dia:             'E-cheq al día',
+  cheque_fisico_al_dia:     'Cheque físico al día',
+  cheque_fisico_financiado: 'Cheque físico financiado',
 }
 
 interface ReglaCanal {
@@ -41,6 +42,7 @@ interface ReglaCanal {
   direccion_negocio:               string | null
   whatsapp_tipo:                   'bot' | 'humano'
   es_primera_compra:               boolean
+  credito_aprobado:                boolean
 }
 
 interface DireccionEntrega {
@@ -270,8 +272,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
 
   // Ajuste por método de pago (mayoristas, solo UI)
+  const canalHabilitaFinanciado = esMayorista && reglas
+    ? (reglas.pagos_habilitados ?? {})['cheque_fisico_financiado']?.activo
+    : false
   const metodosDisponibles = esMayorista && reglas
-    ? METODOS_CONTADO.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
+    ? METODOS_CONTADO.filter(k => {
+        if (k === 'cheque_fisico_financiado') return canalHabilitaFinanciado && reglas.credito_aprobado
+        return (reglas.pagos_habilitados ?? {})[k]?.activo
+      })
     : []
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
@@ -659,6 +667,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Aviso línea de crédito — canal habilita financiado pero usuario no tiene crédito aprobado */}
+              {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
+                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-1" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
+                  <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
+                  <p style={{ color: '#92400e' }}>
+                    Tu canal permite operar con cheques a plazo, pero necesitás una{' '}
+                    <a href="/cuenta/financiacion" className="underline font-medium">línea de crédito aprobada</a>.
+                    Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
+                  </p>
                 </div>
               )}
 
