@@ -137,9 +137,25 @@ export async function confirmarPago(pedidoId: string, medioPago: string, referen
 
 export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
   const supabase = await createClient()
+  const service = createServiceClient()
   const updates: Record<string, unknown> = { estado }
   if (estado === 'pago_confirmado') updates.fecha_pago = new Date().toISOString()
-  await supabase.from('pedidos').update(updates).eq('id', pedidoId)
+
+  const { data: pedido } = await supabase
+    .from('pedidos')
+    .update(updates)
+    .eq('id', pedidoId)
+    .select('cliente_id')
+    .single()
+
+  // Sincronizar última compra para recontacto (espejo del webhook de MP)
+  if (estado === 'pago_confirmado' && pedido?.cliente_id) {
+    await service
+      .from('profiles')
+      .update({ ultima_compra_en: new Date().toISOString(), requiere_recontacto: false })
+      .eq('id', pedido.cliente_id)
+  }
+
   revalidatePath('/dashboard/admin/pedidos')
   revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
   revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
