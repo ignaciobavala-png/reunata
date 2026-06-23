@@ -48,9 +48,10 @@ interface Props {
   onSelect: (opcion: EnvioSeleccionado | null) => void
   seleccionada: EnvioSeleccionado | null
   defaultOpen?: boolean
+  envioFlexActivo?: boolean
 }
 
-export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = false }: Props) {
+export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = false, envioFlexActivo = true }: Props) {
   const [abierto, setAbierto] = useState(defaultOpen)
   const [provincia, setProvincia] = useState('')
   const [cp, setCp] = useState('')
@@ -90,7 +91,12 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
       } else if (!data.opciones?.length) {
         setError('No hay opciones de envío para esta zona.')
       } else {
-        setOpciones(data.opciones)
+        const filtradas = envioFlexActivo
+          ? data.opciones
+          : (data.opciones as OpcionEnvio[]).filter(
+              (o: OpcionEnvio) => !o.descripcion.toLowerCase().includes('flex')
+            )
+        setOpciones(filtradas.length ? filtradas : data.opciones)
       }
     } catch {
       setError('No se pudo conectar. Intentá de nuevo.')

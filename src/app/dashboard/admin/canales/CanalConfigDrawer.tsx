@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { X, ChevronDown, Loader2, Check } from 'lucide-react'
 import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canales-config'
 
-type Canal = { id: number; slug: string; nombre: string; activo: boolean }
+type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }
 type Config = Record<string, unknown>
 
 const COLORES_CANAL: Record<string, string> = {
@@ -14,8 +14,6 @@ const COLORES_CANAL: Record<string, string> = {
   mercha:           '#f59e0b',
   fabricantes:      '#64748b',
 }
-
-const MAYORISTAS = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
 // Métodos de pago por tipo de canal
 const PAGOS_CONSUMIDOR = [
@@ -37,7 +35,7 @@ const PAGOS_MAYORISTA_FINANCIADO = [
 ]
 
 function buildDefaultConfig(canal: Canal): CanalConfigPayload {
-  const isMayorista = MAYORISTAS.includes(canal.slug)
+  const isMayorista = canal.tipo === 'mayorista'
   const pagos: Record<string, { activo: boolean }> = {}
   const methods = isMayorista
     ? [...PAGOS_MAYORISTA_CONTADO, ...PAGOS_MAYORISTA_FINANCIADO]
@@ -59,6 +57,7 @@ function buildDefaultConfig(canal: Canal): CanalConfigPayload {
     minimo_compra_trimestral: null,
     dias_vencimiento_pedido: 7,
     mostrar_direccion_en_web: false,
+    direccion_negocio: null,
     whatsapp_tipo: 'bot',
     premio_diversidad_items_min: null,
     premio_diversidad_pct: null,
@@ -163,7 +162,7 @@ export function CanalConfigDrawer({
   onClose: () => void
   onSaved: (canalId: number, config: CanalConfigPayload) => void
 }) {
-  const isMayorista = MAYORISTAS.includes(canal.slug)
+  const isMayorista = canal.tipo === 'mayorista'
   const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
 
   const [form, setForm] = useState<CanalConfigPayload>(() => mergeConfig(canal, configInicial))
@@ -436,6 +435,19 @@ export function CanalConfigDrawer({
               </div>
               <span className="text-sm" style={{ color: 'var(--foreground)' }}>Mostrar dirección del negocio en la web</span>
             </label>
+            {form.mostrar_direccion_en_web && (
+              <div className="ml-12 space-y-1">
+                <label className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Dirección a mostrar</label>
+                <input
+                  type="text"
+                  value={form.direccion_negocio ?? ''}
+                  onChange={e => set('direccion_negocio', e.target.value || null)}
+                  placeholder="Ej: Av. Corrientes 1234, CABA"
+                  className="w-full px-2 py-1.5 text-sm rounded border outline-none"
+                  style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <span className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>Tipo de WhatsApp</span>

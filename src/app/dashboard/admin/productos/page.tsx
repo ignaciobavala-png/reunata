@@ -53,7 +53,7 @@ async function ListaContent() {
       .select('producto_id, canal_id, multiplo'),
     supabase
       .from('canales')
-      .select('id, slug, nombre, activo')
+      .select('id, slug, nombre, activo, tipo')
       .order('id'),
     supabase
       .from('canales_config')

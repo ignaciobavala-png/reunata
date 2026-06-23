@@ -3,6 +3,64 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
 
+export async function crearCanal(payload: {
+  nombre: string
+  slug: string
+  lista_precios: string
+  tipo: 'minorista' | 'mayorista' | 'especial'
+}): Promise<{ ok: boolean; id?: number; error?: string }> {
+  const supabase = createServiceClient()
+
+  const { data: canal, error: canalErr } = await supabase
+    .from('canales')
+    .insert({
+      nombre: payload.nombre.trim(),
+      slug: payload.slug.trim(),
+      lista_precios: payload.lista_precios,
+      tipo: payload.tipo,
+      activo: true,
+    })
+    .select('id')
+    .single()
+
+  if (canalErr || !canal) {
+    return { ok: false, error: canalErr?.message ?? 'Error al crear el canal.' }
+  }
+
+  // Crear fila de configuración con defaults para que el drawer funcione de inmediato
+  await supabase.from('canales_config').insert({
+    canal_id: canal.id,
+    pagos_habilitados: {},
+    cuotas_mp_sin_interes: 1,
+    desc_transferencia_pct: 0,
+    desc_efectivo_pct: 0,
+    recargo_transf_blanco_pct: 21,
+    desc_autogestion_primera_pct: 0,
+    desc_autogestion_siguientes_pct: 0,
+    envio_gratis_desde: null,
+    envio_flex_activo: false,
+    envio_amba_gratis_desde: null,
+    minimo_compra: null,
+    minimo_compra_trimestral: null,
+    dias_vencimiento_pedido: 7,
+    mostrar_direccion_en_web: false,
+    direccion_negocio: null,
+    whatsapp_tipo: 'bot',
+    premio_diversidad_items_min: null,
+    premio_diversidad_pct: null,
+    premio_monto_trimestral_min: null,
+    premio_monto_trimestral_pct: null,
+    premio_periodicidad_dias_max: null,
+    premio_periodicidad_pct: null,
+    marketing_dias_recontacto: 90,
+    marketing_mensaje_recontacto: '',
+    marketing_link_agendamiento: '',
+  })
+
+  revalidatePath('/dashboard/admin/productos')
+  return { ok: true, id: canal.id }
+}
+
 export async function toggleProductoCanal(productoId: number, canalId: number, activo: boolean) {
   const supabase = createServiceClient()
 

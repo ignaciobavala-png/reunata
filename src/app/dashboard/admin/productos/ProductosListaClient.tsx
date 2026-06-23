@@ -69,7 +69,7 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
-  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean }[]
+  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }[]
   configsIniciales: Record<number, Record<string, unknown>>
 }) {
   const router = useRouter()

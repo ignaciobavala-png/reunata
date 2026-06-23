@@ -24,10 +24,22 @@ const METODO_LABEL: Record<string, string> = {
 }
 
 interface ReglaCanal {
-  pagos_habilitados:         Record<string, { activo: boolean }>
-  minimo_compra:             number | null
-  desc_efectivo_pct:         number
-  recargo_transf_blanco_pct: number
+  pagos_habilitados:               Record<string, { activo: boolean }>
+  minimo_compra:                   number | null
+  desc_efectivo_pct:               number
+  recargo_transf_blanco_pct:       number
+  desc_transferencia_pct:          number
+  desc_autogestion_primera_pct:    number
+  desc_autogestion_siguientes_pct: number
+  envio_gratis_desde:              number | null
+  envio_amba_gratis_desde:         number | null
+  cuotas_mp_sin_interes:           number
+  dias_vencimiento_pedido:         number
+  envio_flex_activo:               boolean
+  mostrar_direccion_en_web:        boolean
+  direccion_negocio:               string | null
+  whatsapp_tipo:                   'bot' | 'humano'
+  es_primera_compra:               boolean
 }
 
 interface DireccionEntrega {
@@ -57,10 +69,16 @@ function buildWhatsAppMsg(
   metodo?: string | null,
   totalFinal?: number,
   direccion?: DireccionEntrega | null,
+  tipo: 'bot' | 'humano' = 'bot',
 ) {
   const lineas = items.map(i =>
     `• ${i.titulo} (${i.codigo_interno})${i.variante ? ` — ${i.variante}` : ''} × ${i.cantidad}`
   ).join('\n')
+
+  if (tipo === 'humano') {
+    return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}\n\n¿Me podés ayudar?`)
+  }
+
   const pagoStr = metodo ? `\nForma de pago: ${METODO_LABEL[metodo] ?? metodo}` : ''
   const totalStr = totalFinal ? `\nTotal estimado: ${totalFinal.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })}` : ''
   const dirParts = direccion
@@ -141,13 +159,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     if (mounted && guestItemsMerged) clearGuestMergedFlag()
   }, [mounted, guestItemsMerged, clearGuestMergedFlag])
 
-  // Cargar reglas y direcciones — solo mayoristas aprobados
+  // Cargar reglas del canal (todos los usuarios autenticados)
   useEffect(() => {
-    if (!mounted || !user?.rol || !ROLES_MAYORISTAS.includes(user.rol)) return
+    if (!mounted || !user) return
     fetch('/api/carrito/reglas')
       .then(r => r.json())
       .then(({ reglas: r }) => { if (r) setReglas(r) })
       .catch(() => {})
+  }, [mounted, user])
+
+  // Cargar direcciones — solo mayoristas
+  useEffect(() => {
+    if (!mounted || !user?.rol || !ROLES_MAYORISTAS.includes(user.rol)) return
     fetch('/api/cuenta/direcciones')
       .then(r => r.json())
       .then(({ direcciones: d }: { direcciones: DireccionEntrega[] }) => {
@@ -161,6 +184,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const esMinorista = user?.rol === 'consumidor_final'
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
   const esGuest     = !user
+
+  function handleEnvioSelect(opcion: EnvioSeleccionado | null) {
+    if (!opcion) { setEnvioSeleccionado(null); return }
+    const totalActual = total()
+    const esAmba = ['B', 'C'].includes(opcion.provincia)
+    const umbralAmba = reglas?.envio_amba_gratis_desde ?? null
+    const umbralGeneral = reglas?.envio_gratis_desde ?? null
+    const gratis =
+      (umbralAmba !== null && esAmba && totalActual >= umbralAmba) ||
+      (umbralGeneral !== null && totalActual >= umbralGeneral)
+    setEnvioSeleccionado(gratis ? { ...opcion, costo: 0 } : opcion)
+  }
 
   function handleMenos(itemKey: string, cantidad: number, multiplo: number) {
     const base = cantidad - (cantidad % multiplo)
@@ -251,18 +286,29 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const totalGeneral = total()
   const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
 
-  // Ajuste por método de pago (mayoristas)
-  const metodosDisponibles = reglas
+  // Ajuste por método de pago (mayoristas, solo UI)
+  const metodosDisponibles = esMayorista && reglas
     ? METODOS_CONTADO.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
       ? -Math.round(totalGeneral * (reglas.desc_efectivo_pct ?? 0) / 100)
-      : metodoPago === 'transferencia_blanco'
-        ? Math.round(totalGeneral * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
-        : 0
+      : metodoPago === 'transferencia_negro'
+        ? -Math.round(totalGeneral * (reglas.desc_transferencia_pct ?? 0) / 100)
+        : metodoPago === 'transferencia_blanco'
+          ? Math.round(totalGeneral * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+          : 0
     : 0
-  const totalFinal = totalGeneral + ajuste + (envioSeleccionado?.costo ?? 0)
+
+  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas)
+  const descAutogestPct = esMayorista && reglas
+    ? (reglas.es_primera_compra
+        ? (reglas.desc_autogestion_primera_pct ?? 0)
+        : (reglas.desc_autogestion_siguientes_pct ?? 0))
+    : 0
+  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(totalGeneral * descAutogestPct / 100) : 0
+
+  const totalFinal = totalGeneral + ajuste + ajusteAutogestion + (envioSeleccionado?.costo ?? 0)
   const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
@@ -511,6 +557,12 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                     <span>{ajuste < 0 ? '-' : '+'}{formatPrecio(Math.abs(ajuste))}</span>
                   </div>
                 )}
+                {ajusteAutogestion !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
+                    <span>Desc. web ({reglas?.es_primera_compra ? '1ª compra' : 'cliente recurrente'})</span>
+                    <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
+                  </div>
+                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total{esMayorista ? ' s/ IVA' : ''}</span>
@@ -532,7 +584,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
             <EnvioCotizador
               items={items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))}
               seleccionada={envioSeleccionado}
-              onSelect={setEnvioSeleccionado}
+              onSelect={handleEnvioSelect}
+              envioFlexActivo={reglas?.envio_flex_activo ?? true}
               defaultOpen
             />
           )}
@@ -633,6 +686,11 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                             -{reglas.desc_efectivo_pct}%
                           </span>
                         )}
+                        {k === 'transferencia_negro' && reglas && reglas.desc_transferencia_pct > 0 && (
+                          <span className="text-xs font-medium" style={{ color: '#16a34a' }}>
+                            -{reglas.desc_transferencia_pct}%
+                          </span>
+                        )}
                         {k === 'transferencia_blanco' && reglas && reglas.recargo_transf_blanco_pct > 0 && (
                           <span className="text-xs font-medium" style={{ color: '#dc2626' }}>
                             +{reglas.recargo_transf_blanco_pct}%
@@ -641,6 +699,14 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Dirección de retiro — si el canal tiene activo mostrar_direccion_en_web */}
+              {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-acero-brillo)', border: '1px solid var(--color-acero-claro)' }}>
+                  <p className="font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Dirección de retiro</p>
+                  <p style={{ color: 'var(--color-acero-oscuro)' }}>{reglas.direccion_negocio}</p>
                 </div>
               )}
 
@@ -654,7 +720,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
               {/* Botón WhatsApp */}
               <a
-                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null)}`}
+                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null, reglas?.whatsapp_tipo ?? 'bot')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-disabled={minimoInsuficiente || hayProblemaStock}

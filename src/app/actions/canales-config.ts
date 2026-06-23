@@ -19,6 +19,7 @@ export type CanalConfigPayload = {
   minimo_compra_trimestral: number | null
   dias_vencimiento_pedido: number
   mostrar_direccion_en_web: boolean
+  direccion_negocio: string | null
   whatsapp_tipo: 'bot' | 'humano'
   premio_diversidad_items_min: number | null
   premio_diversidad_pct: number | null

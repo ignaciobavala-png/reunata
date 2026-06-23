@@ -64,47 +64,45 @@ export async function iniciarCheckoutMP(
 
   const service = createServiceClient()
 
+  // Resolver canal del usuario (necesario para múltiplos y config del canal)
+  let canalId: number | null = null
+  if (user) {
+    const { data: profileCanal } = await supabase
+      .from('profiles')
+      .select('canal_id')
+      .eq('id', user.id)
+      .single()
+    canalId = profileCanal?.canal_id ?? null
+  } else {
+    // Guests operan como consumidor_final
+    const { data: cfCanal } = await service
+      .from('canales')
+      .select('id')
+      .eq('slug', 'consumidor_final')
+      .single()
+    canalId = cfCanal?.id ?? null
+  }
+
   // Validar múltiplos — aplica tanto a usuarios registrados como a guests
-  {
-    let canalId: number | null = null
+  if (canalId) {
+    const { data: multiplosDb } = await service
+      .from('producto_canales')
+      .select('producto_id, multiplo')
+      .eq('canal_id', canalId)
+      .in('producto_id', items.map(i => i.productoId))
 
-    if (user) {
-      const { data: profileCanal } = await supabase
-        .from('profiles')
-        .select('canal_id')
-        .eq('id', user.id)
-        .single()
-      canalId = profileCanal?.canal_id ?? null
-    } else {
-      // Guests operan como consumidor_final
-      const { data: cfCanal } = await service
-        .from('canales')
-        .select('id')
-        .eq('slug', 'consumidor_final')
-        .single()
-      canalId = cfCanal?.id ?? null
-    }
-
-    if (canalId) {
-      const { data: multiplosDb } = await service
-        .from('producto_canales')
-        .select('producto_id, multiplo')
-        .eq('canal_id', canalId)
-        .in('producto_id', items.map(i => i.productoId))
-
-      for (const item of items) {
-        const row = multiplosDb?.find(r => r.producto_id === item.productoId)
-        const multiplo = row?.multiplo ?? 1
-        if (multiplo > 1 && item.cantidad % multiplo !== 0) {
-          const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
-          const nombre = prod?.titulo ? `"${prod.titulo}"` : 'Un producto'
-          return { ok: false, error: `${nombre} debe comprarse en múltiplos de ${multiplo} unidades.` }
-        }
+    for (const item of items) {
+      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+      const multiplo = row?.multiplo ?? 1
+      if (multiplo > 1 && item.cantidad % multiplo !== 0) {
+        const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
+        const nombre = prod?.titulo ? `"${prod.titulo}"` : 'Un producto'
+        return { ok: false, error: `${nombre} debe comprarse en múltiplos de ${multiplo} unidades.` }
       }
     }
   }
 
-  const [{ data: productos }, { data: tcRow }] = await Promise.all([
+  const [{ data: productos }, { data: tcRow }, { data: canalCfg }] = await Promise.all([
     service
       .from('productos')
       .select('id, titulo, precio_lista5, moneda, stock, iva')
@@ -115,6 +113,13 @@ export async function iniciarCheckoutMP(
       .select('valor')
       .eq('clave', 'tipo_cambio_usd')
       .maybeSingle(),
+    canalId
+      ? service
+          .from('canales_config')
+          .select('cuotas_mp_sin_interes, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde')
+          .eq('canal_id', canalId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   if (!productos?.length) return { ok: false, error: 'Productos no disponibles.' }
@@ -160,9 +165,24 @@ export async function iniciarCheckoutMP(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+  // Aplicar envío gratis si el canal lo tiene configurado y el monto alcanza
+  if (envio && canalCfg) {
+    const esAmba = ['B', 'C'].includes(envioParams!.provincia)
+    const umbralAmba = canalCfg.envio_amba_gratis_desde as number | null
+    const umbralGeneral = canalCfg.envio_gratis_desde as number | null
+    if (
+      (umbralAmba && esAmba && subtotal >= umbralAmba) ||
+      (umbralGeneral && subtotal >= umbralGeneral)
+    ) {
+      envio = { descripcion: envio.descripcion, costo: 0 }
+    }
+  }
+
   const total = subtotal + (envio?.costo ?? 0)
 
-  const expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 1
+  const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
 
   const pedidoInsert: Record<string, unknown> = {
     estado: 'pendiente_pago',
@@ -231,6 +251,9 @@ export async function iniciarCheckoutMP(
           }] : []),
         ],
         payer: { email: payerEmail },
+        payment_methods: {
+          installments: (canalCfg?.cuotas_mp_sin_interes as number | null) ?? 1,
+        },
         back_urls: {
           success: `${APP_URL}/checkout/exito`,
           failure: `${APP_URL}/checkout/fallo`,
