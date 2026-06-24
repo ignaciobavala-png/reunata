@@ -193,6 +193,24 @@ export async function iniciarCheckoutMP(
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 1
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
 
+  // Cancelar pedidos pendiente_pago previos del mismo usuario para evitar acumulación
+  // (ocurre cuando el usuario abandona MP y vuelve a intentar)
+  if (user) {
+    await service
+      .from('pedidos')
+      .update({ estado: 'cancelado' })
+      .eq('cliente_id', user.id)
+      .eq('estado', 'pendiente_pago')
+      .eq('medio_pago', 'mercadopago')
+  } else if (guestData?.email) {
+    await service
+      .from('pedidos')
+      .update({ estado: 'cancelado' })
+      .eq('guest_email', guestData.email.trim().toLowerCase())
+      .eq('estado', 'pendiente_pago')
+      .eq('medio_pago', 'mercadopago')
+  }
+
   const pedidoInsert: Record<string, unknown> = {
     estado: 'pendiente_pago',
     total_usd: total,
@@ -432,6 +450,14 @@ export async function iniciarCheckoutTransferencia(
 
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 7
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
+
+  // Cancelar pedidos pendiente_pago previos de transferencia del mismo usuario
+  await service
+    .from('pedidos')
+    .update({ estado: 'cancelado' })
+    .eq('cliente_id', user.id)
+    .eq('estado', 'pendiente_pago')
+    .eq('medio_pago', 'transferencia')
 
   const { data: pedido, error: pedidoError } = await service
     .from('pedidos')
