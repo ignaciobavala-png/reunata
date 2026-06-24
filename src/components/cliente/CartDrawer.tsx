@@ -175,22 +175,31 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
             {esMayorista ? (
               <>
                 {aprobado ? (
-                  <button
-                    onClick={handleEnviarPedido}
-                    disabled={enviando}
-                    className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
-                    style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
-                  >
-                    {enviando && <Loader2 size={14} className="animate-spin" />}
-                    {enviando ? 'Enviando pedido…' : 'Enviar pedido'}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <a
+                      href="/carrito"
+                      className="w-full py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                      style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                    >
+                      Ver carrito y finalizar
+                    </a>
+                    <button
+                      onClick={handleEnviarPedido}
+                      disabled={enviando}
+                      className="w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 transition-opacity border"
+                      style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)', background: 'transparent' }}
+                    >
+                      {enviando && <Loader2 size={12} className="animate-spin" />}
+                      {enviando ? 'Enviando…' : 'Enviar borrador sin confirmar'}
+                    </button>
+                    {errorEnvio && (
+                      <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorEnvio}</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-xs text-center py-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Tu cuenta está pendiente de aprobación.
                   </p>
-                )}
-                {errorEnvio && (
-                  <p className="text-xs mt-2 text-center" style={{ color: '#ef4444' }}>{errorEnvio}</p>
                 )}
               </>
             ) : (
