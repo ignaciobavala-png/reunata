@@ -286,3 +286,180 @@ export async function iniciarCheckoutMP(
     return { ok: false, error: 'Error al conectar con Mercado Pago. Intentá de nuevo.' }
   }
 }
+
+// ── Checkout por Transferencia — solo consumidor_final autenticado ─────────
+export async function iniciarCheckoutTransferencia(
+  items: CheckoutItem[],
+  envioParams?: EnvioParams,
+): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { ok: false, error: 'Necesitás iniciar sesión para pagar por transferencia.' }
+
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('rol, canal_id')
+    .eq('id', user.id)
+    .single()
+
+  if (perfil?.rol !== 'consumidor_final') {
+    return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+  }
+
+  const canalId = perfil?.canal_id ?? null
+  const service = createServiceClient()
+
+  // Validar múltiplos
+  if (canalId) {
+    const { data: multiplosDb } = await service
+      .from('producto_canales')
+      .select('producto_id, multiplo')
+      .eq('canal_id', canalId)
+      .in('producto_id', items.map(i => i.productoId))
+
+    for (const item of items) {
+      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+      const multiplo = row?.multiplo ?? 1
+      if (multiplo > 1 && item.cantidad % multiplo !== 0) {
+        const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
+        const nombre = prod?.titulo ? `"${prod.titulo}"` : 'Un producto'
+        return { ok: false, error: `${nombre} debe comprarse en múltiplos de ${multiplo} unidades.` }
+      }
+    }
+  }
+
+  const [{ data: productos }, { data: tcRow }, { data: canalCfg }] = await Promise.all([
+    service
+      .from('productos')
+      .select('id, titulo, precio_lista5, moneda, stock, iva')
+      .in('id', items.map(i => i.productoId))
+      .eq('activo', true),
+    service
+      .from('configuracion')
+      .select('valor')
+      .eq('clave', 'tipo_cambio_usd')
+      .maybeSingle(),
+    canalId
+      ? service
+          .from('canales_config')
+          .select('desc_transferencia_pct, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, pagos_habilitados')
+          .eq('canal_id', canalId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  // Verificar que transferencia esté habilitada para este canal
+  const pagosHab = (canalCfg?.pagos_habilitados as Record<string, { activo: boolean }> | null) ?? {}
+  if (!pagosHab['transferencia']?.activo) {
+    return { ok: false, error: 'El método de transferencia no está disponible para tu cuenta.' }
+  }
+
+  if (!productos?.length) return { ok: false, error: 'Productos no disponibles.' }
+
+  for (const item of items) {
+    const prod = productos.find(p => p.id === item.productoId)
+    if (prod) {
+      if (prod.stock !== null && prod.stock < item.cantidad) {
+        return { ok: false, error: `"${prod.titulo}" ingresa próximamente. Reducí la cantidad para continuar.` }
+      }
+    }
+  }
+
+  const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
+
+  const lineas = items.flatMap(item => {
+    const prod = productos.find(p => p.id === item.productoId)
+    if (!prod || prod.precio_lista5 == null) return []
+    const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
+    if (precioArs === null) return []
+    const ivaRate = ((prod.iva as number | null) ?? 21) / 100
+    const precioConIva = Math.round(precioArs * (1 + ivaRate))
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, variante: item.variante ?? null }]
+  })
+
+  if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
+
+  let envio: EnvioResuelto | undefined
+  if (envioParams) {
+    const { opciones, error: envioError } = await cotizarEnvio({
+      items,
+      codigo_postal: envioParams.codigo_postal,
+      provincia: envioParams.provincia,
+    })
+    const opcion = opciones.find(o => o.id === envioParams.servicioId)
+    if (envioError || !opcion) {
+      return { ok: false, error: 'No se pudo verificar el costo de envío. Recalculá antes de continuar.' }
+    }
+    envio = { descripcion: opcion.descripcion, costo: opcion.costo }
+  }
+
+  const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+  // Validar mínimo de compra
+  const minimoCompra = (canalCfg?.minimo_compra as number | null) ?? null
+  if (minimoCompra && subtotal < minimoCompra) {
+    return {
+      ok: false,
+      error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`,
+    }
+  }
+
+  if (envio && canalCfg) {
+    const esAmba = ['B', 'C'].includes(envioParams!.provincia)
+    const umbralAmba = canalCfg.envio_amba_gratis_desde as number | null
+    const umbralGeneral = canalCfg.envio_gratis_desde as number | null
+    if (
+      (umbralAmba && esAmba && subtotal >= umbralAmba) ||
+      (umbralGeneral && subtotal >= umbralGeneral)
+    ) {
+      envio = { descripcion: envio.descripcion, costo: 0 }
+    }
+  }
+
+  const descPct = (canalCfg?.desc_transferencia_pct as number | null) ?? 0
+  const descuento = descPct > 0 ? Math.round(subtotal * descPct / 100) : 0
+  const total = subtotal - descuento + (envio?.costo ?? 0)
+
+  const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 7
+  const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: pedido, error: pedidoError } = await service
+    .from('pedidos')
+    .insert({
+      cliente_id: user.id,
+      estado: 'pendiente_pago',
+      total_usd: total,
+      medio_pago: 'transferencia',
+      expira_en: expiraEn,
+      costo_envio: envio?.costo ?? null,
+      envio_descripcion: envio?.descripcion ?? null,
+      envio_codigo_postal: envioParams?.codigo_postal ?? null,
+      envio_provincia: envioParams?.provincia ?? null,
+      envio_calle: envioParams?.calle ?? null,
+      envio_numero: envioParams?.numero ?? null,
+      envio_piso: envioParams?.piso ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (pedidoError || !pedido) return { ok: false, error: 'Error al crear el pedido.' }
+
+  const { error: itemsError } = await service.from('pedido_items').insert(
+    lineas.map(l => ({
+      pedido_id: pedido.id,
+      producto_id: l.productoId,
+      cantidad: l.cantidad,
+      precio_unit: l.precioUnit,
+      variante: l.variante ?? null,
+    }))
+  )
+
+  if (itemsError) {
+    await service.from('pedidos').delete().eq('id', pedido.id)
+    return { ok: false, error: 'Error al registrar los ítems del pedido.' }
+  }
+
+  revalidatePath('/pedidos')
+  return { ok: true, pedidoId: String(pedido.id) }
+}

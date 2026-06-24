@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingBag, Loader2, Trash2 } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useCartStore } from '@/stores/cartStore'
-import { iniciarCheckoutMP } from '@/app/actions/checkout'
+import { iniciarCheckoutMP, iniciarCheckoutTransferencia } from '@/app/actions/checkout'
 import { formatPrecio } from '@/lib/utils'
 import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
@@ -113,6 +113,8 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
+  // Método de pago para consumidor_final ('mercado_pago' | 'transferencia')
+  const [metodoPagoMinorista, setMetodoPagoMinorista] = useState<string | null>(null)
   const [direcciones, setDirecciones] = useState<DireccionEntrega[]>([])
   const [direccionId, setDireccionId] = useState<string | null>(null)
 
@@ -188,6 +190,15 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
   const esGuest     = !user
 
+  // Auto-seleccionar método de pago para minoristas cuando cargan las reglas
+  useEffect(() => {
+    if (!reglas || !esMinorista) return
+    const mp    = reglas.pagos_habilitados?.['mercado_pago']?.activo ?? false
+    const transf = reglas.pagos_habilitados?.['transferencia']?.activo ?? false
+    if (mp) setMetodoPagoMinorista('mercado_pago')
+    else if (transf) setMetodoPagoMinorista('transferencia')
+  }, [reglas, esMinorista])
+
   function handleEnvioSelect(opcion: EnvioSeleccionado | null) {
     if (!opcion) { setEnvioSeleccionado(null); return }
     const totalActual = total()
@@ -243,6 +254,34 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     handlePagarMP({ nombre, email, telefono: guestTelefono.trim() || undefined })
   }
 
+  async function handlePagarTransferencia() {
+    if (!items.length || pagando) return
+    setPagando(true)
+    setErrorPago(null)
+
+    const result = await iniciarCheckoutTransferencia(
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      envioSeleccionado
+        ? {
+            provincia: envioSeleccionado.provincia,
+            codigo_postal: envioSeleccionado.codigo_postal,
+            servicioId: envioSeleccionado.servicioId,
+            calle: envioSeleccionado.calle,
+            numero: envioSeleccionado.numero,
+            piso: envioSeleccionado.piso,
+          }
+        : undefined,
+    )
+
+    if (result.ok && result.pedidoId) {
+      clear()
+      router.push(`/pedidos/${result.pedidoId}`)
+    } else {
+      setErrorPago(result.error ?? 'Error inesperado. Intentá de nuevo.')
+      setPagando(false)
+    }
+  }
+
   if (!mounted) return null
 
   if (items.length === 0) {
@@ -269,7 +308,19 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   }
 
   const totalGeneral = total()
-  const totalConEnvio = totalGeneral + (envioSeleccionado?.costo ?? 0)
+
+  // Métodos disponibles para consumidor_final (leídos de reglas del canal)
+  const mpActivo          = esMinorista ? (reglas?.pagos_habilitados?.['mercado_pago']?.activo  ?? false) : false
+  const transferenciaActiva = esMinorista ? (reglas?.pagos_habilitados?.['transferencia']?.activo ?? false) : false
+  const ambosPagosMinorista = mpActivo && transferenciaActiva
+
+  // Descuento de transferencia para minoristas
+  const descTransfPct = esMinorista && metodoPagoMinorista === 'transferencia'
+    ? (reglas?.desc_transferencia_pct ?? 0)
+    : 0
+  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(totalGeneral * descTransfPct / 100) : 0
+
+  const totalConEnvio = totalGeneral + ajusteTransfMinorista + (envioSeleccionado?.costo ?? 0)
 
   // Ajuste por método de pago (mayoristas, solo UI)
   const canalHabilitaFinanciado = esMayorista && reglas
@@ -531,12 +582,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                     <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
                   </div>
                 )}
+                {ajusteTransfMinorista !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
+                    <span>Descuento transferencia ({descTransfPct}%)</span>
+                    <span>-{formatPrecio(Math.abs(ajusteTransfMinorista))}</span>
+                  </div>
+                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total{esMayorista ? ' s/ IVA' : ''}</span>
                   <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
                 </div>
-                {!esMayorista && (
+                {!esMayorista && metodoPagoMinorista !== 'transferencia' && (
                   <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Precio de contado. Si pagás en cuotas con tarjeta, Mercado Pago aplica el interés de tu banco.
                   </p>
@@ -566,20 +623,85 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                   Calculá el envío para continuar.
                 </p>
               )}
-              <button
-                onClick={() => handlePagarMP()}
-                disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
-                className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                style={{ background: '#009ee3', color: 'white' }}
-              >
-                {pagando ? (
-                  <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
-                ) : refreshingPrecios ? (
-                  <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
-                ) : (
-                  'Pagar con Mercado Pago'
-                )}
-              </button>
+
+              {/* Selector de método si ambos están activos */}
+              {ambosPagosMinorista && (
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>Forma de pago</p>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { key: 'mercado_pago', label: 'Mercado Pago' },
+                      { key: 'transferencia', label: 'Transferencia', descPct: reglas?.desc_transferencia_pct ?? 0 },
+                    ].map(m => (
+                      <label
+                        key={m.key}
+                        className="flex items-center gap-2.5 cursor-pointer px-3 py-2 rounded-lg border transition-colors"
+                        style={{
+                          borderColor: metodoPagoMinorista === m.key ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                          background:  metodoPagoMinorista === m.key ? 'var(--color-acero-brillo)' : 'white',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="metodo_minorista"
+                          value={m.key}
+                          checked={metodoPagoMinorista === m.key}
+                          onChange={() => setMetodoPagoMinorista(m.key)}
+                          className="flex-shrink-0"
+                        />
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}</span>
+                        {(m as { descPct?: number }).descPct != null && (m as { descPct?: number }).descPct! > 0 && (
+                          <span className="text-xs font-medium" style={{ color: '#16a34a' }}>-{(m as { descPct?: number }).descPct}%</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botón Mercado Pago */}
+              {metodoPagoMinorista === 'mercado_pago' && (
+                <button
+                  onClick={() => handlePagarMP()}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
+                  className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                  style={{ background: '#009ee3', color: 'white' }}
+                >
+                  {pagando ? (
+                    <><Loader2 size={15} className="animate-spin" /> Redirigiendo…</>
+                  ) : refreshingPrecios ? (
+                    <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
+                  ) : (
+                    'Pagar con Mercado Pago'
+                  )}
+                </button>
+              )}
+
+              {/* Botón Transferencia */}
+              {metodoPagoMinorista === 'transferencia' && (
+                <button
+                  onClick={handlePagarTransferencia}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
+                  className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+                >
+                  {pagando ? (
+                    <><Loader2 size={15} className="animate-spin" /> Procesando…</>
+                  ) : refreshingPrecios ? (
+                    <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
+                  ) : (
+                    'Confirmar y pagar por transferencia'
+                  )}
+                </button>
+              )}
+
+              {/* Sin métodos activos */}
+              {!mpActivo && !transferenciaActiva && reglas && (
+                <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Contactanos para completar tu pago.
+                </p>
+              )}
+
               {errorPago && (
                 <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
               )}
