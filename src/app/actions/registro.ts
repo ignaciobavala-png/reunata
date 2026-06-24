@@ -49,6 +49,7 @@ export async function registrarse(data: RegistroInput) {
   const profileUpdate: Record<string, unknown> = {
     nombre: data.nombre,
     telefono: data.telefono ?? null,
+    rol: data.rol,
   }
 
   if (data.rol === 'consumidor_final') {
@@ -76,6 +77,7 @@ export async function registrarse(data: RegistroInput) {
     .upsert({ id: userId, ...profileUpdate })
 
   if (updateError) {
+    console.error('[registro] upsert profiles error:', updateError)
     return { error: 'Cuenta creada pero hubo un error al guardar los datos.' }
   }
 
