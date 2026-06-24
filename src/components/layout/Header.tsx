@@ -22,6 +22,7 @@ interface HeaderCategoria {
 }
 
 const tiendaLinks = [
+  { label: 'Todos los productos', href: '/tienda/todos' },
   { label: 'Novedades',           href: '/tienda/novedades' },
   { label: 'Más elegidos',        href: '/tienda/mas-vendidos' },
   { label: 'Favoritos',           href: '/favoritos' },
