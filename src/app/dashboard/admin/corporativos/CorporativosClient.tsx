@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { actualizarEstadoCorporativo, eliminarCorporativo } from '@/app/actions/corporativos'
-import { Check, X, Search, Loader2, Trash2 } from 'lucide-react'
+import { Check, X, Search, Loader2, Trash2, Download } from 'lucide-react'
 
 interface Corporativo {
   id: string
@@ -21,6 +21,7 @@ interface Corporativo {
   created_at: string
   updated_at: string | null
   logo_url: string | null
+  logo_signed_url: string | null
 }
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -254,13 +255,25 @@ export function CorporativosClient({ corporativos: inicial }: { corporativos: Co
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              {detalle.logo_url && (
-                <img
-                  src={detalle.logo_url}
-                  alt="Logo"
-                  className="w-12 h-12 rounded-lg object-contain border"
-                  style={{ borderColor: 'var(--color-acero-oscuro)', background: 'white' }}
-                />
+              {detalle.logo_signed_url && (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={detalle.logo_signed_url}
+                    alt="Logo"
+                    className="w-12 h-12 rounded-lg object-contain border"
+                    style={{ borderColor: 'var(--color-acero-oscuro)', background: 'white' }}
+                  />
+                  <a
+                    href={detalle.logo_signed_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Descargar logo"
+                    className="p-1.5 rounded-md transition-colors hover:bg-white/10"
+                    style={{ color: 'var(--color-acero-oscuro)' }}
+                  >
+                    <Download size={16} />
+                  </a>
+                </div>
               )}
               <h3 className="text-base font-semibold" style={{ color: 'var(--color-acero-brillo)' }}>
                 Detalle de solicitud
