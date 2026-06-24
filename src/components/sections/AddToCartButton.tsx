@@ -29,14 +29,14 @@ interface Props {
 export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Props) {
   const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
-  const [cantidad, setCantidad] = useState(multiplo)
+  const [cantidad, setCantidad] = useState(0)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<string | null>(null)
 
   const tieneVariantes = (producto.variantes?.length ?? 0) > 0
 
   function handleSelectVariante(nombre: string) {
     setVarianteSeleccionada(nombre)
-    setCantidad(multiplo)
+    setCantidad(0)
   }
 
   const varianteActual = producto.variantes?.find(v => v.nombre === varianteSeleccionada) ?? null
@@ -51,13 +51,14 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
   const cantidadMostrada = itemEnCarrito?.cantidad ?? cantidad
 
   function handleAgregar() {
+    const cantidadReal = cantidad === 0 ? multiplo : cantidad
     const precioBase = producto.precio ?? 0
     const debeAplicarIva = aplicaIva ?? !esMayorista
     const precioCarrito = debeAplicarIva
       ? Math.round(precioBase * (1 + ((producto.iva ?? 21) / 100)))
       : precioBase
     if (itemEnCarrito) {
-      updateCantidad(itemKey, itemEnCarrito.cantidad + cantidad)
+      updateCantidad(itemKey, itemEnCarrito.cantidad + cantidadReal)
     } else {
       add({
         productoId: producto.id,
@@ -69,8 +70,8 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
         foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
         variante: varianteSeleccionada ?? undefined,
       })
-      if (cantidad !== multiplo) {
-        updateCantidad(itemKey, cantidad)
+      if (cantidadReal !== multiplo) {
+        updateCantidad(itemKey, cantidadReal)
       }
     }
     setCartOpen(true)
