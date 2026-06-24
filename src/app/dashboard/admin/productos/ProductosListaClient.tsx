@@ -17,6 +17,7 @@ interface Producto {
   categoria: string | null
   descripcion: string | null
   stock: number | null
+  moneda: string | null
   precio_lista3: number | null
   precio_lista5: number | null
   activo: boolean
@@ -41,8 +42,8 @@ const COLORES_CANAL: Record<string, string> = {
   mercha: '#f59e0b',
 }
 
-function fmt(v: number | null) {
-  return v ? formatPrecio(v) : '—'
+function fmt(v: number | null, moneda?: string | null) {
+  return v ? formatPrecio(v, moneda) : '—'
 }
 
 export function ProductosListaClient({
@@ -538,8 +539,8 @@ export function ProductosListaClient({
                         <td className="px-4 py-2.5 text-right" style={{ color: p.stock === 0 ? '#ef4444' : 'var(--color-acero-oscuro)' }}>
                           {p.stock ?? '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista3)}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista5)}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista3, p.moneda)}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: 'var(--foreground)' }}>{fmt(p.precio_lista5, p.moneda)}</td>
                         <td className="px-4 py-2.5 text-center">
                           <span
                             className="px-2 py-0.5 rounded-full text-xs"
