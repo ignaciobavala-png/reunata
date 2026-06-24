@@ -171,6 +171,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   id="dropdown-tienda"
+                  data-lenis-prevent
                   className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-72 rounded-xl overflow-y-auto max-h-[calc(100vh-120px)]"
                   style={{
                     background: 'var(--color-acero-brillo)',
