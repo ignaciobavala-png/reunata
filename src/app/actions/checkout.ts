@@ -116,7 +116,7 @@ export async function iniciarCheckoutMP(
     canalId
       ? service
           .from('canales_config')
-          .select('cuotas_mp_sin_interes, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde')
+          .select('cuotas_mp_sin_interes, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde')
           .eq('canal_id', canalId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -141,7 +141,7 @@ export async function iniciarCheckoutMP(
     if (!prod || prod.precio_lista5 == null) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    // El checkout es solo para consumidor_final → aplicar IVA al precio neto
+    // El checkout MP es solo para consumidor_final → aplicar IVA al precio neto
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     const precioConIva = Math.round(precioArs * (1 + ivaRate))
     return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, variante: item.variante ?? null }]
@@ -165,6 +165,15 @@ export async function iniciarCheckoutMP(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+  // Validar mínimo de compra
+  const minimoCompraMP = (canalCfg?.minimo_compra as number | null) ?? null
+  if (minimoCompraMP && subtotal < minimoCompraMP) {
+    return {
+      ok: false,
+      error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompraMP)}.`,
+    }
+  }
 
   // Aplicar envío gratis si el canal lo tiene configurado y el monto alcanza
   if (envio && canalCfg) {

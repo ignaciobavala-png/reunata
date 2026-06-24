@@ -659,11 +659,19 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </div>
               )}
 
+              {/* Aviso mínimo de compra — minoristas */}
+              {minimoInsuficiente && reglas?.minimo_compra && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalGeneral)}.
+                </div>
+              )}
+
               {/* Botón Mercado Pago */}
               {metodoPagoMinorista === 'mercado_pago' && (
                 <button
                   onClick={() => handlePagarMP()}
-                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
                   className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                   style={{ background: '#009ee3', color: 'white' }}
                 >
@@ -681,7 +689,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
               {metodoPagoMinorista === 'transferencia' && (
                 <button
                   onClick={handlePagarTransferencia}
-                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
                   className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                   style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
                 >
