@@ -34,7 +34,7 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
 
   const listaPrecio = canal?.lista_precios ?? 'precio_lista3'
 
-  const [{ data: productos }, { data: tcRow }] = await Promise.all([
+  const [{ data: productos }, { data: tcRow }, { data: canalConfig }, { count: pedidosCount }] = await Promise.all([
     service
       .from('productos')
       .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock')
@@ -45,6 +45,16 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
       .select('valor')
       .eq('clave', 'tipo_cambio_usd')
       .maybeSingle(),
+    service
+      .from('canales_config')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct')
+      .eq('canal_id', perfil.canal_id)
+      .maybeSingle(),
+    service
+      .from('pedidos')
+      .select('id', { count: 'exact', head: true })
+      .eq('cliente_id', user.id)
+      .neq('estado', 'cancelado'),
   ])
 
   if (!productos?.length) throw new Error('Productos no disponibles.')
@@ -89,11 +99,21 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
 
   if (lineasResueltas.length === 0) throw new Error('Ningún producto tiene precio configurado.')
 
-  const total = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+  const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+  const esPrimeraCompra = (pedidosCount ?? 0) === 0
+  const pct = esPrimeraCompra
+    ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
+    : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
+  const totalFinal = pct > 0 ? Math.round(subtotal * (1 - pct / 100)) : subtotal
+  const descuento_sugerido = pct > 0 ? pct : null
+  const descuento_nota = pct > 0
+    ? `${pct}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`
+    : null
 
   const { data: pedido, error } = await service
     .from('pedidos')
-    .insert({ cliente_id: user.id, estado: 'borrador', total_usd: total })
+    .insert({ cliente_id: user.id, estado: 'borrador', total_usd: totalFinal, descuento_sugerido, descuento_nota })
     .select('id')
     .single()
 
