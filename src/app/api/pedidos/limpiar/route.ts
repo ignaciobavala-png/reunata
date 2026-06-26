@@ -17,19 +17,38 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  const { data, error } = await supabase
+  const ahora = new Date().toISOString()
+
+  // Transferencia vencida → borrador (el cliente puede retomarla con precios actualizados)
+  const { data: revertidos, error: errRevertir } = await supabase
     .from('pedidos')
-    .update({ estado: 'cancelado' })
+    .update({ estado: 'borrador', expira_en: null })
     .eq('estado', 'pendiente_pago')
-    .lt('expira_en', new Date().toISOString())
+    .eq('medio_pago', 'transferencia')
+    .lt('expira_en', ahora)
     .not('expira_en', 'is', null)
     .select('id')
 
-  if (error) {
-    console.error('[pedidos/limpiar]', error)
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  if (errRevertir) {
+    console.error('[pedidos/limpiar] revertir transferencia:', errRevertir)
+    return NextResponse.json({ ok: false, error: errRevertir.message }, { status: 500 })
   }
 
-  console.log(`[pedidos/limpiar] Cancelados: ${data?.length ?? 0} pedidos vencidos`)
-  return NextResponse.json({ ok: true, cancelados: data?.length ?? 0 })
+  // MP vencido → cancelado (la preferencia de MP ya no sirve)
+  const { data: cancelados, error: errCancelar } = await supabase
+    .from('pedidos')
+    .update({ estado: 'cancelado' })
+    .eq('estado', 'pendiente_pago')
+    .eq('medio_pago', 'mercadopago')
+    .lt('expira_en', ahora)
+    .not('expira_en', 'is', null)
+    .select('id')
+
+  if (errCancelar) {
+    console.error('[pedidos/limpiar] cancelar mp:', errCancelar)
+    return NextResponse.json({ ok: false, error: errCancelar.message }, { status: 500 })
+  }
+
+  console.log(`[pedidos/limpiar] Revertidos: ${revertidos?.length ?? 0} transferencia | Cancelados: ${cancelados?.length ?? 0} mp`)
+  return NextResponse.json({ ok: true, revertidos: revertidos?.length ?? 0, cancelados: cancelados?.length ?? 0 })
 }

@@ -159,7 +159,10 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
   const supabase = await createClient()
   const service = createServiceClient()
   const updates: Record<string, unknown> = { estado }
-  if (estado === 'pago_confirmado') updates.fecha_pago = new Date().toISOString()
+  if (estado === 'pago_confirmado') {
+    updates.fecha_pago = new Date().toISOString()
+    updates.expira_en = null
+  }
 
   const { data: pedido } = await supabase
     .from('pedidos')
