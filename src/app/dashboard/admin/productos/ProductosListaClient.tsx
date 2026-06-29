@@ -59,6 +59,7 @@ export function ProductosListaClient({
   multiplosIniciales,
   todosLosCanalesIniciales,
   configsIniciales,
+  cuentasSinIva = [],
 }: {
   productos: Producto[]
   ofertasIniciales: Set<string>
@@ -70,8 +71,9 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
-  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }[]
+  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }[]
   configsIniciales: Record<number, Record<string, unknown>>
+  cuentasSinIva?: { id: number; nombre: string; cbu: string; alias: string }[]
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
@@ -364,6 +366,7 @@ export function ProductosListaClient({
         <CanalesListaClient
           canales={todosLosCanalesIniciales}
           configsIniciales={configsIniciales}
+          cuentasSinIva={cuentasSinIva}
         />
       )}
 

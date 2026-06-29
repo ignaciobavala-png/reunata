@@ -21,7 +21,7 @@ async function ListaContent() {
     : { data: null }
   const isMaster = profile?.rol === 'master'
 
-  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }, { data: todosLosCanales }, { data: configs }] = await Promise.all([
+  const [{ data: productos }, { data: ofertasActivas }, { data: fotosDestacadas }, { data: novedadesData }, { data: todasLasFotos }, { data: canales }, { data: asignaciones }, { data: todosLosCanales }, { data: configs }, { data: cuentasSinIva }] = await Promise.all([
     supabase
       .from('productos')
       .select('id, codigo_interno, titulo, categoria, descripcion, stock, moneda, precio_lista3, precio_lista5, activo, alto, ancho, largo, peso, enviar_solo')
@@ -53,11 +53,15 @@ async function ListaContent() {
       .select('producto_id, canal_id, multiplo'),
     supabase
       .from('canales')
-      .select('id, slug, nombre, activo, tipo')
+      .select('id, slug, nombre, activo, tipo, cuenta_sin_iva_id')
       .order('id'),
     supabase
       .from('canales_config')
       .select('*'),
+    supabase
+      .from('cuentas_sin_iva')
+      .select('id, nombre, tipo, cbu, alias, cuit, banco')
+      .order('id'),
   ])
 
   const ofertasSet = new Set(
@@ -100,6 +104,7 @@ async function ListaContent() {
         multiplosIniciales={multiplosMap}
         todosLosCanalesIniciales={todosLosCanales ?? []}
         configsIniciales={configMap}
+        cuentasSinIva={cuentasSinIva ?? []}
       />
     </div>
   )

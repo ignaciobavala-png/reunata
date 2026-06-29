@@ -68,6 +68,9 @@ interface Props {
   mostrarPrecios: boolean
   cbuSinIva?: string
   aliasSinIva?: string
+  tipoCuentaSinIva?: 'CBU' | 'CVU' | 'deposito'
+  cuitSinIva?: string
+  bancoSinIva?: string
 }
 
 function buildWhatsAppMsg(
@@ -94,7 +97,7 @@ function buildWhatsAppMsg(
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}${pagoStr}${dirStr}${totalStr}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
-export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva }: Props) {
+export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva }: Props) {
   const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -837,9 +840,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva }: Pro
                           <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                             {METODO_LABEL[k] ?? k}
                           </span>
-                          {k === 'transferencia_negro' && metodoPago === k && (cbuSinIva || aliasSinIva) && (
-                            <span className="text-xs mt-0.5 block font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                              {aliasSinIva && `Alias: ${aliasSinIva}`}{aliasSinIva && cbuSinIva && ' · '}{cbuSinIva && `CBU: ${cbuSinIva}`}
+                          {k === 'transferencia_negro' && metodoPago === k && cbuSinIva && (
+                            <span className="text-xs mt-0.5 block font-mono leading-relaxed" style={{ color: 'var(--color-acero-oscuro)' }}>
+                              {tipoCuentaSinIva === 'deposito' ? (
+                                <>
+                                  {cuitSinIva && `CUIT: ${cuitSinIva}`}{cuitSinIva && bancoSinIva && ' · '}{bancoSinIva && `Banco: ${bancoSinIva}`}
+                                  <br />CTA/CTE: {cbuSinIva}
+                                </>
+                              ) : (
+                                <>{aliasSinIva && `Alias: ${aliasSinIva}`}{aliasSinIva && ' · '}{tipoCuentaSinIva}: {cbuSinIva}</>
+                              )}
                             </span>
                           )}
                         </div>
