@@ -43,7 +43,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div data-dashboard className="flex h-screen overflow-hidden font-medium" style={{ background: 'var(--background)' }}>
-      <Sidebar rol={profile.rol} nombre={profile.nombre || profile.email} badges={badges} />
+      <div className="print:hidden">
+        <Sidebar rol={profile.rol} nombre={profile.nombre || profile.email} badges={badges} />
+      </div>
       <main className="flex-1 overflow-auto" data-lenis-prevent>
         {children}
       </main>

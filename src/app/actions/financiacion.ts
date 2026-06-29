@@ -29,6 +29,17 @@ export async function crearSolicitudCredito(formData: FormData) {
   if (isNaN(monto) || monto <= 0) return { error: 'Ingresá un monto válido.' }
   if (isNaN(plazo_dias))          return { error: 'Seleccioná un plazo.' }
 
+  // Parsear referencias comerciales
+  const refs: { cuit: string; telefono: string | null; email: string | null; direccion: string | null }[] = []
+  for (let i = 0; i < 3; i++) {
+    const cuit     = ((formData.get(`ref_${i}_cuit`)     as string) ?? '').trim()
+    const telefono = ((formData.get(`ref_${i}_telefono`) as string) ?? '').trim() || null
+    const email    = ((formData.get(`ref_${i}_email`)    as string) ?? '').trim() || null
+    const direccion = ((formData.get(`ref_${i}_direccion`) as string) ?? '').trim() || null
+    if (cuit) refs.push({ cuit, telefono, email, direccion })
+  }
+  if (refs.length < 2) return { error: 'Ingresá al menos 2 referencias comerciales (CUIT requerido en cada una).' }
+
   // Verificar que no haya una solicitud pendiente activa
   const { data: existente } = await supabase
     .from('solicitudes_credito')
@@ -47,6 +58,7 @@ export async function crearSolicitudCredito(formData: FormData) {
     plazo_dias,
     garantias,
     notas,
+    referencias_comerciales: refs,
   })
 
   if (error) return { error: 'Error al enviar la solicitud.' }

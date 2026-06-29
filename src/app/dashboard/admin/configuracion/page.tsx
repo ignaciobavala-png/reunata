@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { guardarConfiguracion } from '@/app/actions/configuracion'
+import { CuentasSinIvaManager } from './CuentasSinIvaManager'
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -9,16 +9,12 @@ export default async function ConfiguracionPage({
   const { guardado, error: errorParam } = await searchParams
   const supabase = await createClient()
 
-  const { data: config } = await supabase
-    .from('configuracion')
-    .select('clave, valor')
+  const [{ data: config }, { data: cuentasSinIva }] = await Promise.all([
+    supabase.from('configuracion').select('clave, valor'),
+    supabase.from('cuentas_sin_iva').select('id, nombre, tipo, cbu, alias, cuit, banco').order('id'),
+  ])
 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
-
-  const { data: canales } = await supabase
-    .from('canales')
-    .select('id, nombre, slug, lista_precios, politica_pago, condiciones')
-    .order('id')
 
   return (
     <div className="p-8 max-w-2xl">
@@ -205,26 +201,20 @@ export default async function ConfiguracionPage({
         </button>
       </form>
 
-      {/* Info canales (solo lectura por ahora) */}
-      <section className="mt-10">
-        <h2 className="text-base font-medium mb-4" style={{ color: 'var(--foreground)' }}>
-          Canales de venta
+      {/* Cuentas sin IVA — CRUD independiente del form principal */}
+      <section
+        className="rounded-xl border p-6 mt-6"
+        style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+      >
+        <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+          Cuentas sin IVA
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {(canales ?? []).map(c => (
-            <div
-              key={c.id}
-              className="rounded-xl border p-4"
-              style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
-            >
-              <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>{c.nombre}</p>
-              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Lista: <span className="font-mono">{c.lista_precios}</span>
-              </p>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+          CBUs para transferencias sin IVA. Podés tener varias y asignar una distinta a cada canal mayorista desde la configuración de Canales.
+        </p>
+        <CuentasSinIvaManager inicial={cuentasSinIva ?? []} />
       </section>
+
     </div>
   )
 }

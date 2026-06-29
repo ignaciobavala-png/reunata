@@ -6,6 +6,7 @@ import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canal
 
 type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }
 type Config = Record<string, unknown>
+export type CuentaSinIva = { id: number; nombre: string; tipo?: string; cbu: string; alias: string; cuit?: string | null; banco?: string | null }
 
 const COLORES_CANAL: Record<string, string> = {
   consumidor_final: '#6366f1',
@@ -43,6 +44,7 @@ function buildDefaultConfig(canal: Canal): CanalConfigPayload {
   for (const m of methods) pagos[m.key] = { activo: false }
   return {
     canal_id: canal.id,
+    cuenta_sin_iva_id: null,
     pagos_habilitados: pagos,
     cuotas_mp_sin_interes: 1,
     desc_transferencia_pct: 0,
@@ -154,18 +156,25 @@ function PagoToggle({ label, activo, onChange }: { label: string; activo: boolea
 export function CanalConfigDrawer({
   canal,
   configInicial,
+  cuentasSinIva = [],
+  cuentaSinIvaActualId,
   onClose,
   onSaved,
 }: {
   canal: Canal
   configInicial: Config | undefined
+  cuentasSinIva?: CuentaSinIva[]
+  cuentaSinIvaActualId?: number | null
   onClose: () => void
   onSaved: (canalId: number, config: CanalConfigPayload) => void
 }) {
   const isMayorista = canal.tipo === 'mayorista'
   const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
 
-  const [form, setForm] = useState<CanalConfigPayload>(() => mergeConfig(canal, configInicial))
+  const [form, setForm] = useState<CanalConfigPayload>(() => ({
+    ...mergeConfig(canal, configInicial),
+    cuenta_sin_iva_id: cuentaSinIvaActualId ?? null,
+  }))
   const [, startTransition] = useTransition()
   const [guardando, setGuardando] = useState(false)
   const [guardado, setGuardado] = useState(false)
@@ -342,6 +351,27 @@ export function CanalConfigDrawer({
                     suffix="cuotas"
                   />
                 </div>
+
+                {cuentasSinIva.length > 0 && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Cuenta sin IVA (transferencia negro)
+                      </label>
+                      <select
+                        value={form.cuenta_sin_iva_id ?? ''}
+                        onChange={e => set('cuenta_sin_iva_id', e.target.value ? Number(e.target.value) : null)}
+                        className="w-48 px-2 py-1.5 text-sm rounded border outline-none"
+                        style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+                      >
+                        <option value="">Sin asignar</option>
+                        {cuentasSinIva.map(c => (
+                          <option key={c.id} value={c.id}>{c.nombre} ({c.tipo ?? 'CBU'})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </Section>

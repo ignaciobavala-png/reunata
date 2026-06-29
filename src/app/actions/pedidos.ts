@@ -10,7 +10,10 @@ interface LineaPedido {
   variante?: string
 }
 
-export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string> {
+export async function crearPedidoBorrador(
+  lineas: LineaPedido[],
+  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
+): Promise<string> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
@@ -111,9 +114,26 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
     ? `${pct}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`
     : null
 
+  // Mapear transferencia_negro → transferencia_cueva para el DB (el canal config usa transferencia_negro como clave UI)
+  const medioPagoDb = opciones?.medioPago === 'transferencia_negro'
+    ? 'transferencia_cueva'
+    : (opciones?.medioPago ?? null)
+
+  const tieneComprobante = Boolean(opciones?.comprobantePath)
+  const expiraEn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
   const { data: pedido, error } = await service
     .from('pedidos')
-    .insert({ cliente_id: user.id, estado: 'borrador', total_usd: totalFinal, descuento_sugerido, descuento_nota })
+    .insert({
+      cliente_id: user.id,
+      estado: tieneComprobante ? 'comprobante_subido' : 'borrador',
+      total_usd: totalFinal,
+      descuento_sugerido,
+      descuento_nota,
+      expira_en: expiraEn,
+      ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
+      ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
+    })
     .select('id')
     .single()
 
@@ -128,6 +148,10 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
       variante: l.variante,
     }))
   )
+
+  if (tieneComprobante) {
+    await service.from('comprobantes').insert({ pedido_id: pedido.id, url: opciones!.comprobantePath })
+  }
 
   revalidatePath('/dashboard/cliente/pedidos')
   return pedido.id

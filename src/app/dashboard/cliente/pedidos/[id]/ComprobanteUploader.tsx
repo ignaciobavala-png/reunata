@@ -21,10 +21,10 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
     setError(null)
 
     const ext = file.name.split('.').pop()
-    const path = `comprobantes/${pedidoId}/${Date.now()}.${ext}`
+    const path = `${pedidoId}/${Date.now()}.${ext}`
 
     const { error: uploadError } = await getSupabase().storage
-      .from('multimedia')
+      .from('comprobantes')
       .upload(path, file, { upsert: false })
 
     if (uploadError) {

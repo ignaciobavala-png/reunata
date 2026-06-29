@@ -318,6 +318,7 @@ export async function iniciarCheckoutMP(
 export async function iniciarCheckoutTransferencia(
   items: CheckoutItem[],
   envioParams?: EnvioParams,
+  comprobantePath?: string,
 ): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -463,7 +464,7 @@ export async function iniciarCheckoutTransferencia(
     .from('pedidos')
     .insert({
       cliente_id: user.id,
-      estado: 'pendiente_pago',
+      estado: comprobantePath ? 'comprobante_subido' : 'pendiente_pago',
       total_usd: total,
       medio_pago: 'transferencia',
       expira_en: expiraEn,
@@ -479,6 +480,10 @@ export async function iniciarCheckoutTransferencia(
     .single()
 
   if (pedidoError || !pedido) return { ok: false, error: 'Error al crear el pedido.' }
+
+  if (comprobantePath) {
+    await service.from('comprobantes').insert({ pedido_id: pedido.id, url: comprobantePath })
+  }
 
   const { error: itemsError } = await service.from('pedido_items').insert(
     lineas.map(l => ({

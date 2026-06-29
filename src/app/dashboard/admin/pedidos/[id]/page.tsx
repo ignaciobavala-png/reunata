@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { EstadoActions } from './EstadoActions'
+import { PrintButton } from './PrintButton'
 
 const ESTADO_LABEL: Record<string, string> = {
   borrador:           'Borrador',
@@ -85,7 +86,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
         <div>
           <Link
             href="/dashboard/admin/pedidos"
-            className="inline-flex items-center gap-1.5 text-sm mb-3 transition-opacity hover:opacity-70"
+            className="print:hidden inline-flex items-center gap-1.5 text-sm mb-3 transition-opacity hover:opacity-70"
             style={{ color: 'var(--color-acero-oscuro)' }}
           >
             <ArrowLeft size={14} />
@@ -101,13 +102,16 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             )}
           </p>
         </div>
-        <span className="text-sm px-3 py-1.5 rounded-full shrink-0" style={{ background: col.bg, color: col.text }}>
-          {ESTADO_LABEL[pedido.estado] ?? pedido.estado}
-        </span>
+        <div className="flex items-center gap-3">
+          <PrintButton />
+          <span className="text-sm px-3 py-1.5 rounded-full shrink-0" style={{ background: col.bg, color: col.text }}>
+            {ESTADO_LABEL[pedido.estado] ?? pedido.estado}
+          </span>
+        </div>
       </div>
 
       {/* Acciones de estado */}
-      <div className="mb-6">
+      <div className="print:hidden mb-6">
         <EstadoActions pedidoId={id} estadoActual={pedido.estado} />
       </div>
 
@@ -172,7 +176,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       </div>
 
       {/* Items */}
-      <div className="rounded-xl border overflow-hidden mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
+      <div className="pedido-items rounded-xl border overflow-hidden mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--color-granito-oscuro)' }}>
@@ -273,7 +277,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
 
       {/* Envío */}
       {((pedido as any).envio_descripcion || (pedido as any).envio_calle) && (
-        <div className="rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
+        <div className="pedido-envio rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
           <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>Envío</h2>
           <div className="flex flex-col gap-1.5 text-sm">
             {(pedido as any).envio_descripcion && (
@@ -309,7 +313,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
 
       {/* Medio de pago + referencias */}
       {(pedido.medio_pago || pedido.mp_payment_id || pedido.referencia_pago) && (
-        <div className="rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
+        <div className="pedido-pago rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
           <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>Pago</h2>
           <div className="flex flex-col gap-1.5 text-sm">
             {pedido.medio_pago && (
@@ -342,9 +346,9 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
         </div>
       )}
 
-      {/* Comprobantes */}
+      {/* Comprobantes — ocultos en impresión */}
       {comprobantesConUrl.length > 0 && (
-        <div className="rounded-xl border p-5" style={{ borderColor: 'var(--color-acero-claro)' }}>
+        <div className="print:hidden rounded-xl border p-5" style={{ borderColor: 'var(--color-acero-claro)' }}>
           <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
             Comprobantes de pago
           </h2>
@@ -372,6 +376,11 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
           </div>
         </div>
       )}
+
+      {/* Pie solo visible al imprimir */}
+      <div className="hidden print:block mt-10 pt-6 text-xs" style={{ borderTop: '1px solid #ccc', color: '#888' }}>
+        <p>Reunata · Pedido #{pedido.numero} · Impreso el {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+      </div>
     </div>
   )
 }

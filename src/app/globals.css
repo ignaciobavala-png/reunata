@@ -94,3 +94,32 @@ h1, h2, h3, h4, h5, h6 {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
+
+/* ─── Print modes ─────────────────────────────────────────────────────────── */
+@media print {
+  /* Modo logística: ocultar artículos y pago, solo envío */
+  body.print-envio .pedido-items,
+  body.print-envio .pedido-pago {
+    display: none !important;
+  }
+
+  /* En modo logística, ampliar datos de envío para que sea el foco */
+  body.print-envio .pedido-envio {
+    border: 2px solid #000 !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  body.print-envio .pedido-envio h2 {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #000 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  body.print-envio .pedido-envio p {
+    font-size: 1rem !important;
+    color: #000 !important;
+    line-height: 1.6 !important;
+  }
+}

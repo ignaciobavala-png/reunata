@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { ShoppingCart, Search } from 'lucide-react'
+import { ShoppingCart, Search, Download } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
+import { ExportButton } from './ExportButton'
 
 const PAGE_SIZE = 30
 
@@ -27,17 +28,53 @@ const COLOR_ESTADO: Record<string, { bg: string; text: string }> = {
   cancelado:          { bg: '#ef444422', text: '#ef4444' },
 }
 
+const PERIODOS = [
+  { value: 'hoy',    label: 'Hoy' },
+  { value: 'semana', label: 'Esta semana' },
+  { value: 'mes',    label: 'Este mes' },
+  { value: 'anio',   label: 'Este año' },
+]
+
+function periodoToRange(periodo: string | undefined): { desde?: string; hasta?: string } {
+  if (!periodo) return {}
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  if (periodo === 'hoy') {
+    const d = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    return { desde: `${d}T00:00:00`, hasta: `${d}T23:59:59` }
+  }
+  if (periodo === 'semana') {
+    const day = now.getDay() // 0=dom
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1) // lunes
+    const lunes = new Date(now)
+    lunes.setDate(diff)
+    const d = `${lunes.getFullYear()}-${pad(lunes.getMonth() + 1)}-${pad(lunes.getDate())}`
+    return { desde: `${d}T00:00:00` }
+  }
+  if (periodo === 'mes') {
+    const d = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`
+    return { desde: `${d}T00:00:00` }
+  }
+  if (periodo === 'anio') {
+    return { desde: `${now.getFullYear()}-01-01T00:00:00` }
+  }
+  return {}
+}
+
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; q?: string; page?: string }>
+  searchParams: Promise<{ estado?: string; q?: string; page?: string; periodo?: string }>
 }) {
-  const { estado, q: rawQ, page: rawPage } = await searchParams
+  const { estado, q: rawQ, page: rawPage, periodo } = await searchParams
   const q    = rawQ?.trim() ?? ''
   const page = Math.max(1, parseInt(rawPage ?? '1'))
   const supabase = await createClient()
 
-  // Buscar IDs de clientes que coincidan con el término (para pedidos registrados)
+  const { desde, hasta } = periodoToRange(periodo)
+
+  // Buscar IDs de clientes que coincidan con el término
   let matchingClienteIds: string[] = []
   if (q && !/^\d+$/.test(q)) {
     const { data: profiles } = await supabase
@@ -47,7 +84,6 @@ export default async function PedidosPage({
     matchingClienteIds = (profiles ?? []).map(p => p.id)
   }
 
-  // Query principal con count
   let query = supabase
     .from('pedidos')
     .select(`
@@ -59,6 +95,8 @@ export default async function PedidosPage({
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
   if (estado) query = query.eq('estado', estado)
+  if (desde)  query = query.gte('created_at', desde)
+  if (hasta)  query = query.lte('created_at', hasta)
 
   if (q) {
     if (/^\d+$/.test(q)) {
@@ -75,12 +113,12 @@ export default async function PedidosPage({
   const { data: pedidos, count } = await query
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
-  // Construye URL preservando todos los filtros activos
   function url(overrides: Record<string, string | undefined>) {
     const merged: Record<string, string | undefined> = {
-      estado: estado || undefined,
-      q: q || undefined,
-      page: page !== 1 ? String(page) : undefined,
+      estado:  estado  || undefined,
+      q:       q       || undefined,
+      periodo: periodo || undefined,
+      page:    page !== 1 ? String(page) : undefined,
       ...overrides,
     }
     const p = new URLSearchParams()
@@ -91,18 +129,59 @@ export default async function PedidosPage({
 
   const estadosList = Object.keys(LABEL_ESTADO)
 
+  // Params para el export (sin paginación)
+  const exportParams = new URLSearchParams()
+  if (estado)  exportParams.set('estado', estado)
+  if (q)       exportParams.set('q', q)
+  if (periodo) exportParams.set('periodo', periodo)
+
   return (
     <div className="p-8">
-      <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-        Pedidos
-      </h1>
-      <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Seguimiento y gestión de todos los pedidos de clientes.
-      </p>
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+            Pedidos
+          </h1>
+          <p className="text-base mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Seguimiento y gestión de todos los pedidos de clientes.
+          </p>
+        </div>
+        <ExportButton params={exportParams.toString()} count={count ?? 0} />
+      </div>
+
+      {/* Filtros de período */}
+      <div className="flex gap-2 mt-6 mb-5 flex-wrap">
+        <a
+          href={url({ periodo: undefined, page: undefined })}
+          className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
+          style={{
+            borderColor: !periodo ? 'var(--color-granito)' : 'var(--color-acero-claro)',
+            background:  !periodo ? 'var(--color-granito)' : 'white',
+            color:       !periodo ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+          }}
+        >
+          Todos
+        </a>
+        {PERIODOS.map(p => (
+          <a
+            key={p.value}
+            href={url({ periodo: p.value, page: undefined })}
+            className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
+            style={{
+              borderColor: periodo === p.value ? 'var(--color-granito)' : 'var(--color-acero-claro)',
+              background:  periodo === p.value ? 'var(--color-granito)' : 'white',
+              color:       periodo === p.value ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+            }}
+          >
+            {p.label}
+          </a>
+        ))}
+      </div>
 
       {/* Búsqueda */}
       <form method="GET" action="/dashboard/admin/pedidos" className="mb-5">
-        {estado && <input type="hidden" name="estado" value={estado} />}
+        {estado  && <input type="hidden" name="estado"  value={estado} />}
+        {periodo && <input type="hidden" name="periodo" value={periodo} />}
         <div className="flex gap-2 max-w-md">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-acero-oscuro)' }} />
@@ -248,7 +327,7 @@ export default async function PedidosPage({
                     <ShoppingCart size={24} strokeWidth={1.2} className="mx-auto mb-3 opacity-30" />
                     {q
                       ? `Sin resultados para "${q}"${estado ? ` con estado "${LABEL_ESTADO[estado]}"` : ''}.`
-                      : `No hay pedidos${estado ? ` con estado "${LABEL_ESTADO[estado]}"` : ' registrados todavía'}.`
+                      : `No hay pedidos${estado ? ` con estado "${LABEL_ESTADO[estado]}"` : periodo ? ' en este período' : ' registrados todavía'}.`
                     }
                   </td>
                 </tr>
@@ -258,12 +337,14 @@ export default async function PedidosPage({
         </div>
       </div>
 
-      {/* Paginación */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {count} pedidos · página {page} de {totalPages}
-          </p>
+      {/* Resumen count */}
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+          {count ?? 0} pedido{(count ?? 0) !== 1 ? 's' : ''}{periodo ? ` en ${PERIODOS.find(p => p.value === periodo)?.label.toLowerCase()}` : ''}
+        </p>
+
+        {/* Paginación */}
+        {totalPages > 1 && (
           <div className="flex gap-2">
             {page > 1 && (
               <a
@@ -284,8 +365,8 @@ export default async function PedidosPage({
               </a>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

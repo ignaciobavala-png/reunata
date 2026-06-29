@@ -133,6 +133,36 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
               placeholder="Contanos más sobre tu negocio o el motivo de la solicitud" />
           </div>
 
+          {/* Referencias comerciales */}
+          <div>
+            <p className="text-xs font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+              Referencias comerciales <span style={{ color: '#ef4444' }}>*</span>
+            </p>
+            <p className="text-xs mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Mínimo 2 proveedores con quienes operes. Nos ayuda a evaluar tu solicitud.
+            </p>
+            <div className="flex flex-col gap-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="rounded-lg border p-4 flex flex-col gap-2"
+                  style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Referencia {i + 1}{i < 2 ? <span style={{ color: '#ef4444' }}> *</span> : ' (opcional)'}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input name={`ref_${i}_cuit`} placeholder="CUIT"
+                      className={inputClass} style={inputStyle} />
+                    <input name={`ref_${i}_telefono`} placeholder="Teléfono"
+                      className={inputClass} style={inputStyle} />
+                    <input name={`ref_${i}_email`} type="email" placeholder="Email"
+                      className={inputClass} style={inputStyle} />
+                    <input name={`ref_${i}_direccion`} placeholder="Dirección"
+                      className={inputClass} style={inputStyle} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
 
           <div className="flex gap-2 justify-end">

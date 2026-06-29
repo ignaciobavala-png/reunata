@@ -1,0 +1,7 @@
+# Skills que no aplican a este proyecto.
+# Un nombre por línea (nombre del directorio en brain-data/skills/).
+# brain-agents-inject los omite al regenerar AGENTS.md.
+
+tiquetera-vite-supabase
+playwright-ecommerce
+playwright-e2e-delivery

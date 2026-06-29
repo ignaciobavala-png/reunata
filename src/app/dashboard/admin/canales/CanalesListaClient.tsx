@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { Settings, Plus, Loader2, X } from 'lucide-react'
-import { CanalConfigDrawer } from './CanalConfigDrawer'
+import { CanalConfigDrawer, type CuentaSinIva } from './CanalConfigDrawer'
 import type { CanalConfigPayload } from '@/app/actions/canales-config'
 import { crearCanal } from '@/app/actions/canales'
 import { formatPrecio } from '@/lib/utils'
 
-type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }
+type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }
 type Config = Record<string, unknown>
 
 const COLORES_CANAL: Record<string, string> = {
@@ -175,9 +175,11 @@ function NuevoCanalModal({ onClose, onCreado }: { onClose: () => void; onCreado:
 export function CanalesListaClient({
   canales: canalesIniciales,
   configsIniciales,
+  cuentasSinIva = [],
 }: {
   canales: Canal[]
   configsIniciales: Record<number, Config>
+  cuentasSinIva?: CuentaSinIva[]
 }) {
   const [canales, setCanales]         = useState<Canal[]>(canalesIniciales)
   const [configs, setConfigs]         = useState<Record<number, Config>>(configsIniciales)
@@ -186,6 +188,11 @@ export function CanalesListaClient({
 
   function handleSaved(canalId: number, payload: CanalConfigPayload) {
     setConfigs(prev => ({ ...prev, [canalId]: payload as unknown as Config }))
+    if (payload.cuenta_sin_iva_id !== undefined) {
+      setCanales(prev => prev.map(c =>
+        c.id === canalId ? { ...c, cuenta_sin_iva_id: payload.cuenta_sin_iva_id } : c
+      ))
+    }
   }
 
   function handleCreado(canal: Canal) {
@@ -347,6 +354,8 @@ export function CanalesListaClient({
           key={drawerCanal.id}
           canal={drawerCanal}
           configInicial={configs[drawerCanal.id]}
+          cuentasSinIva={cuentasSinIva}
+          cuentaSinIvaActualId={drawerCanal.cuenta_sin_iva_id}
           onClose={() => setDrawerCanal(null)}
           onSaved={handleSaved}
         />
