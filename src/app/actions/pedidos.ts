@@ -10,7 +10,10 @@ interface LineaPedido {
   variante?: string
 }
 
-export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string> {
+export async function crearPedidoBorrador(
+  lineas: LineaPedido[],
+  opciones?: { medioPago?: string; facturaIva?: boolean },
+): Promise<string> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
@@ -111,9 +114,22 @@ export async function crearPedidoBorrador(lineas: LineaPedido[]): Promise<string
     ? `${pct}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`
     : null
 
+  // Mapear transferencia_negro → transferencia_cueva para el DB (el canal config usa transferencia_negro como clave UI)
+  const medioPagoDb = opciones?.medioPago === 'transferencia_negro'
+    ? 'transferencia_cueva'
+    : (opciones?.medioPago ?? null)
+
   const { data: pedido, error } = await service
     .from('pedidos')
-    .insert({ cliente_id: user.id, estado: 'borrador', total_usd: totalFinal, descuento_sugerido, descuento_nota })
+    .insert({
+      cliente_id: user.id,
+      estado: 'borrador',
+      total_usd: totalFinal,
+      descuento_sugerido,
+      descuento_nota,
+      ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
+      ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
+    })
     .select('id')
     .single()
 

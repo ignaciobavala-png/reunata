@@ -19,7 +19,19 @@ export default async function CarritoPage() {
     if (profile) pageUser = { nombre: profile.nombre, rol: profile.rol }
   }
 
-  const { mostrarPrecios } = await resolverCanalTienda()
+  const [{ mostrarPrecios }, { data: configRows }] = await Promise.all([
+    resolverCanalTienda(),
+    supabase.from('configuracion').select('clave, valor').in('clave', ['cbu_sin_iva', 'alias_sin_iva']),
+  ])
 
-  return <CartClient user={pageUser} mostrarPrecios={mostrarPrecios} />
+  const cfg = Object.fromEntries((configRows ?? []).map(r => [r.clave, r.valor ?? '']))
+
+  return (
+    <CartClient
+      user={pageUser}
+      mostrarPrecios={mostrarPrecios}
+      cbuSinIva={cfg['cbu_sin_iva'] || undefined}
+      aliasSinIva={cfg['alias_sin_iva'] || undefined}
+    />
+  )
 }

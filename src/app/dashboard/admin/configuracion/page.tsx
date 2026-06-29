@@ -50,6 +50,7 @@ export default async function ConfiguracionPage({
           const claves = [
             'banco_cbu', 'banco_alias', 'banco_nombre',
             'banco_razon_social', 'banco_cuit',
+            'cbu_sin_iva', 'alias_sin_iva',
             'pedido_monto_minimo', 'pedido_dias_vencimiento',
             'banco_imagenes_drive_url',
             'tipo_cambio_usd',
@@ -76,6 +77,35 @@ export default async function ConfiguracionPage({
               { key: 'banco_nombre',       label: 'Banco' },
               { key: 'banco_razon_social', label: 'Razón social / Titular' },
               { key: 'banco_cuit',         label: 'CUIT' },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>
+                <input
+                  name={key}
+                  defaultValue={cfg[key] ?? ''}
+                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Cuenta sin IVA */}
+        <section
+          className="rounded-xl border p-6 mb-6"
+          style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+        >
+          <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            Cuenta sin IVA
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            CBU para transferencias sin IVA. Los mayoristas lo ven al elegir esa forma de pago en el carrito.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'cbu_sin_iva',   label: 'CBU sin IVA' },
+              { key: 'alias_sin_iva', label: 'Alias sin IVA' },
             ].map(({ key, label }) => (
               <div key={key}>
                 <label className="text-sm font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>

@@ -8,6 +8,7 @@ import { ShoppingBag, Loader2, Trash2 } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useCartStore } from '@/stores/cartStore'
 import { iniciarCheckoutMP, iniciarCheckoutTransferencia } from '@/app/actions/checkout'
+import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
@@ -15,14 +16,14 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 const WA_NUMBER = '5491132720974'
 const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
-const METODOS_CONTADO = ['efectivo', 'transferencia_negro', 'transferencia_blanco', 'echeq_al_dia', 'cheque_fisico_al_dia', 'cheque_fisico_financiado']
+const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
+const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
 const METODO_LABEL: Record<string, string> = {
-  efectivo:                 'Efectivo',
-  transferencia_negro:      'Transferencia (precio base)',
-  transferencia_blanco:     'Transferencia Blanco (factura A, +IVA)',
-  echeq_al_dia:             'E-cheq al día',
-  cheque_fisico_al_dia:     'Cheque físico al día',
-  cheque_fisico_financiado: 'Cheque físico financiado',
+  efectivo:             'Efectivo',
+  transferencia_negro:  'Transferencia',
+  transferencia_blanco: 'Transferencia al banco (Factura A)',
+  echeq_propio:         'E-cheq propio',
+  echeq_al_dia:         'E-cheq al día',
 }
 
 interface ReglaCanal {
@@ -65,6 +66,8 @@ interface PageUser {
 interface Props {
   user: PageUser | null
   mostrarPrecios: boolean
+  cbuSinIva?: string
+  aliasSinIva?: string
 }
 
 function buildWhatsAppMsg(
@@ -91,7 +94,7 @@ function buildWhatsAppMsg(
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}${pagoStr}${dirStr}${totalStr}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
-export function CartClient({ user, mostrarPrecios }: Props) {
+export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva }: Props) {
   const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -113,6 +116,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
+  const [facturaIva, setFacturaIva] = useState<'con' | 'sin' | null>(null)
   // Método de pago para consumidor_final ('mercado_pago' | 'transferencia')
   const [metodoPagoMinorista, setMetodoPagoMinorista] = useState<string | null>(null)
   const [direcciones, setDirecciones] = useState<DireccionEntrega[]>([])
@@ -282,6 +286,24 @@ export function CartClient({ user, mostrarPrecios }: Props) {
     }
   }
 
+  async function handleConfirmarPedidoMayorista() {
+    if (!items.length || pagando) return
+    if (!metodoPago || !facturaIva) { setErrorPago('Seleccioná tipo de facturación y forma de pago.'); return }
+    setPagando(true)
+    setErrorPago(null)
+    try {
+      const pedidoId = await crearPedidoBorrador(
+        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+        { medioPago: metodoPago, facturaIva: facturaIva === 'con' },
+      )
+      clear()
+      router.push(`/pedidos/${pedidoId}`)
+    } catch (e) {
+      setErrorPago(e instanceof Error ? e.message : 'Error al confirmar el pedido. Intentá de nuevo.')
+      setPagando(false)
+    }
+  }
+
   if (!mounted) return null
 
   if (items.length === 0) {
@@ -322,16 +344,18 @@ export function CartClient({ user, mostrarPrecios }: Props) {
 
   const totalConEnvio = totalGeneral + ajusteTransfMinorista + (envioSeleccionado?.costo ?? 0)
 
-  // Ajuste por método de pago (mayoristas, solo UI)
+  // Métodos de pago mayorista agrupados por IVA
   const canalHabilitaFinanciado = esMayorista && reglas
     ? (reglas.pagos_habilitados ?? {})['cheque_fisico_financiado']?.activo
     : false
-  const metodosDisponibles = esMayorista && reglas
-    ? METODOS_CONTADO.filter(k => {
-        if (k === 'cheque_fisico_financiado') return canalHabilitaFinanciado && reglas.credito_aprobado
-        return (reglas.pagos_habilitados ?? {})[k]?.activo
-      })
+  const metodosConIva = esMayorista && reglas
+    ? METODOS_CON_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
+  const metodosSinIva = esMayorista && reglas
+    ? METODOS_SIN_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
+    : []
+  const metodosActivosActuales = facturaIva === 'con' ? metodosConIva : facturaIva === 'sin' ? metodosSinIva : []
+
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
       ? -Math.round(totalGeneral * (reglas.desc_efectivo_pct ?? 0) / 100)
@@ -752,45 +776,85 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </a>
               )}
 
-              {/* Selector de método de pago */}
-              {metodosDisponibles.length > 0 && (
+              {/* Toggle Con IVA / Sin IVA */}
+              {(metodosConIva.length > 0 || metodosSinIva.length > 0) && (
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Tipo de facturación
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {metodosConIva.length > 0 && (
+                      <label
+                        className="flex flex-col items-center justify-center p-2.5 rounded-lg border cursor-pointer transition-colors"
+                        style={{
+                          borderColor: facturaIva === 'con' ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                          background:  facturaIva === 'con' ? 'var(--color-acero-brillo)' : 'white',
+                        }}
+                      >
+                        <input type="radio" name="factura_iva" value="con" checked={facturaIva === 'con'}
+                          onChange={() => { setFacturaIva('con'); setMetodoPago(null) }} className="sr-only" />
+                        <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</span>
+                        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Factura A</span>
+                      </label>
+                    )}
+                    {metodosSinIva.length > 0 && (
+                      <label
+                        className="flex flex-col items-center justify-center p-2.5 rounded-lg border cursor-pointer transition-colors"
+                        style={{
+                          borderColor: facturaIva === 'sin' ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                          background:  facturaIva === 'sin' ? 'var(--color-acero-brillo)' : 'white',
+                        }}
+                      >
+                        <input type="radio" name="factura_iva" value="sin" checked={facturaIva === 'sin'}
+                          onChange={() => { setFacturaIva('sin'); setMetodoPago(null) }} className="sr-only" />
+                        <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</span>
+                        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Precio base</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Métodos de pago filtrados por IVA */}
+              {facturaIva && metodosActivosActuales.length > 0 && (
                 <div>
                   <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Forma de pago
                   </p>
                   <div className="flex flex-col gap-1.5">
-                    {metodosDisponibles.map(k => (
+                    {metodosActivosActuales.map(k => (
                       <label
                         key={k}
-                        className="flex items-center gap-2.5 cursor-pointer px-3 py-2 rounded-lg border transition-colors"
+                        className="flex items-start gap-2.5 cursor-pointer px-3 py-2.5 rounded-lg border transition-colors"
                         style={{
                           borderColor: metodoPago === k ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
                           background:  metodoPago === k ? 'var(--color-acero-brillo)' : 'white',
                         }}
                       >
-                        <input
-                          type="radio"
-                          name="metodo_pago"
-                          value={k}
-                          checked={metodoPago === k}
-                          onChange={() => setMetodoPago(k)}
-                          className="flex-shrink-0"
-                        />
-                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>
-                          {METODO_LABEL[k] ?? k}
-                        </span>
+                        <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
+                          onChange={() => setMetodoPago(k)} className="flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+                            {METODO_LABEL[k] ?? k}
+                          </span>
+                          {k === 'transferencia_negro' && metodoPago === k && (cbuSinIva || aliasSinIva) && (
+                            <span className="text-xs mt-0.5 block font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                              {aliasSinIva && `Alias: ${aliasSinIva}`}{aliasSinIva && cbuSinIva && ' · '}{cbuSinIva && `CBU: ${cbuSinIva}`}
+                            </span>
+                          )}
+                        </div>
                         {k === 'efectivo' && reglas && reglas.desc_efectivo_pct > 0 && (
-                          <span className="text-xs font-medium" style={{ color: '#16a34a' }}>
+                          <span className="text-xs font-medium flex-shrink-0" style={{ color: '#16a34a' }}>
                             -{reglas.desc_efectivo_pct}%
                           </span>
                         )}
                         {k === 'transferencia_negro' && reglas && reglas.desc_transferencia_pct > 0 && (
-                          <span className="text-xs font-medium" style={{ color: '#16a34a' }}>
+                          <span className="text-xs font-medium flex-shrink-0" style={{ color: '#16a34a' }}>
                             -{reglas.desc_transferencia_pct}%
                           </span>
                         )}
                         {k === 'transferencia_blanco' && reglas && reglas.recargo_transf_blanco_pct > 0 && (
-                          <span className="text-xs font-medium" style={{ color: '#dc2626' }}>
+                          <span className="text-xs font-medium flex-shrink-0" style={{ color: '#dc2626' }}>
                             +{reglas.recargo_transf_blanco_pct}%
                           </span>
                         )}
@@ -800,7 +864,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </div>
               )}
 
-              {/* Aviso línea de crédito — canal habilita financiado pero usuario no tiene crédito aprobado */}
+              {/* Aviso línea de crédito */}
               {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
                 <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-1" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
                   <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
@@ -812,7 +876,7 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </div>
               )}
 
-              {/* Dirección de retiro — si el canal tiene activo mostrar_direccion_en_web */}
+              {/* Dirección de retiro */}
               {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-acero-brillo)', border: '1px solid var(--color-acero-claro)' }}>
                   <p className="font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Dirección de retiro</p>
@@ -828,16 +892,35 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </div>
               )}
 
-              {/* Botón WhatsApp */}
+              {/* Confirmar pedido (requiere IVA + método seleccionados) */}
+              {facturaIva && metodoPago && (
+                <button
+                  onClick={handleConfirmarPedidoMayorista}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || minimoInsuficiente}
+                  className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'var(--color-acero-brillo)' }}
+                >
+                  {pagando ? (
+                    <><Loader2 size={15} className="animate-spin" /> Procesando…</>
+                  ) : refreshingPrecios ? (
+                    <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
+                  ) : (
+                    'Confirmar pedido'
+                  )}
+                </button>
+              )}
+
+              {/* Botón WhatsApp — alternativa siempre disponible */}
               <a
                 href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null, reglas?.whatsapp_tipo ?? 'bot')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-disabled={minimoInsuficiente || hayProblemaStock}
-                className="w-full py-3 rounded-lg text-base font-medium text-center flex items-center justify-center gap-2 transition-opacity"
+                className="w-full py-2.5 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 transition-opacity border"
                 style={{
-                  background: '#25D366',
-                  color: 'white',
+                  borderColor: '#25D366',
+                  color: '#25D366',
+                  background: 'white',
                   opacity: minimoInsuficiente || hayProblemaStock ? 0.4 : 1,
                   pointerEvents: minimoInsuficiente || hayProblemaStock ? 'none' : 'auto',
                 }}
@@ -847,6 +930,10 @@ export function CartClient({ user, mostrarPrecios }: Props) {
                 </svg>
                 Pedir por WhatsApp
               </a>
+
+              {errorPago && (
+                <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
+              )}
             </div>
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────

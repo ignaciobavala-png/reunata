@@ -201,6 +201,15 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                     Tu cuenta está pendiente de aprobación.
                   </p>
                 )}
+                <div className="h-px mt-1" style={{ background: 'var(--color-acero-claro)' }} />
+                <a
+                  href="/cuenta/financiacion"
+                  onClick={() => setCartOpen(false)}
+                  className="w-full py-2 rounded-lg text-xs text-center transition-colors"
+                  style={{ color: 'var(--color-acero-oscuro)' }}
+                >
+                  ¿Necesitás financiamiento? <span className="underline">Solicitalo acá →</span>
+                </a>
               </>
             ) : (
               <a
