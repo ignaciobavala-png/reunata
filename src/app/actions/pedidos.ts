@@ -12,7 +12,7 @@ interface LineaPedido {
 
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
-  opciones?: { medioPago?: string; facturaIva?: boolean },
+  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
 ): Promise<string> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -119,14 +119,18 @@ export async function crearPedidoBorrador(
     ? 'transferencia_cueva'
     : (opciones?.medioPago ?? null)
 
+  const tieneComprobante = Boolean(opciones?.comprobantePath)
+  const expiraEn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
   const { data: pedido, error } = await service
     .from('pedidos')
     .insert({
       cliente_id: user.id,
-      estado: 'borrador',
+      estado: tieneComprobante ? 'comprobante_subido' : 'borrador',
       total_usd: totalFinal,
       descuento_sugerido,
       descuento_nota,
+      expira_en: expiraEn,
       ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
       ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
     })
@@ -144,6 +148,10 @@ export async function crearPedidoBorrador(
       variante: l.variante,
     }))
   )
+
+  if (tieneComprobante) {
+    await service.from('comprobantes').insert({ pedido_id: pedido.id, url: opciones!.comprobantePath })
+  }
 
   revalidatePath('/dashboard/cliente/pedidos')
   return pedido.id

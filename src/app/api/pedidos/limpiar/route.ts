@@ -49,6 +49,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: errCancelar.message }, { status: 500 })
   }
 
-  console.log(`[pedidos/limpiar] Revertidos: ${revertidos?.length ?? 0} transferencia | Cancelados: ${cancelados?.length ?? 0} mp`)
-  return NextResponse.json({ ok: true, revertidos: revertidos?.length ?? 0, cancelados: cancelados?.length ?? 0 })
+  // Borradores sin comprobante vencidos → cancelar (1 semana sin completar)
+  const { data: borradoresCancelados, error: errBorradores } = await supabase
+    .from('pedidos')
+    .update({ estado: 'cancelado' })
+    .eq('estado', 'borrador')
+    .lt('expira_en', ahora)
+    .not('expira_en', 'is', null)
+    .select('id')
+
+  if (errBorradores) {
+    console.error('[pedidos/limpiar] cancelar borradores:', errBorradores)
+    return NextResponse.json({ ok: false, error: errBorradores.message }, { status: 500 })
+  }
+
+  console.log(`[pedidos/limpiar] Revertidos: ${revertidos?.length ?? 0} transferencia | Cancelados: ${cancelados?.length ?? 0} mp | Borradores vencidos: ${borradoresCancelados?.length ?? 0}`)
+  return NextResponse.json({ ok: true, revertidos: revertidos?.length ?? 0, cancelados: cancelados?.length ?? 0, borradores: borradoresCancelados?.length ?? 0 })
 }

@@ -36,7 +36,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at,
+      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -55,8 +55,13 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
 
   const col = ESTADO_COLOR[pedido.estado] ?? { bg: '#88888822', text: '#888' }
-  const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido'].includes(pedido.estado)
+  const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido', 'borrador'].includes(pedido.estado)
   const esBorrador = pedido.estado === 'borrador'
+
+  const expiraEn = (pedido as { expira_en?: string | null }).expira_en
+  const diasRestantes = esBorrador && expiraEn
+    ? Math.ceil((new Date(expiraEn).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
 
   const waNumber = cfg['whatsapp_numero'] || '5491132720974'
   const waTexto = encodeURIComponent(
@@ -157,6 +162,14 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
               Lo estamos revisando. En breve te contactamos para confirmar disponibilidad, forma de pago y entrega.
             </p>
+            {diasRestantes !== null && (
+              <p className="text-xs mt-2 px-3 py-1.5 rounded-lg inline-block"
+                style={{ background: diasRestantes <= 2 ? '#fee2e2' : '#fff7ed', color: diasRestantes <= 2 ? '#dc2626' : '#92400e' }}>
+                {diasRestantes > 0
+                  ? `Este borrador vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}. Subí el comprobante para asegurar tu pedido.`
+                  : 'Este borrador vence hoy. Subí el comprobante para no perder tu lugar.'}
+              </p>
+            )}
           </div>
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
           <div className="flex flex-col sm:flex-row gap-3">
@@ -193,7 +206,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
         />
       )}
 
-      {pedido.estado === 'pendiente_pago' && (
+      {['pendiente_pago', 'borrador'].includes(pedido.estado) && (
         <ComprobanteUploader pedidoId={pedido.id} />
       )}
     </main>

@@ -33,7 +33,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at,
+      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -52,7 +52,12 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
 
   const col = ESTADO_COLOR[pedido.estado] ?? { bg: '#88888822', text: '#888' }
-  const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido'].includes(pedido.estado)
+  const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido', 'borrador'].includes(pedido.estado)
+  const esBorrador = pedido.estado === 'borrador'
+  const expiraEn = (pedido as { expira_en?: string | null }).expira_en
+  const diasRestantes = esBorrador && expiraEn
+    ? Math.ceil((new Date(expiraEn).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
 
   return (
     <div className="p-8 max-w-2xl">
@@ -141,6 +146,16 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
         </table>
       </div>
 
+      {/* Aviso de vencimiento para borradores */}
+      {esBorrador && diasRestantes !== null && (
+        <div className="rounded-xl border px-4 py-3 mb-4 text-sm"
+          style={{ background: diasRestantes <= 2 ? '#fee2e215' : '#fff7ed', borderColor: diasRestantes <= 2 ? '#fca5a5' : '#fed7aa', color: diasRestantes <= 2 ? '#dc2626' : '#92400e' }}>
+          {diasRestantes > 0
+            ? `Este borrador vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}. Subí el comprobante para asegurar tu pedido.`
+            : 'Este borrador vence hoy. Subí el comprobante para no perder tu lugar.'}
+        </div>
+      )}
+
       {/* Instrucciones de pago */}
       {mostrarInstrucciones && (
         <PagoInstrucciones
@@ -153,7 +168,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
       )}
 
       {/* Uploader de comprobante */}
-      {pedido.estado === 'pendiente_pago' && (
+      {['pendiente_pago', 'borrador'].includes(pedido.estado) && (
         <ComprobanteUploader pedidoId={pedido.id} />
       )}
     </div>

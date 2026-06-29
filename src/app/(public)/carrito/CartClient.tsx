@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, Loader2, Trash2 } from 'lucide-react'
+import { ShoppingBag, Loader2, Trash2, Upload, Check } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useCartStore } from '@/stores/cartStore'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { iniciarCheckoutMP, iniciarCheckoutTransferencia } from '@/app/actions/checkout'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
@@ -18,6 +19,11 @@ const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
 const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
+const METODOS_CON_COMPROBANTE = new Set([
+  'transferencia', 'transferencia_negro', 'transferencia_blanco',
+  'echeq_al_dia', 'echeq_propio', 'echeq_tercero',
+  'cheque_fisico_al_dia', 'cheque_fisico_financiado',
+])
 const METODO_LABEL: Record<string, string> = {
   efectivo:             'Efectivo',
   transferencia_negro:  'Transferencia',
@@ -97,6 +103,63 @@ function buildWhatsAppMsg(
   return encodeURIComponent(`Hola, quiero hacer un pedido:\n\n${lineas}${pagoStr}${dirStr}${totalStr}\n\nPor favor confirmame disponibilidad y precio.`)
 }
 
+function UploaderComprobante({
+  path,
+  uploading,
+  error,
+  onFile,
+  onClear,
+}: {
+  path: string | null
+  uploading: boolean
+  error: string | null
+  onFile: (f: File) => void
+  onClear: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  if (path) {
+    return (
+      <div className="rounded-lg border px-3 py-2.5 flex items-center gap-2.5"
+        style={{ background: '#10b98115', borderColor: '#10b98144' }}>
+        <Check size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+        <span className="text-sm flex-1" style={{ color: '#10b981' }}>Comprobante adjunto</span>
+        <button type="button" onClick={onClear}
+          className="text-xs underline" style={{ color: '#059669' }}>
+          Cambiar
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border px-3 py-2.5 flex flex-col gap-1.5"
+      style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+      <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+        Adjuntar comprobante <span className="font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>(opcional, agiliza la confirmación)</span>
+      </p>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="self-start flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-60"
+        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)', background: 'white' }}
+      >
+        {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+        {uploading ? 'Subiendo…' : 'Seleccionar archivo'}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={e => e.target.files?.[0] && onFile(e.target.files[0])}
+      />
+      {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+    </div>
+  )
+}
+
 export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva }: Props) {
   const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
@@ -124,6 +187,31 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const [metodoPagoMinorista, setMetodoPagoMinorista] = useState<string | null>(null)
   const [direcciones, setDirecciones] = useState<DireccionEntrega[]>([])
   const [direccionId, setDireccionId] = useState<string | null>(null)
+
+  // Uploader de comprobante en carrito
+  const [comprobantePath, setComprobantePath] = useState<string | null>(null)
+  const [uploadingComp, setUploadingComp]     = useState(false)
+  const [compError, setCompError]             = useState<string | null>(null)
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
+  function getSupabaseClient() {
+    if (!supabaseRef.current) supabaseRef.current = createBrowserClient()
+    return supabaseRef.current
+  }
+
+  async function handleUploadComprobante(file: File) {
+    setUploadingComp(true)
+    setCompError(null)
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const path = `comprobantes/pre/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await getSupabaseClient().storage.from('multimedia').upload(path, file, { upsert: false })
+    if (error) {
+      setCompError('Error al subir el archivo. Intentá de nuevo.')
+      setUploadingComp(false)
+      return
+    }
+    setComprobantePath(path)
+    setUploadingComp(false)
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -278,6 +366,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             piso: envioSeleccionado.piso,
           }
         : undefined,
+      comprobantePath ?? undefined,
     )
 
     if (result.ok && result.pedidoId) {
@@ -297,7 +386,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     try {
       const pedidoId = await crearPedidoBorrador(
         items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
-        { medioPago: metodoPago, facturaIva: facturaIva === 'con' },
+        { medioPago: metodoPago, facturaIva: facturaIva === 'con', comprobantePath: comprobantePath ?? undefined },
       )
       clear()
       router.push(`/pedidos/${pedidoId}`)
@@ -714,20 +803,29 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Botón Transferencia */}
               {metodoPagoMinorista === 'transferencia' && (
-                <button
-                  onClick={handlePagarTransferencia}
-                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
-                  className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                  style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
-                >
-                  {pagando ? (
-                    <><Loader2 size={15} className="animate-spin" /> Procesando…</>
-                  ) : refreshingPrecios ? (
-                    <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
-                  ) : (
-                    'Confirmar y pagar por transferencia'
-                  )}
-                </button>
+                <>
+                  <UploaderComprobante
+                    path={comprobantePath}
+                    uploading={uploadingComp}
+                    error={compError}
+                    onFile={handleUploadComprobante}
+                    onClear={() => { setComprobantePath(null); setCompError(null) }}
+                  />
+                  <button
+                    onClick={handlePagarTransferencia}
+                    disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
+                    className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                    style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+                  >
+                    {pagando ? (
+                      <><Loader2 size={15} className="animate-spin" /> Procesando…</>
+                    ) : refreshingPrecios ? (
+                      <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
+                    ) : (
+                      'Confirmar y pagar por transferencia'
+                    )}
+                  </button>
+                </>
               )}
 
               {/* Sin métodos activos */}
@@ -795,7 +893,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                         }}
                       >
                         <input type="radio" name="factura_iva" value="con" checked={facturaIva === 'con'}
-                          onChange={() => { setFacturaIva('con'); setMetodoPago(null) }} className="sr-only" />
+                          onChange={() => { setFacturaIva('con'); setMetodoPago(null); setComprobantePath(null) }} className="sr-only" />
                         <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</span>
                         <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Factura A</span>
                       </label>
@@ -809,7 +907,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                         }}
                       >
                         <input type="radio" name="factura_iva" value="sin" checked={facturaIva === 'sin'}
-                          onChange={() => { setFacturaIva('sin'); setMetodoPago(null) }} className="sr-only" />
+                          onChange={() => { setFacturaIva('sin'); setMetodoPago(null); setComprobantePath(null) }} className="sr-only" />
                         <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</span>
                         <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Precio base</span>
                       </label>
@@ -835,7 +933,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                         }}
                       >
                         <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
-                          onChange={() => setMetodoPago(k)} className="flex-shrink-0 mt-0.5" />
+                          onChange={() => { setMetodoPago(k); setComprobantePath(null) }} className="flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                             {METODO_LABEL[k] ?? k}
@@ -900,6 +998,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
                   Te faltan {formatPrecio(reglas.minimo_compra - totalGeneral)}.
                 </div>
+              )}
+
+              {/* Uploader de comprobante (mayorista, métodos que lo requieren) */}
+              {facturaIva && metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago) && (
+                <UploaderComprobante
+                  path={comprobantePath}
+                  uploading={uploadingComp}
+                  error={compError}
+                  onFile={handleUploadComprobante}
+                  onClear={() => { setComprobantePath(null); setCompError(null) }}
+                />
               )}
 
               {/* Confirmar pedido (requiere IVA + método seleccionados) */}
