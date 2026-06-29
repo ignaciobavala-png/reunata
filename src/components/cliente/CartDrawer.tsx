@@ -146,6 +146,8 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                       size="sm"
                       value={item.cantidad}
                       multiplo={item.multiplo ?? 1}
+                      max={item.stock ?? null}
+                      plusDisabled={item.stock != null && item.cantidad + (item.multiplo ?? 1) > item.stock}
                       onCommit={n => updateCantidad(item.itemKey ?? `${item.productoId}:`, n)}
                       onRemove={() => remove(item.itemKey ?? `${item.productoId}:`)}
                     />

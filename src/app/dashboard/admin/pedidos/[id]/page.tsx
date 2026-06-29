@@ -59,10 +59,10 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     .eq('pedido_id', id)
     .order('subido_at', { ascending: false })
 
-  // Generar signed URLs para comprobantes (bucket multimedia, 1h)
+  // Generar signed URLs para comprobantes (bucket comprobantes, 1h)
   const comprobantesConUrl = await Promise.all(
     (comprobantes ?? []).map(async c => {
-      const { data } = await service.storage.from('multimedia').createSignedUrl(c.url, 3600)
+      const { data } = await service.storage.from('comprobantes').createSignedUrl(c.url, 3600)
       return { ...c, signedUrl: data?.signedUrl ?? null }
     })
   )

@@ -11,6 +11,7 @@ export interface CartItem {
   multiplo?: number
   foto_url?: string | null
   variante?: string     // color/variante elegida, ej: "NEGRO", "VERDE"
+  stock?: number | null // stock disponible para limitar el stepper del drawer
 }
 
 // Maneja ítems viejos (sin itemKey) del localStorage

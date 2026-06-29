@@ -69,6 +69,7 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
         multiplo,
         foto_url: producto.foto_url ? supabaseImg(producto.supabaseUrl, producto.foto_url, 200) : null,
         variante: varianteSeleccionada ?? undefined,
+        stock: tieneVariantes ? (varianteActual?.stock ?? null) : (producto.stock ?? null),
       })
       if (cantidadReal !== multiplo) {
         updateCantidad(itemKey, cantidadReal)
