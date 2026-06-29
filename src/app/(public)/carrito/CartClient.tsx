@@ -202,8 +202,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setUploadingComp(true)
     setCompError(null)
     const ext = file.name.split('.').pop() ?? 'jpg'
-    const path = `comprobantes/pre/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const { error } = await getSupabaseClient().storage.from('multimedia').upload(path, file, { upsert: false })
+    const path = `pre/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await getSupabaseClient().storage.from('comprobantes').upload(path, file, { upsert: false })
     if (error) {
       setCompError('Error al subir el archivo. Intentá de nuevo.')
       setUploadingComp(false)
