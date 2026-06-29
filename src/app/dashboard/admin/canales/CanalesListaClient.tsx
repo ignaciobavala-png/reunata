@@ -188,6 +188,11 @@ export function CanalesListaClient({
 
   function handleSaved(canalId: number, payload: CanalConfigPayload) {
     setConfigs(prev => ({ ...prev, [canalId]: payload as unknown as Config }))
+    if (payload.cuenta_sin_iva_id !== undefined) {
+      setCanales(prev => prev.map(c =>
+        c.id === canalId ? { ...c, cuenta_sin_iva_id: payload.cuenta_sin_iva_id } : c
+      ))
+    }
   }
 
   function handleCreado(canal: Canal) {
