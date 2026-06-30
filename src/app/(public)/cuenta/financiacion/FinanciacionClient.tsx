@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { crearSolicitudCredito, cancelarSolicitudCredito } from '@/app/actions/financiacion'
 import { formatPrecio } from '@/lib/utils'
@@ -30,6 +30,34 @@ const ESTADO_CONFIG: Record<string, { label: string; icon: React.ReactNode; bg: 
   cancelado:  { label: 'Cancelado',    icon: null,                        bg: '#88888822', text: '#888' },
 }
 
+const DRAFT_KEY = 'financiacion_draft'
+
+interface RefForm { cuit: string; telefono: string; email: string; direccion: string }
+interface DraftForm {
+  monto: string
+  plazo_dias: string
+  garantias: string
+  notas: string
+  refs: [RefForm, RefForm, RefForm]
+}
+
+const REF_VACIA: RefForm = { cuit: '', telefono: '', email: '', direccion: '' }
+const DRAFT_INICIAL: DraftForm = {
+  monto: '', plazo_dias: '', garantias: '', notas: '',
+  refs: [{ ...REF_VACIA }, { ...REF_VACIA }, { ...REF_VACIA }],
+}
+
+function formatCuit(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2) return d
+  if (d.length <= 10) return `${d.slice(0, 2)}-${d.slice(2)}`
+  return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`
+}
+
+function soloNumeros(raw: string): string {
+  return raw.replace(/\D/g, '')
+}
+
 export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Solicitud[] }) {
   const [solicitudes, setSolicitudes] = useState(inicial)
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -37,16 +65,73 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState(false)
   const [confirmCancelar, setConfirmCancelar] = useState<string | null>(null)
+  const [draft, setDraft] = useState<DraftForm>(DRAFT_INICIAL)
+  const [hasDraft, setHasDraft] = useState(false)
 
   const tienePendiente = solicitudes.some(s => s.estado === 'pendiente')
 
-  function handleSubmit(fd: FormData) {
+  // Cargar borrador guardado al montar
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved) as DraftForm
+        setDraft(parsed)
+        setHasDraft(true)
+      }
+    } catch {}
+  }, [])
+
+  function saveDraft(next: DraftForm) {
+    setDraft(next)
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(next)) } catch {}
+  }
+
+  function clearDraft() {
+    setDraft(DRAFT_INICIAL)
+    setHasDraft(false)
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+  }
+
+  function setField(field: keyof Omit<DraftForm, 'refs'>, value: string) {
+    saveDraft({ ...draft, [field]: value })
+  }
+
+  function setRef(i: number, field: keyof RefForm, value: string) {
+    const refs = draft.refs.map((r, idx) => idx === i ? { ...r, [field]: value } : r) as DraftForm['refs']
+    saveDraft({ ...draft, refs })
+  }
+
+  function handleAbrir() {
+    setMostrarForm(true)
+  }
+
+  function handleCancelar() {
+    setMostrarForm(false)
     setError(null)
+    clearDraft()
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const fd = new FormData()
+    fd.set('monto', draft.monto)
+    fd.set('plazo_dias', draft.plazo_dias)
+    fd.set('garantias', draft.garantias)
+    fd.set('notas', draft.notas)
+    draft.refs.forEach((ref, i) => {
+      fd.set(`ref_${i}_cuit`, ref.cuit.replace(/\D/g, ''))
+      fd.set(`ref_${i}_telefono`, ref.telefono)
+      fd.set(`ref_${i}_email`, ref.email)
+      fd.set(`ref_${i}_direccion`, ref.direccion)
+    })
     startTransition(async () => {
       const res = await crearSolicitudCredito(fd)
       if (res.error) { setError(res.error); return }
       setExito(true)
       setMostrarForm(false)
+      clearDraft()
       setTimeout(() => setExito(false), 4000)
     })
   }
@@ -82,17 +167,24 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
 
       {/* Botón nueva solicitud */}
       {!tienePendiente && !mostrarForm && (
-        <button
-          onClick={() => setMostrarForm(true)}
-          className="self-start px-5 py-2.5 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}>
-          Solicitar línea de crédito
-        </button>
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={handleAbrir}
+            className="self-start px-5 py-2.5 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--color-granito)', color: 'var(--color-acero-brillo)' }}>
+            Solicitar línea de crédito
+          </button>
+          {hasDraft && (
+            <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Tenés un borrador guardado — se cargará al abrir el formulario.
+            </p>
+          )}
+        </div>
       )}
 
       {/* Formulario */}
       {mostrarForm && (
-        <form action={handleSubmit} className="rounded-xl border p-5 flex flex-col gap-4"
+        <form onSubmit={handleSubmit} className="rounded-xl border p-5 flex flex-col gap-4"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
           <h2 className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
             Nueva solicitud
@@ -103,14 +195,22 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Monto solicitado (AR$) <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <input name="monto" type="number" min="1" step="1000" required
-                placeholder="Ej: 500000" className={inputClass} style={inputStyle} />
+              <input
+                type="number" min="1" step="1000" required
+                placeholder="Ej: 500000"
+                value={draft.monto}
+                onChange={e => setField('monto', e.target.value)}
+                className={inputClass} style={inputStyle}
+              />
             </div>
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Plazo <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <select name="plazo_dias" required className={inputClass} style={inputStyle}>
+              <select required
+                value={draft.plazo_dias}
+                onChange={e => setField('plazo_dias', e.target.value)}
+                className={inputClass} style={inputStyle}>
                 <option value="">Seleccioná un plazo</option>
                 {PLAZOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
@@ -121,16 +221,26 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
             <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
               Garantías ofrecidas (opcional)
             </label>
-            <input name="garantias" type="text" className={inputClass} style={inputStyle}
-              placeholder="Ej: aval personal, bien inmueble, cheques propios" />
+            <input
+              type="text"
+              placeholder="Ej: aval personal, bien inmueble, cheques propios"
+              value={draft.garantias}
+              onChange={e => setField('garantias', e.target.value)}
+              className={inputClass} style={inputStyle}
+            />
           </div>
 
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
               Información adicional (opcional)
             </label>
-            <textarea name="notas" rows={3} className={inputClass} style={inputStyle}
-              placeholder="Contanos más sobre tu negocio o el motivo de la solicitud" />
+            <textarea
+              rows={3}
+              placeholder="Contanos más sobre tu negocio o el motivo de la solicitud"
+              value={draft.notas}
+              onChange={e => setField('notas', e.target.value)}
+              className={inputClass} style={inputStyle}
+            />
           </div>
 
           {/* Referencias comerciales */}
@@ -142,21 +252,40 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
               Mínimo 2 proveedores con quienes operes. Nos ayuda a evaluar tu solicitud.
             </p>
             <div className="flex flex-col gap-4">
-              {[0, 1, 2].map(i => (
+              {([0, 1, 2] as const).map(i => (
                 <div key={i} className="rounded-lg border p-4 flex flex-col gap-2"
                   style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
                   <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Referencia {i + 1}{i < 2 ? <span style={{ color: '#ef4444' }}> *</span> : ' (opcional)'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input name={`ref_${i}_cuit`} placeholder="CUIT"
-                      className={inputClass} style={inputStyle} />
-                    <input name={`ref_${i}_telefono`} placeholder="Teléfono"
-                      className={inputClass} style={inputStyle} />
-                    <input name={`ref_${i}_email`} type="email" placeholder="Email"
-                      className={inputClass} style={inputStyle} />
-                    <input name={`ref_${i}_direccion`} placeholder="Dirección"
-                      className={inputClass} style={inputStyle} />
+                    <input
+                      placeholder="CUIT (XX-XXXXXXXX-X)"
+                      value={draft.refs[i].cuit}
+                      onChange={e => setRef(i, 'cuit', formatCuit(e.target.value))}
+                      inputMode="numeric"
+                      className={inputClass} style={inputStyle}
+                    />
+                    <input
+                      placeholder="Teléfono"
+                      value={draft.refs[i].telefono}
+                      onChange={e => setRef(i, 'telefono', soloNumeros(e.target.value))}
+                      inputMode="numeric"
+                      className={inputClass} style={inputStyle}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={draft.refs[i].email}
+                      onChange={e => setRef(i, 'email', e.target.value)}
+                      className={inputClass} style={inputStyle}
+                    />
+                    <input
+                      placeholder="Dirección"
+                      value={draft.refs[i].direccion}
+                      onChange={e => setRef(i, 'direccion', e.target.value)}
+                      className={inputClass} style={inputStyle}
+                    />
                   </div>
                 </div>
               ))}
@@ -166,7 +295,7 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
           {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
 
           <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => { setMostrarForm(false); setError(null) }}
+            <button type="button" onClick={handleCancelar}
               className="px-4 py-2 text-sm rounded-lg border"
               style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
               Cancelar
