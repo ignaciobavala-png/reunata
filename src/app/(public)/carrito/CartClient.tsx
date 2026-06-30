@@ -180,6 +180,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
+  const [ivaRates, setIvaRates] = useState<Record<number, number>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
   const [facturaIva, setFacturaIva] = useState<'con' | 'sin' | null>(null)
@@ -235,7 +236,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       body: JSON.stringify({ ids }),
     })
       .then(r => r.json())
-      .then(({ precios, stocks: st }) => {
+      .then(({ precios, stocks: st, ivaRates: ir }) => {
         if (precios) {
           const cambiaron = ids.some(
             id => precios[id] !== undefined && precios[id] !== preciosSnapshot[id]
@@ -244,6 +245,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           if (cambiaron) setPreciosCambiaron(true)
         }
         if (st) setStocks(st)
+        if (ir) setIvaRates(ir)
         setRefreshingPrecios(false)
       })
       .catch(() => {
@@ -422,6 +424,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   }
 
   const totalGeneral = total()
+
+  // Desglose IVA — solo para minoristas y guests (sus precios ya incluyen IVA)
+  const totalSinIVA = (!esMayorista)
+    ? items.reduce((acc, i) => {
+        const rate = ivaRates[i.productoId] ?? 0.21
+        return acc + Math.round(i.precio / (1 + rate)) * i.cantidad
+      }, 0)
+    : 0
+  const montoIVA = (!esMayorista) ? totalGeneral - totalSinIVA : 0
 
   // Métodos disponibles para consumidor_final (leídos de reglas del canal)
   const mpActivo          = esMinorista ? (reglas?.pagos_habilitados?.['mercado_pago']?.activo  ?? false) : false
@@ -676,10 +687,24 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
             {mostrarPrecios && totalGeneral > 0 && (
               <>
-                <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  <span>Subtotal</span>
-                  <span>{formatPrecio(totalGeneral)}</span>
-                </div>
+                {/* Desglose IVA — minoristas y guests */}
+                {!esMayorista ? (
+                  <>
+                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      <span>Subtotal s/ IVA</span>
+                      <span>{formatPrecio(totalSinIVA)}</span>
+                    </div>
+                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      <span>IVA incluido</span>
+                      <span>{formatPrecio(montoIVA)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    <span>Subtotal</span>
+                    <span>{formatPrecio(totalGeneral)}</span>
+                  </div>
+                )}
                 {envioSeleccionado && (
                   <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                     <span>Envío</span>
