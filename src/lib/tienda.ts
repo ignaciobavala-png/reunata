@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export interface CanalUsuario {
   canalId: number
   slug: string
+  categoriaComercial: string // 'minorista' | 'mayorista' | 'especial'
   listaPrecio: string // 'precio_lista3' (mayorista) | 'precio_lista5' (minorista)
   aprobado: boolean
 }
@@ -52,7 +53,7 @@ export async function resolverCanalTienda(): Promise<{
       if (profile.canal_id) {
         const { data: canalData } = await service
           .from('canales')
-          .select('id, slug, lista_precios')
+          .select('id, slug, categoria_comercial, lista_precios')
           .eq('id', profile.canal_id)
           .single()
 
@@ -60,6 +61,7 @@ export async function resolverCanalTienda(): Promise<{
           canal = {
             canalId: canalData.id,
             slug: canalData.slug,
+            categoriaComercial: canalData.categoria_comercial,
             listaPrecio: canalData.lista_precios,
             aprobado: profile.aprobado ?? false,
           }
@@ -75,7 +77,7 @@ export async function resolverCanalTienda(): Promise<{
       if (!canalId && profile.rol === 'consumidor_final') {
         const { data: canalCF } = await service
           .from('canales')
-          .select('id, slug, lista_precios')
+          .select('id, slug, categoria_comercial, lista_precios')
           .eq('slug', 'consumidor_final')
           .single()
         if (canalCF) {
@@ -89,6 +91,7 @@ export async function resolverCanalTienda(): Promise<{
           canal = {
             canalId: canalCF.id,
             slug: canalCF.slug,
+            categoriaComercial: canalCF.categoria_comercial,
             listaPrecio: canalCF.lista_precios,
             aprobado: true,
           }

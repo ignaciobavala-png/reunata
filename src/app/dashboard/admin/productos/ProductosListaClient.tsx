@@ -71,7 +71,7 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
-  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }[]
+  todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }[]
   configsIniciales: Record<number, Record<string, unknown>>
   cuentasSinIva?: { id: number; nombre: string; cbu: string; alias: string }[]
 }) {

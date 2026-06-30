@@ -14,8 +14,6 @@ import { aplicarTipoCambio } from '@/lib/utils'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { CartDrawer } from '@/components/cliente/CartDrawer'
 
-const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
-
 export default async function Home() {
   const supabase = createServiceClient()
 
@@ -65,7 +63,7 @@ export default async function Home() {
   })
 
   const headerUser = user ? { nombre: user.nombre, rol: user.rol } : null
-  const tipoCliente = user && ROLES_MAYORISTAS.includes(user.rol) ? 'mayorista' : 'minorista'
+  const tipoCliente = user?.canal?.categoriaComercial === 'mayorista' || user?.canal?.categoriaComercial === 'especial' ? 'mayorista' : 'minorista'
 
   return (
     <>

@@ -6,18 +6,21 @@ import { createServiceClient } from '@/lib/supabase/server'
 export async function crearCanal(payload: {
   nombre: string
   slug: string
-  lista_precios: string
-  tipo: 'minorista' | 'mayorista' | 'especial'
+  categoria_comercial: 'minorista' | 'mayorista' | 'especial'
 }): Promise<{ ok: boolean; id?: number; error?: string }> {
   const supabase = createServiceClient()
+
+  // La lista de precios se deriva de la categoría comercial — no es un input
+  // independiente, para que no puedan quedar desincronizados (ver CHECK en BD).
+  const listaPrecios = payload.categoria_comercial === 'minorista' ? 'precio_lista5' : 'precio_lista3'
 
   const { data: canal, error: canalErr } = await supabase
     .from('canales')
     .insert({
       nombre: payload.nombre.trim(),
       slug: payload.slug.trim(),
-      lista_precios: payload.lista_precios,
-      tipo: payload.tipo,
+      lista_precios: listaPrecios,
+      categoria_comercial: payload.categoria_comercial,
       activo: true,
     })
     .select('id')

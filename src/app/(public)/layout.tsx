@@ -1,22 +1,32 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { CartDrawer } from '@/components/cliente/CartDrawer'
 
-const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
-
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
+  const service = createServiceClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   let headerUser: { nombre: string | null; rol: string; aprobado: boolean } | null = null
+  let categoriaComercial: string | null = null
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('nombre, rol, aprobado')
+      .select('nombre, rol, aprobado, canal_id')
       .eq('id', user.id)
       .single()
-    if (profile) headerUser = { nombre: profile.nombre, rol: profile.rol, aprobado: profile.aprobado ?? false }
+    if (profile) {
+      headerUser = { nombre: profile.nombre, rol: profile.rol, aprobado: profile.aprobado ?? false }
+      if (profile.canal_id) {
+        const { data: canalRow } = await service
+          .from('canales')
+          .select('categoria_comercial')
+          .eq('id', profile.canal_id)
+          .maybeSingle()
+        categoriaComercial = canalRow?.categoria_comercial ?? null
+      }
+    }
   }
 
   const { data: categoriasRows } = await supabase
@@ -27,7 +37,7 @@ export default async function PublicLayout({ children }: { children: React.React
     .order('orden')
   const headerCategorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
 
-  const tipoCliente = headerUser && ROLES_MAYORISTAS.includes(headerUser.rol) ? 'mayorista' : 'minorista'
+  const tipoCliente = categoriaComercial === 'mayorista' || categoriaComercial === 'especial' ? 'mayorista' : 'minorista'
   const aprobado    = headerUser?.aprobado ?? true
 
   return (

@@ -7,7 +7,7 @@ import type { CanalConfigPayload } from '@/app/actions/canales-config'
 import { crearCanal } from '@/app/actions/canales'
 import { formatPrecio } from '@/lib/utils'
 
-type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }
+type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }
 type Config = Record<string, unknown>
 
 const COLORES_CANAL: Record<string, string> = {
@@ -19,13 +19,6 @@ const COLORES_CANAL: Record<string, string> = {
   publico:          '#8b5cf6',
 }
 
-const LISTAS_PRECIOS = [
-  { value: 'precio_lista1', label: 'Lista 1 – Distribuidor' },
-  { value: 'precio_lista2', label: 'Lista 2 – Local' },
-  { value: 'precio_lista3', label: 'Lista 3 – Mercha' },
-  { value: 'precio_lista5', label: 'Lista 5 – Consumidor final' },
-]
-
 function slugify(str: string) {
   return str
     .toLowerCase()
@@ -36,13 +29,12 @@ function slugify(str: string) {
 }
 
 function NuevoCanalModal({ onClose, onCreado }: { onClose: () => void; onCreado: (canal: Canal) => void }) {
-  const [nombre, setNombre]           = useState('')
-  const [slug, setSlug]               = useState('')
-  const [slugManual, setSlugManual]   = useState(false)
-  const [listaPrecio, setListaPrecio] = useState('precio_lista1')
-  const [tipo, setTipo]               = useState<'mayorista' | 'minorista' | 'especial'>('mayorista')
-  const [error, setError]             = useState<string | null>(null)
-  const [isPending, startTransition]  = useTransition()
+  const [nombre, setNombre]                     = useState('')
+  const [slug, setSlug]                         = useState('')
+  const [slugManual, setSlugManual]             = useState(false)
+  const [categoriaComercial, setCategoriaComercial] = useState<'mayorista' | 'minorista' | 'especial'>('mayorista')
+  const [error, setError]                       = useState<string | null>(null)
+  const [isPending, startTransition]            = useTransition()
 
   function handleNombreChange(v: string) {
     setNombre(v)
@@ -54,9 +46,9 @@ function NuevoCanalModal({ onClose, onCreado }: { onClose: () => void; onCreado:
     if (!slug.trim())   { setError('El slug es obligatorio.'); return }
     setError(null)
     startTransition(async () => {
-      const res = await crearCanal({ nombre, slug, lista_precios: listaPrecio, tipo })
+      const res = await crearCanal({ nombre, slug, categoria_comercial: categoriaComercial })
       if (!res.ok) { setError(res.error ?? 'Error al crear el canal.'); return }
-      onCreado({ id: res.id!, slug, nombre, activo: true, tipo })
+      onCreado({ id: res.id!, slug, nombre, activo: true, categoria_comercial: categoriaComercial })
     })
   }
 
@@ -113,26 +105,17 @@ function NuevoCanalModal({ onClose, onCreado }: { onClose: () => void; onCreado:
           </div>
 
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--color-acero-oscuro)' }}>Lista de precios</label>
-            <select value={listaPrecio} onChange={e => setListaPrecio(e.target.value)} className={inputClass} style={inputStyle}>
-              {LISTAS_PRECIOS.map(l => (
-                <option key={l.value} value={l.value}>{l.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
             <label className="text-xs mb-2 block" style={{ color: 'var(--color-acero-oscuro)' }}>Tipo de canal</label>
             <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
               {(['mayorista', 'minorista', 'especial'] as const).map(t => (
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setTipo(t)}
+                  onClick={() => setCategoriaComercial(t)}
                   className="flex-1 px-3 py-2 text-sm capitalize transition-colors"
                   style={{
-                    background: tipo === t ? 'var(--color-granito-oscuro)' : 'white',
-                    color: tipo === t ? 'white' : 'var(--color-acero-oscuro)',
+                    background: categoriaComercial === t ? 'var(--color-granito-oscuro)' : 'white',
+                    color: categoriaComercial === t ? 'white' : 'var(--color-acero-oscuro)',
                   }}
                 >
                   {t}
@@ -140,9 +123,9 @@ function NuevoCanalModal({ onClose, onCreado }: { onClose: () => void; onCreado:
               ))}
             </div>
             <p className="text-xs mt-1.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-              {tipo === 'mayorista' ? 'Métodos de pago contado/financiado, mínimos y premios.' :
-               tipo === 'minorista' ? 'Mercado Pago, envío cotizado y precios con IVA.' :
-               'Configuración especial sin flujo de checkout estándar.'}
+              {categoriaComercial === 'mayorista' ? 'Lista de precios mayorista. Métodos de pago contado/financiado, mínimos y premios.' :
+               categoriaComercial === 'minorista' ? 'Lista de precios minorista. Mercado Pago, envío cotizado y precios con IVA.' :
+               'Lista de precios mayorista. Configuración especial sin flujo de checkout estándar.'}
             </p>
           </div>
         </div>
@@ -264,21 +247,21 @@ export function CanalesListaClient({
                     <span
                       className="px-2 py-0.5 rounded-full text-xs capitalize"
                       style={{
-                        background: canal.tipo === 'mayorista' ? '#e0f2fe'
-                          : canal.tipo === 'especial' ? '#f1f5f9'
+                        background: canal.categoria_comercial === 'mayorista' ? '#e0f2fe'
+                          : canal.categoria_comercial === 'especial' ? '#f1f5f9'
                           : '#ede9fe',
-                        color: canal.tipo === 'mayorista' ? '#0369a1'
-                          : canal.tipo === 'especial' ? '#475569'
+                        color: canal.categoria_comercial === 'mayorista' ? '#0369a1'
+                          : canal.categoria_comercial === 'especial' ? '#475569'
                           : '#6d28d9',
                       }}
                     >
-                      {canal.tipo}
+                      {canal.categoria_comercial}
                     </span>
                   </td>
 
                   {/* Formas de pago */}
                   <td className="px-4 py-3.5">
-                    {canal.tipo === 'minorista' ? (
+                    {canal.categoria_comercial === 'minorista' ? (
                       <span
                         className="px-1.5 py-0.5 rounded text-xs"
                         style={{ background: '#e0f2fe', color: '#0369a1' }}

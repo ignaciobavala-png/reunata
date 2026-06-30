@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { X, ChevronDown, Loader2, Check } from 'lucide-react'
 import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canales-config'
 
-type Canal = { id: number; slug: string; nombre: string; activo: boolean; tipo: 'minorista' | 'mayorista' | 'especial' }
+type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial' }
 type Config = Record<string, unknown>
 export type CuentaSinIva = { id: number; nombre: string; tipo?: string; cbu: string; alias: string; cuit?: string | null; banco?: string | null }
 
@@ -36,7 +36,7 @@ const PAGOS_MAYORISTA_FINANCIADO = [
 ]
 
 function buildDefaultConfig(canal: Canal): CanalConfigPayload {
-  const isMayorista = canal.tipo === 'mayorista'
+  const isMayorista = canal.categoria_comercial === 'mayorista'
   const pagos: Record<string, { activo: boolean }> = {}
   const methods = isMayorista
     ? [...PAGOS_MAYORISTA_CONTADO, ...PAGOS_MAYORISTA_FINANCIADO]
@@ -168,7 +168,7 @@ export function CanalConfigDrawer({
   onClose: () => void
   onSaved: (canalId: number, config: CanalConfigPayload) => void
 }) {
-  const isMayorista = canal.tipo === 'mayorista'
+  const isMayorista = canal.categoria_comercial === 'mayorista'
   const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
 
   const [form, setForm] = useState<CanalConfigPayload>(() => ({

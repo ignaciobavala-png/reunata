@@ -15,7 +15,6 @@ import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/Env
 import { VarianteBadge } from '@/components/sections/ColorPicker'
 
 const WA_NUMBER = '5491132720974'
-const ROLES_MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
 const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
@@ -67,6 +66,7 @@ interface DireccionEntrega {
 interface PageUser {
   nombre: string | null
   rol: string
+  categoriaComercial: string | null
 }
 
 interface Props {
@@ -270,9 +270,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       .catch(() => {})
   }, [mounted, user])
 
+  const esMinorista = user?.categoriaComercial === 'minorista'
+  const esMayorista = user?.categoriaComercial === 'mayorista' || user?.categoriaComercial === 'especial'
+  const esGuest     = !user
+
   // Cargar direcciones — solo mayoristas
   useEffect(() => {
-    if (!mounted || !user?.rol || !ROLES_MAYORISTAS.includes(user.rol)) return
+    if (!mounted || !esMayorista) return
     fetch('/api/cuenta/direcciones')
       .then(r => r.json())
       .then(({ direcciones: d }: { direcciones: DireccionEntrega[] }) => {
@@ -281,11 +285,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
         if (predeterminada) setDireccionId(predeterminada.id)
       })
       .catch(() => {})
-  }, [mounted, user?.rol])
-
-  const esMinorista = user?.rol === 'consumidor_final'
-  const esMayorista = user?.rol ? ROLES_MAYORISTAS.includes(user.rol) : false
-  const esGuest     = !user
+  }, [mounted, esMayorista])
 
   // Auto-seleccionar método de pago para minoristas cuando cargan las reglas
   useEffect(() => {

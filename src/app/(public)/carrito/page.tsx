@@ -10,7 +10,7 @@ export default async function CarritoPage() {
   const service = createServiceClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let pageUser: { nombre: string | null; rol: string } | null = null
+  let pageUser: { nombre: string | null; rol: string; categoriaComercial: string | null } | null = null
   let canalId: number | null = null
   if (user) {
     const { data: profile } = await supabase
@@ -19,8 +19,17 @@ export default async function CarritoPage() {
       .eq('id', user.id)
       .single()
     if (profile) {
-      pageUser = { nombre: profile.nombre, rol: profile.rol }
       canalId = profile.canal_id ?? null
+      let categoriaComercial: string | null = null
+      if (canalId) {
+        const { data: canalRow } = await service
+          .from('canales')
+          .select('categoria_comercial')
+          .eq('id', canalId)
+          .maybeSingle()
+        categoriaComercial = canalRow?.categoria_comercial ?? null
+      }
+      pageUser = { nombre: profile.nombre, rol: profile.rol, categoriaComercial }
     }
   }
 

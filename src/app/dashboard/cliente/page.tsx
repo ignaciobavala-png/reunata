@@ -18,11 +18,6 @@ const CANAL_COLOR: Record<string, string> = {
   mercha:           '#f59e0b',
 }
 
-const LISTA_LABEL: Record<string, string> = {
-  precio_lista3: 'Mayorista',
-  precio_lista5: 'Minorista',
-}
-
 const ESTADO_LABEL: Record<string, string> = {
   pendiente_pago:     'Pendiente de pago',
   comprobante_subido: 'Comprobante enviado',
@@ -53,13 +48,13 @@ export default async function ClienteDashboardPage() {
       .order('created_at', { ascending: false })
       .limit(5),
     profile?.canal_id
-      ? supabase.from('canales').select('nombre, descripcion, lista_precios').eq('id', profile.canal_id).single()
+      ? supabase.from('canales').select('nombre, descripcion, categoria_comercial').eq('id', profile.canal_id).single()
       : Promise.resolve({ data: null }),
   ])
 
   const pedidos = pedidosRes.data
   const count = pedidosRes.count
-  const canal = canalRes.data as { nombre: string; descripcion: string | null; lista_precios: string | null } | null
+  const canal = canalRes.data as { nombre: string; descripcion: string | null; categoria_comercial: string | null } | null
 
   const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile?.rol ?? '')
   const color = CANAL_COLOR[profile?.rol ?? ''] ?? '#6366f1'
@@ -120,10 +115,10 @@ export default async function ClienteDashboardPage() {
           {canal.descripcion && (
             <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>{canal.descripcion}</p>
           )}
-          {canal.lista_precios && (
+          {canal.categoria_comercial && (
             <p className="text-sm mt-1" style={{ color: 'var(--color-granito-claro)' }}>
               Lista de precios activa:{' '}
-              <strong>{LISTA_LABEL[canal.lista_precios] ?? canal.lista_precios}</strong>
+              <strong className="capitalize">{canal.categoria_comercial}</strong>
             </p>
           )}
         </div>

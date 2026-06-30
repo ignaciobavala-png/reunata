@@ -44,27 +44,9 @@ export async function iniciarCheckoutMP(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Usuarios registrados: solo consumidor_final puede pagar con MP
-  if (user) {
-    const { data: perfil } = await supabase
-      .from('profiles')
-      .select('rol')
-      .eq('id', user.id)
-      .single()
-
-    if (perfil?.rol !== 'consumidor_final') {
-      return { ok: false, error: 'Este método de pago es solo para minoristas.' }
-    }
-  } else {
-    // Guest: requiere datos del comprador
-    if (!guestData?.nombre?.trim() || !guestData?.email?.trim()) {
-      return { ok: false, error: 'Completá tu nombre y email para continuar.' }
-    }
-  }
-
   const service = createServiceClient()
 
-  // Resolver canal del usuario (necesario para múltiplos y config del canal)
+  // Resolver canal del usuario (necesario para múltiplos, config del canal y validar método de pago)
   let canalId: number | null = null
   if (user) {
     const { data: profileCanal } = await supabase
@@ -73,7 +55,22 @@ export async function iniciarCheckoutMP(
       .eq('id', user.id)
       .single()
     canalId = profileCanal?.canal_id ?? null
+
+    // Solo canales minoristas pueden pagar con MP
+    const { data: canalRow } = await service
+      .from('canales')
+      .select('categoria_comercial')
+      .eq('id', canalId ?? 0)
+      .maybeSingle()
+
+    if (canalRow?.categoria_comercial !== 'minorista') {
+      return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+    }
   } else {
+    // Guest: requiere datos del comprador
+    if (!guestData?.nombre?.trim() || !guestData?.email?.trim()) {
+      return { ok: false, error: 'Completá tu nombre y email para continuar.' }
+    }
     // Guests operan como consumidor_final
     const { data: cfCanal } = await service
       .from('canales')
@@ -327,16 +324,22 @@ export async function iniciarCheckoutTransferencia(
 
   const { data: perfil } = await supabase
     .from('profiles')
-    .select('rol, canal_id')
+    .select('canal_id')
     .eq('id', user.id)
     .single()
 
-  if (perfil?.rol !== 'consumidor_final') {
-    return { ok: false, error: 'Este método de pago es solo para minoristas.' }
-  }
-
   const canalId = perfil?.canal_id ?? null
   const service = createServiceClient()
+
+  const { data: canalRow } = await service
+    .from('canales')
+    .select('categoria_comercial')
+    .eq('id', canalId ?? 0)
+    .maybeSingle()
+
+  if (canalRow?.categoria_comercial !== 'minorista') {
+    return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+  }
 
   // Validar múltiplos
   if (canalId) {
