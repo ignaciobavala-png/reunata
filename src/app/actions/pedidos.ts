@@ -115,25 +115,30 @@ export async function crearPedidoBorrador(
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
   const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+  // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
+  const basePostAutogestion = subtotal + ajusteAutogestion
 
   // Descuento / recargo por método de pago (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
   let ajusteMetodoPago = 0
+  let pctMetodoPago = 0
   if (medioPagoOriginal === 'efectivo' && (canalConfig?.desc_efectivo_pct ?? 0) > 0) {
-    ajusteMetodoPago = -Math.round(subtotal * (canalConfig!.desc_efectivo_pct!) / 100)
+    pctMetodoPago = canalConfig!.desc_efectivo_pct!
+    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
-    ajusteMetodoPago = -Math.round(subtotal * (canalConfig!.desc_transferencia_pct!) / 100)
+    pctMetodoPago = canalConfig!.desc_transferencia_pct!
+    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_blanco' && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
-    ajusteMetodoPago = Math.round(subtotal * (canalConfig!.recargo_transf_blanco_pct!) / 100)
+    pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
+    ajusteMetodoPago = Math.round(basePostAutogestion * pctMetodoPago / 100)
   }
 
-  const totalFinal = subtotal + ajusteAutogestion + ajusteMetodoPago
+  const totalFinal = basePostAutogestion + ajusteMetodoPago
 
   const notaPartes: string[] = []
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
   if (ajusteMetodoPago !== 0) {
-    const abs = Math.abs(ajusteMetodoPago / subtotal * 100).toFixed(0)
-    notaPartes.push(`${ajusteMetodoPago < 0 ? `${abs}% desc.` : `${abs}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
+    notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
   }
   const descuento_sugerido = pctAutogestion > 0 ? pctAutogestion : null
   const descuento_nota = notaPartes.length > 0 ? notaPartes.join(' + ') : null

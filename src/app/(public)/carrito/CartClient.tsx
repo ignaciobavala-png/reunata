@@ -459,25 +459,27 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     : []
   const metodosActivosActuales = facturaIva === 'con' ? metodosConIva : facturaIva === 'sin' ? metodosSinIva : []
 
-  const ajuste = metodoPago && reglas
-    ? metodoPago === 'efectivo'
-      ? -Math.round(totalGeneral * (reglas.desc_efectivo_pct ?? 0) / 100)
-      : metodoPago === 'transferencia_negro'
-        ? -Math.round(totalGeneral * (reglas.desc_transferencia_pct ?? 0) / 100)
-        : metodoPago === 'transferencia_blanco'
-          ? Math.round(totalGeneral * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
-          : 0
-    : 0
-
-  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas)
+  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — base para el resto
   const descAutogestPct = esMayorista && reglas
     ? (reglas.es_primera_compra
         ? (reglas.desc_autogestion_primera_pct ?? 0)
         : (reglas.desc_autogestion_siguientes_pct ?? 0))
     : 0
   const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(totalGeneral * descAutogestPct / 100) : 0
+  const basePostAutogestion = totalGeneral + ajusteAutogestion
 
-  const totalFinal = totalGeneral + ajuste + ajusteAutogestion + (envioSeleccionado?.costo ?? 0)
+  // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
+  const ajuste = metodoPago && reglas
+    ? metodoPago === 'efectivo'
+      ? -Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
+      : metodoPago === 'transferencia_negro'
+        ? -Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
+        : metodoPago === 'transferencia_blanco'
+          ? Math.round(basePostAutogestion * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+          : 0
+    : 0
+
+  const totalFinal = basePostAutogestion + ajuste + (envioSeleccionado?.costo ?? 0)
   const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
