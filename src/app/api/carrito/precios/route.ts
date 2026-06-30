@@ -36,16 +36,18 @@ export async function POST(req: NextRequest) {
   const esConsumidor = listaPrecio === 'precio_lista5'
   const precios: Record<number, number> = {}
   const stocks: Record<number, number | null> = {}
+  const ivaRates: Record<number, number> = {}
   for (const prod of productos ?? []) {
     const precioRaw = ((prod as Record<string, unknown>)[listaPrecio] ?? null) as number | null
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
+    const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     if (precio !== null) {
       // Consumidor final ve precios con IVA incluido — coherencia con la tienda
-      const ivaRate = esConsumidor ? ((prod.iva as number | null) ?? 21) / 100 : 0
       precios[prod.id] = esConsumidor ? Math.round(precio * (1 + ivaRate)) : precio
     }
     stocks[prod.id] = prod.stock ?? null
+    ivaRates[prod.id] = ivaRate
   }
 
-  return NextResponse.json({ precios, stocks })
+  return NextResponse.json({ precios, stocks, ivaRates })
 }

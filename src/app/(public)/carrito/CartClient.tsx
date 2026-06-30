@@ -180,6 +180,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
   const [stocks, setStocks] = useState<Record<number, number | null>>({})
+  const [ivaRates, setIvaRates] = useState<Record<number, number>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
   const [facturaIva, setFacturaIva] = useState<'con' | 'sin' | null>(null)
@@ -235,7 +236,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       body: JSON.stringify({ ids }),
     })
       .then(r => r.json())
-      .then(({ precios, stocks: st }) => {
+      .then(({ precios, stocks: st, ivaRates: ir }) => {
         if (precios) {
           const cambiaron = ids.some(
             id => precios[id] !== undefined && precios[id] !== preciosSnapshot[id]
@@ -244,6 +245,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           if (cambiaron) setPreciosCambiaron(true)
         }
         if (st) setStocks(st)
+        if (ir) setIvaRates(ir)
         setRefreshingPrecios(false)
       })
       .catch(() => {
@@ -423,6 +425,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const totalGeneral = total()
 
+  // Desglose IVA — solo para minoristas y guests (sus precios ya incluyen IVA)
+  const totalSinIVA = (!esMayorista)
+    ? items.reduce((acc, i) => {
+        const rate = ivaRates[i.productoId] ?? 0.21
+        return acc + Math.round(i.precio / (1 + rate)) * i.cantidad
+      }, 0)
+    : 0
+  const montoIVA = (!esMayorista) ? totalGeneral - totalSinIVA : 0
+
   // Métodos disponibles para consumidor_final (leídos de reglas del canal)
   const mpActivo          = esMinorista ? (reglas?.pagos_habilitados?.['mercado_pago']?.activo  ?? false) : false
   const transferenciaActiva = esMinorista ? (reglas?.pagos_habilitados?.['transferencia']?.activo ?? false) : false
@@ -448,25 +459,27 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     : []
   const metodosActivosActuales = facturaIva === 'con' ? metodosConIva : facturaIva === 'sin' ? metodosSinIva : []
 
-  const ajuste = metodoPago && reglas
-    ? metodoPago === 'efectivo'
-      ? -Math.round(totalGeneral * (reglas.desc_efectivo_pct ?? 0) / 100)
-      : metodoPago === 'transferencia_negro'
-        ? -Math.round(totalGeneral * (reglas.desc_transferencia_pct ?? 0) / 100)
-        : metodoPago === 'transferencia_blanco'
-          ? Math.round(totalGeneral * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
-          : 0
-    : 0
-
-  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas)
+  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — base para el resto
   const descAutogestPct = esMayorista && reglas
     ? (reglas.es_primera_compra
         ? (reglas.desc_autogestion_primera_pct ?? 0)
         : (reglas.desc_autogestion_siguientes_pct ?? 0))
     : 0
   const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(totalGeneral * descAutogestPct / 100) : 0
+  const basePostAutogestion = totalGeneral + ajusteAutogestion
 
-  const totalFinal = totalGeneral + ajuste + ajusteAutogestion + (envioSeleccionado?.costo ?? 0)
+  // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
+  const ajuste = metodoPago && reglas
+    ? metodoPago === 'efectivo'
+      ? -Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
+      : metodoPago === 'transferencia_negro'
+        ? -Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
+        : metodoPago === 'transferencia_blanco'
+          ? Math.round(basePostAutogestion * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+          : 0
+    : 0
+
+  const totalFinal = basePostAutogestion + ajuste + (envioSeleccionado?.costo ?? 0)
   const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
@@ -676,10 +689,24 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
             {mostrarPrecios && totalGeneral > 0 && (
               <>
-                <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  <span>Subtotal</span>
-                  <span>{formatPrecio(totalGeneral)}</span>
-                </div>
+                {/* Desglose IVA — minoristas y guests */}
+                {!esMayorista ? (
+                  <>
+                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      <span>Subtotal s/ IVA</span>
+                      <span>{formatPrecio(totalSinIVA)}</span>
+                    </div>
+                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      <span>IVA incluido</span>
+                      <span>{formatPrecio(montoIVA)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    <span>Subtotal</span>
+                    <span>{formatPrecio(totalGeneral)}</span>
+                  </div>
+                )}
                 {envioSeleccionado && (
                   <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                     <span>Envío</span>

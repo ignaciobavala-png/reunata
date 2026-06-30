@@ -225,10 +225,10 @@ export function ProductGridPublic({
                         {formatPrecio(precioConIva, p.moneda)}
                       </p>
                       <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        IVA incluido
+                        IVA incluido: {formatPrecio(precioConIva - p.precio, p.moneda)}
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        s/ IVA: {formatPrecio(p.precio, p.moneda)}
+                        Sin impuestos: {formatPrecio(p.precio, p.moneda)}
                       </p>
                     </>
                   )

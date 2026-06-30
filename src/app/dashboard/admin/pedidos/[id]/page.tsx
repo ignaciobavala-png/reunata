@@ -224,11 +224,13 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
               const subtotalItems = (pedido.pedido_items ?? []).reduce(
                 (acc, i) => acc + Number(i.precio_unit) * i.cantidad, 0
               )
-              const descPct = Number((pedido as any).descuento_sugerido ?? 0)
-              const descNota = (pedido as any).descuento_nota as string | null
-              const descMonto = descPct > 0 ? subtotalItems * descPct / 100 : 0
               const costoEnvio = Number(pedido.costo_envio ?? 0)
-              const hasExtras = descPct > 0 || costoEnvio > 0
+              // Ajuste real derivado de los números guardados — cubre autogestión,
+              // método de pago y cualquier combinación. Negativo = descuento, positivo = recargo.
+              const ajusteReal = Math.round(Number(pedido.total_usd) - costoEnvio - subtotalItems)
+              const descNota = (pedido as any).descuento_nota as string | null
+              const hasExtras = ajusteReal !== 0 || costoEnvio > 0
+              const esRecargo = ajusteReal > 0
               return hasExtras ? (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -239,13 +241,13 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                       {formatPrecio(subtotalItems)}
                     </td>
                   </tr>
-                  {descPct > 0 && (
+                  {ajusteReal !== 0 && (
                     <tr style={{ background: 'var(--color-acero-brillo)' }}>
-                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: '#10b981' }}>
-                        {descNota ?? `Descuento ${descPct}%`}
+                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
+                        {descNota ?? (esRecargo ? 'Recargo' : 'Descuento')}
                       </td>
-                      <td className="px-4 py-2 text-right text-sm" style={{ color: '#10b981' }}>
-                        -{formatPrecio(Math.round(descMonto))}
+                      <td className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
+                        {esRecargo ? '+' : '-'}{formatPrecio(Math.abs(ajusteReal))}
                       </td>
                     </tr>
                   )}

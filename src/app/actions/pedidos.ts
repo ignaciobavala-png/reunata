@@ -10,6 +10,12 @@ interface LineaPedido {
   variante?: string
 }
 
+const METODO_NOTA: Record<string, string> = {
+  efectivo:             'efectivo',
+  transferencia_negro:  'transferencia',
+  transferencia_blanco: 'transf. banco',
+}
+
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
   opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
@@ -50,7 +56,7 @@ export async function crearPedidoBorrador(
       .maybeSingle(),
     service
       .from('canales_config')
-      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct')
       .eq('canal_id', perfil.canal_id)
       .maybeSingle(),
     service
@@ -105,14 +111,37 @@ export async function crearPedidoBorrador(
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
-  const pct = esPrimeraCompra
+  const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const totalFinal = pct > 0 ? Math.round(subtotal * (1 - pct / 100)) : subtotal
-  const descuento_sugerido = pct > 0 ? pct : null
-  const descuento_nota = pct > 0
-    ? `${pct}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`
-    : null
+  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+  // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
+  const basePostAutogestion = subtotal + ajusteAutogestion
+
+  // Descuento / recargo por método de pago (mismo criterio que el cliente)
+  const medioPagoOriginal = opciones?.medioPago
+  let ajusteMetodoPago = 0
+  let pctMetodoPago = 0
+  if (medioPagoOriginal === 'efectivo' && (canalConfig?.desc_efectivo_pct ?? 0) > 0) {
+    pctMetodoPago = canalConfig!.desc_efectivo_pct!
+    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+  } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
+    pctMetodoPago = canalConfig!.desc_transferencia_pct!
+    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+  } else if (medioPagoOriginal === 'transferencia_blanco' && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
+    pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
+    ajusteMetodoPago = Math.round(basePostAutogestion * pctMetodoPago / 100)
+  }
+
+  const totalFinal = basePostAutogestion + ajusteMetodoPago
+
+  const notaPartes: string[] = []
+  if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
+  if (ajusteMetodoPago !== 0) {
+    notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
+  }
+  const descuento_sugerido = pctAutogestion > 0 ? pctAutogestion : null
+  const descuento_nota = notaPartes.length > 0 ? notaPartes.join(' + ') : null
 
   // Mapear transferencia_negro → transferencia_cueva para el DB (el canal config usa transferencia_negro como clave UI)
   const medioPagoDb = opciones?.medioPago === 'transferencia_negro'

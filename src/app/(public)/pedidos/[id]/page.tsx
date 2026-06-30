@@ -36,7 +36,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en,
+      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en, descuento_nota,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -121,26 +121,49 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                 </tr>
               )
             })}
-            {(pedido.costo_envio ?? 0) > 0 && (
-              <>
-                <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
-                  <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    Subtotal productos
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {formatPrecio(Number(pedido.total_usd) - Number(pedido.costo_envio))}
-                  </td>
-                </tr>
-                <tr style={{ background: 'var(--color-acero-brillo)' }}>
-                  <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {pedido.envio_descripcion ? `Envío · ${pedido.envio_descripcion}` : 'Envío'}
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {formatPrecio(Number(pedido.costo_envio))}
-                  </td>
-                </tr>
-              </>
-            )}
+            {(() => {
+              const subtotalItems = (pedido.pedido_items ?? []).reduce(
+                (acc, i) => acc + Number(i.precio_unit) * i.cantidad, 0
+              )
+              const costoEnvio = Number(pedido.costo_envio ?? 0)
+              const ajusteReal = Math.round(Number(pedido.total_usd) - costoEnvio - subtotalItems)
+              const descNota = (pedido as { descuento_nota?: string | null }).descuento_nota
+              const esRecargo = ajusteReal > 0
+              const hasExtras = ajusteReal !== 0 || costoEnvio > 0
+              if (!hasExtras) return null
+              return (
+                <>
+                  <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                    <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Subtotal productos
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      {formatPrecio(subtotalItems)}
+                    </td>
+                  </tr>
+                  {ajusteReal !== 0 && (
+                    <tr style={{ background: 'var(--color-acero-brillo)' }}>
+                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#16a34a' }}>
+                        {descNota ?? (esRecargo ? 'Recargo' : 'Descuento')}
+                      </td>
+                      <td className="px-4 py-2 text-right text-sm font-medium" style={{ color: esRecargo ? '#dc2626' : '#16a34a' }}>
+                        {esRecargo ? '+' : '-'}{formatPrecio(Math.abs(ajusteReal))}
+                      </td>
+                    </tr>
+                  )}
+                  {costoEnvio > 0 && (
+                    <tr style={{ background: 'var(--color-acero-brillo)' }}>
+                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        {pedido.envio_descripcion ? `Envío · ${pedido.envio_descripcion}` : 'Envío'}
+                      </td>
+                      <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        {formatPrecio(costoEnvio)}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )
+            })()}
             <tr style={{ borderTop: '2px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
               <td colSpan={3} className="px-4 py-3 text-right font-medium text-sm" style={{ color: 'var(--foreground)' }}>
                 Total
