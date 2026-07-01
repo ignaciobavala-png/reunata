@@ -11,7 +11,7 @@ const empresaLinks = [
   { label: 'Nosotros',                href: '/nosotros' },
   { label: 'Próximos eventos',        href: '/eventos' },
   { label: 'Trabajá con nosotros',    href: '/trabaja-con-nosotros' },
-  { label: 'Quiero ser distribuidor', href: '/login' },
+  { label: 'Quiero ser distribuidor', href: '/registro?tab=mayorista' },
   { label: 'Franquicias',             href: '/franquicias' },
   { label: 'Puntos de venta',         href: '/puntos-de-venta' },
 ]

@@ -82,15 +82,17 @@ export async function iniciarCheckoutMP(
   }
 
   // Validar múltiplos — aplica tanto a usuarios registrados como a guests
+  let productoCanalDb: { producto_id: number; multiplo: number | null; descuento_volumen_cantidad_minima: number | null; descuento_volumen_pct: number | null }[] | null = null
   if (canalId) {
-    const { data: multiplosDb } = await service
+    const { data } = await service
       .from('producto_canales')
-      .select('producto_id, multiplo')
+      .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
       .eq('canal_id', canalId)
       .in('producto_id', items.map(i => i.productoId))
+    productoCanalDb = data
 
     for (const item of items) {
-      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+      const row = productoCanalDb?.find(r => r.producto_id === item.productoId)
       const multiplo = row?.multiplo ?? 1
       if (multiplo > 1 && item.cantidad % multiplo !== 0) {
         const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
@@ -164,29 +166,41 @@ export async function iniciarCheckoutMP(
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Validar mínimo de compra
+  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
+  const descuentoVolumen = lineas.reduce((acc, l) => {
+    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
+    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
+    const pct = row?.descuento_volumen_pct ?? null
+    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
+      return acc + Math.round(l.precioUnit * l.cantidad * pct / 100)
+    }
+    return acc
+  }, 0)
+  const subtotalPostDescuento = subtotal - descuentoVolumen
+
+  // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
   const minimoCompraMP = (canalCfg?.minimo_compra as number | null) ?? null
-  if (minimoCompraMP && subtotal < minimoCompraMP) {
+  if (minimoCompraMP && subtotalPostDescuento < minimoCompraMP) {
     return {
       ok: false,
       error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompraMP)}.`,
     }
   }
 
-  // Aplicar envío gratis si el canal lo tiene configurado y el monto alcanza
+  // Aplicar envío gratis si el canal lo tiene configurado y el monto (post-descuentos) alcanza
   if (envio && canalCfg) {
     const esAmba = ['B', 'C'].includes(envioParams!.provincia)
     const umbralAmba = canalCfg.envio_amba_gratis_desde as number | null
     const umbralGeneral = canalCfg.envio_gratis_desde as number | null
     if (
-      (umbralAmba && esAmba && subtotal >= umbralAmba) ||
-      (umbralGeneral && subtotal >= umbralGeneral)
+      (umbralAmba && esAmba && subtotalPostDescuento >= umbralAmba) ||
+      (umbralGeneral && subtotalPostDescuento >= umbralGeneral)
     ) {
       envio = { descripcion: envio.descripcion, costo: 0 }
     }
   }
 
-  const total = subtotal + (envio?.costo ?? 0)
+  const total = subtotalPostDescuento + (envio?.costo ?? 0)
 
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 1
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
@@ -343,15 +357,17 @@ export async function iniciarCheckoutTransferencia(
   }
 
   // Validar múltiplos
+  let productoCanalDb: { producto_id: number; multiplo: number | null; descuento_volumen_cantidad_minima: number | null; descuento_volumen_pct: number | null }[] | null = null
   if (canalId) {
-    const { data: multiplosDb } = await service
+    const { data } = await service
       .from('producto_canales')
-      .select('producto_id, multiplo')
+      .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
       .eq('canal_id', canalId)
       .in('producto_id', items.map(i => i.productoId))
+    productoCanalDb = data
 
     for (const item of items) {
-      const row = multiplosDb?.find(r => r.producto_id === item.productoId)
+      const row = productoCanalDb?.find(r => r.producto_id === item.productoId)
       const multiplo = row?.multiplo ?? 1
       if (multiplo > 1 && item.cantidad % multiplo !== 0) {
         const { data: prod } = await service.from('productos').select('titulo').eq('id', item.productoId).single()
@@ -429,9 +445,24 @@ export async function iniciarCheckoutTransferencia(
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Validar mínimo de compra
+  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
+  const descuentoVolumen = lineas.reduce((acc, l) => {
+    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
+    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
+    const pct = row?.descuento_volumen_pct ?? null
+    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
+      return acc + Math.round(l.precioUnit * l.cantidad * pct / 100)
+    }
+    return acc
+  }, 0)
+
+  const descPct = (canalCfg?.desc_transferencia_pct as number | null) ?? 0
+  const descuento = descPct > 0 ? Math.round((subtotal - descuentoVolumen) * descPct / 100) : 0
+  const subtotalPostDescuento = subtotal - descuentoVolumen - descuento
+
+  // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
   const minimoCompra = (canalCfg?.minimo_compra as number | null) ?? null
-  if (minimoCompra && subtotal < minimoCompra) {
+  if (minimoCompra && subtotalPostDescuento < minimoCompra) {
     return {
       ok: false,
       error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`,
@@ -443,16 +474,14 @@ export async function iniciarCheckoutTransferencia(
     const umbralAmba = canalCfg.envio_amba_gratis_desde as number | null
     const umbralGeneral = canalCfg.envio_gratis_desde as number | null
     if (
-      (umbralAmba && esAmba && subtotal >= umbralAmba) ||
-      (umbralGeneral && subtotal >= umbralGeneral)
+      (umbralAmba && esAmba && subtotalPostDescuento >= umbralAmba) ||
+      (umbralGeneral && subtotalPostDescuento >= umbralGeneral)
     ) {
       envio = { descripcion: envio.descripcion, costo: 0 }
     }
   }
 
-  const descPct = (canalCfg?.desc_transferencia_pct as number | null) ?? 0
-  const descuento = descPct > 0 ? Math.round(subtotal * descPct / 100) : 0
-  const total = subtotal - descuento + (envio?.costo ?? 0)
+  const total = subtotalPostDescuento + (envio?.costo ?? 0)
 
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 7
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()

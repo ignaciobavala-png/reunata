@@ -57,6 +57,7 @@ export function ProductosListaClient({
   canalesIniciales,
   asignacionesIniciales,
   multiplosIniciales,
+  descuentosVolumenIniciales,
   todosLosCanalesIniciales,
   configsIniciales,
   cuentasSinIva = [],
@@ -71,6 +72,7 @@ export function ProductosListaClient({
   canalesIniciales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>
+  descuentosVolumenIniciales: Record<string, { cantidadMinima: number; pct: number }>
   todosLosCanalesIniciales: { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }[]
   configsIniciales: Record<number, Record<string, unknown>>
   cuentasSinIva?: { id: number; nombre: string; cbu: string; alias: string }[]
@@ -357,6 +359,7 @@ export function ProductosListaClient({
           canales={canalesIniciales}
           asignacionesIniciales={asignaciones}
           multiplosIniciales={multiplos}
+          descuentosVolumenIniciales={descuentosVolumenIniciales}
           categorias={categoriasList}
         />
       )}

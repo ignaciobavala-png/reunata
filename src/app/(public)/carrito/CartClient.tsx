@@ -182,6 +182,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const [stocks, setStocks] = useState<Record<string, number | null>>({})
   const [ivaRates, setIvaRates] = useState<Record<number, number>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
+  const [descuentosVolumen, setDescuentosVolumen] = useState<Record<number, { cantidadMinima: number; pct: number }>>({})
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
   const [facturaIva, setFacturaIva] = useState<'con' | 'sin' | null>(null)
   // Método de pago para consumidor_final ('mercado_pago' | 'transferencia')
@@ -273,6 +274,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       .catch(() => {})
   }, [mounted, user])
 
+  // Cargar descuentos por volumen configurados para los productos del carrito
+  const idsCarrito = items.map(i => i.productoId).join(',')
+  useEffect(() => {
+    if (!mounted || !idsCarrito) { setDescuentosVolumen({}); return }
+    fetch(`/api/carrito/descuentos-volumen?ids=${idsCarrito}`)
+      .then(r => r.json())
+      .then(({ descuentos }) => setDescuentosVolumen(descuentos ?? {}))
+      .catch(() => {})
+  }, [mounted, idsCarrito])
+
   const esMinorista = user?.categoriaComercial === 'minorista'
   const esMayorista = user?.categoriaComercial === 'mayorista' || user?.categoriaComercial === 'especial'
   const esGuest     = !user
@@ -301,13 +312,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   function handleEnvioSelect(opcion: EnvioSeleccionado | null) {
     if (!opcion) { setEnvioSeleccionado(null); return }
-    const totalActual = total()
     const esAmba = ['B', 'C'].includes(opcion.provincia)
     const umbralAmba = reglas?.envio_amba_gratis_desde ?? null
     const umbralGeneral = reglas?.envio_gratis_desde ?? null
     const gratis =
-      (umbralAmba !== null && esAmba && totalActual >= umbralAmba) ||
-      (umbralGeneral !== null && totalActual >= umbralGeneral)
+      (umbralAmba !== null && esAmba && totalPostDescuentoPreEnvio >= umbralAmba) ||
+      (umbralGeneral !== null && totalPostDescuentoPreEnvio >= umbralGeneral)
     setEnvioSeleccionado(gratis ? { ...opcion, costo: 0 } : opcion)
   }
 
@@ -428,6 +438,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const totalGeneral = total()
 
+  // Descuento por volumen — por línea, según cantidad de ESE producto en el carrito
+  const ajusteVolumen = items.reduce((acc, i) => {
+    const regla = descuentosVolumen[i.productoId]
+    if (regla && i.cantidad >= regla.cantidadMinima) {
+      return acc - Math.round(i.precio * i.cantidad * regla.pct / 100)
+    }
+    return acc
+  }, 0)
+  const basePostVolumen = totalGeneral + ajusteVolumen
+
   // Desglose IVA — solo para minoristas y guests (sus precios ya incluyen IVA)
   const totalSinIVA = (!esMayorista)
     ? items.reduce((acc, i) => {
@@ -442,13 +462,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const transferenciaActiva = esMinorista ? (reglas?.pagos_habilitados?.['transferencia']?.activo ?? false) : false
   const ambosPagosMinorista = mpActivo && transferenciaActiva
 
-  // Descuento de transferencia para minoristas
+  // Descuento de transferencia para minoristas — sobre el precio ya descontado por volumen
   const descTransfPct = esMinorista && metodoPagoMinorista === 'transferencia'
     ? (reglas?.desc_transferencia_pct ?? 0)
     : 0
-  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(totalGeneral * descTransfPct / 100) : 0
+  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(basePostVolumen * descTransfPct / 100) : 0
 
-  const totalConEnvio = totalGeneral + ajusteTransfMinorista + (envioSeleccionado?.costo ?? 0)
+  const totalConEnvio = basePostVolumen + ajusteTransfMinorista + (envioSeleccionado?.costo ?? 0)
 
   // Métodos de pago mayorista agrupados por IVA
   const canalHabilitaFinanciado = esMayorista && reglas
@@ -462,14 +482,14 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     : []
   const metodosActivosActuales = facturaIva === 'con' ? metodosConIva : facturaIva === 'sin' ? metodosSinIva : []
 
-  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — base para el resto
+  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — sobre el precio ya descontado por volumen
   const descAutogestPct = esMayorista && reglas
     ? (reglas.es_primera_compra
         ? (reglas.desc_autogestion_primera_pct ?? 0)
         : (reglas.desc_autogestion_siguientes_pct ?? 0))
     : 0
-  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(totalGeneral * descAutogestPct / 100) : 0
-  const basePostAutogestion = totalGeneral + ajusteAutogestion
+  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(basePostVolumen * descAutogestPct / 100) : 0
+  const basePostAutogestion = basePostVolumen + ajusteAutogestion
 
   // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
   const ajuste = metodoPago && reglas
@@ -483,7 +503,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     : 0
 
   const totalFinal = basePostAutogestion + ajuste + (envioSeleccionado?.costo ?? 0)
-  const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
+  // Base para evaluar mínimo de compra / envío gratis: post-descuentos, pre-envío
+  const totalPostDescuentoPreEnvio = esMayorista
+    ? basePostAutogestion + ajuste
+    : basePostVolumen + ajusteTransfMinorista
+  const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalPostDescuentoPreEnvio < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
   // Stock: null = sin control, number = límite conocido.
@@ -700,7 +724,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 {!esMayorista ? (
                   <>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Subtotal s/ IVA</span>
+                      <span>Sin Impuestos</span>
                       <span>{formatPrecio(totalSinIVA)}</span>
                     </div>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -724,6 +748,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   <div className="flex justify-between text-xs font-medium" style={{ color: ajuste < 0 ? '#16a34a' : '#dc2626' }}>
                     <span>{ajuste < 0 ? 'Descuento' : 'Recargo'} ({METODO_LABEL[metodoPago!] ?? metodoPago})</span>
                     <span>{ajuste < 0 ? '-' : '+'}{formatPrecio(Math.abs(ajuste))}</span>
+                  </div>
+                )}
+                {ajusteVolumen !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
+                    <span>Descuento por volumen</span>
+                    <span>-{formatPrecio(Math.abs(ajusteVolumen))}</span>
                   </div>
                 )}
                 {ajusteAutogestion !== 0 && (
@@ -813,7 +843,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {minimoInsuficiente && reglas?.minimo_compra && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
                   Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalGeneral)}.
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
                 </div>
               )}
 
@@ -1030,7 +1060,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {minimoInsuficiente && reglas?.minimo_compra && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
                   Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalGeneral)}.
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
                 </div>
               )}
 

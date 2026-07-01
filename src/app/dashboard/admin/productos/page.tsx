@@ -50,7 +50,7 @@ async function ListaContent() {
       .order('id'),
     supabase
       .from('producto_canales')
-      .select('producto_id, canal_id, multiplo'),
+      .select('producto_id, canal_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct'),
     supabase
       .from('canales')
       .select('id, slug, nombre, activo, categoria_comercial, cuenta_sin_iva_id')
@@ -77,8 +77,13 @@ async function ListaContent() {
     (asignaciones ?? []).map(a => `${a.producto_id}-${a.canal_id}`)
   )
   const multiplosMap: Record<string, number> = {}
+  const descuentosVolumenMap: Record<string, { cantidadMinima: number; pct: number }> = {}
   for (const a of asignaciones ?? []) {
-    multiplosMap[`${a.producto_id}-${a.canal_id}`] = a.multiplo ?? 1
+    const key = `${a.producto_id}-${a.canal_id}`
+    multiplosMap[key] = a.multiplo ?? 1
+    if (a.descuento_volumen_cantidad_minima != null && a.descuento_volumen_pct != null) {
+      descuentosVolumenMap[key] = { cantidadMinima: a.descuento_volumen_cantidad_minima, pct: a.descuento_volumen_pct }
+    }
   }
 
   const configMap: Record<number, Record<string, unknown>> = {}
@@ -102,6 +107,7 @@ async function ListaContent() {
         canalesIniciales={canales ?? []}
         asignacionesIniciales={asignacionesSet}
         multiplosIniciales={multiplosMap}
+        descuentosVolumenIniciales={descuentosVolumenMap}
         todosLosCanalesIniciales={todosLosCanales ?? []}
         configsIniciales={configMap}
         cuentasSinIva={cuentasSinIva ?? []}

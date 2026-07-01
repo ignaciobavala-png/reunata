@@ -130,16 +130,20 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                   <p className="text-2xl font-medium" style={{ color: 'var(--foreground)' }}>
                     {formatPrecio(esMayorista ? precio : precioConIva, monedaFinal)}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {esMayorista
-                      ? 'Precio s/ IVA'
-                      : `IVA incluido: ${formatPrecio(precioConIva - precio, monedaFinal)}`}
-                  </p>
-                  <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {esMayorista
-                      ? `+ IVA: ${formatPrecio(precioConIva, monedaFinal)}`
-                      : `Sin impuestos: ${formatPrecio(precio, monedaFinal)}`}
-                  </p>
+                  {esMayorista ? (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      IVA incluido: {formatPrecio(precioConIva, monedaFinal)}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        IVA incluido: {formatPrecio(precioConIva - precio, monedaFinal)}
+                      </p>
+                      <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Sin impuestos: {formatPrecio(precio, monedaFinal)}
+                      </p>
+                    </>
+                  )}
                 </div>
               )
             })()}

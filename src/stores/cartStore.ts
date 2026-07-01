@@ -116,6 +116,13 @@ export const useCartStore = create<CartStore>()(
       total: () => get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),
       totalItems: () => get().items.reduce((acc, i) => acc + i.cantidad, 0),
     }),
-    { name: 'reunata-cart' }
+    {
+      name: 'reunata-cart',
+      partialize: (state) => ({
+        items: state.items,
+        ownerId: state.ownerId,
+        guestItemsMerged: state.guestItemsMerged,
+      }),
+    }
   )
 )
