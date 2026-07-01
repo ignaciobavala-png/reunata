@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
-import { toggleProductoCanal, asignarCanalMasivo, actualizarMultiplo } from '@/app/actions/canales'
+import { toggleProductoCanal, asignarCanalMasivo, actualizarMultiplo, actualizarDescuentoVolumen } from '@/app/actions/canales'
 import { Search, Loader2, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface Producto { id: number; codigo_interno: string; titulo: string; categoria: string | null }
@@ -31,12 +31,14 @@ export function CanalesClient({
   canales,
   asignacionesIniciales,
   multiplosIniciales,
+  descuentosVolumenIniciales,
   categorias: _categorias,
 }: {
   productos: Producto[]
   canales: Canal[]
   asignacionesIniciales: Set<string>
   multiplosIniciales: Record<string, number>  // key: `${producto_id}-${canal_id}`
+  descuentosVolumenIniciales: Record<string, { cantidadMinima: number; pct: number }>
   categorias: string[]
 }) {
   const router = useRouter()
@@ -45,6 +47,10 @@ export function CanalesClient({
   const [editandoMultiplo, setEditandoMultiplo] = useState<string | null>(null)
   const [multiplosTemp, setMultiplosTemp] = useState<Record<string, string>>({})
   const [guardandoMultiplo, setGuardandoMultiplo] = useState<string | null>(null)
+  const [descuentosVolumen, setDescuentosVolumen] = useState<Record<string, { cantidadMinima: number; pct: number }>>(descuentosVolumenIniciales)
+  const [editandoDescVolumen, setEditandoDescVolumen] = useState<string | null>(null)
+  const [descVolumenTemp, setDescVolumenTemp] = useState<Record<string, { cantidadMinima: string; pct: string }>>({})
+  const [guardandoDescVolumen, setGuardandoDescVolumen] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [guardando, setGuardando] = useState<string | null>(null)
   const [guardandoCat, setGuardandoCat] = useState<string | null>(null)
@@ -142,6 +148,55 @@ export function CanalesClient({
       } catch {
         setMultiplos(prev => ({ ...prev, [key]: multiplosIniciales[key] ?? 1 }))
       } finally { setGuardandoMultiplo(null) }
+    })
+  }
+
+  function confirmarDescuentoVolumen(productoId: number, canalId: number) {
+    const key = `${productoId}-${canalId}`
+    const temp = descVolumenTemp[key]
+    setEditandoDescVolumen(null)
+    if (!temp) return
+
+    const cantidadRaw = temp.cantidadMinima.trim()
+    const pctRaw = temp.pct.trim()
+
+    // Ambos vacíos = borrar el descuento configurado
+    if (!cantidadRaw && !pctRaw) {
+      if (!descuentosVolumen[key]) return
+      setGuardandoDescVolumen(key)
+      setDescuentosVolumen(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      startTransition(async () => {
+        try {
+          await actualizarDescuentoVolumen(productoId, canalId, null, null)
+        } catch {
+          setDescuentosVolumen(prev => ({ ...prev, ...(descuentosVolumenIniciales[key] ? { [key]: descuentosVolumenIniciales[key] } : {}) }))
+        } finally { setGuardandoDescVolumen(null) }
+      })
+      return
+    }
+
+    const cantidadMinima = Math.max(1, parseInt(cantidadRaw) || 1)
+    const pct = Math.min(100, Math.max(0.01, parseFloat(pctRaw) || 0))
+    const anterior = descuentosVolumen[key]
+    if (anterior && anterior.cantidadMinima === cantidadMinima && anterior.pct === pct) return
+
+    setGuardandoDescVolumen(key)
+    setDescuentosVolumen(prev => ({ ...prev, [key]: { cantidadMinima, pct } }))
+    startTransition(async () => {
+      try {
+        await actualizarDescuentoVolumen(productoId, canalId, cantidadMinima, pct)
+      } catch {
+        setDescuentosVolumen(prev => {
+          const next = { ...prev }
+          if (anterior) next[key] = anterior
+          else delete next[key]
+          return next
+        })
+      } finally { setGuardandoDescVolumen(null) }
     })
   }
 
@@ -329,6 +384,9 @@ export function CanalesClient({
                           const multiplo = multiplos[key] ?? 1
                           const editando = editandoMultiplo === key
                           const guardandoM = guardandoMultiplo === key
+                          const descVolumen = descuentosVolumen[key]
+                          const editandoDV = editandoDescVolumen === key
+                          const guardandoDV = guardandoDescVolumen === key
                           return (
                             <td key={canal.id} className="px-4 py-2 text-center">
                               <div className="inline-flex flex-col items-center gap-0.5">
@@ -376,6 +434,73 @@ export function CanalesClient({
                                       style={{ background: color + '22', color }}
                                     >
                                       {guardandoM ? <Loader2 size={9} className="animate-spin inline" /> : `×${multiplo}`}
+                                    </button>
+                                  )
+                                )}
+
+                                {/* Descuento por volumen (solo si está asignado) */}
+                                {activo && (
+                                  editandoDV ? (
+                                    <div className="flex items-center gap-0.5">
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        autoFocus
+                                        placeholder="cant."
+                                        value={descVolumenTemp[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? '')}
+                                        onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: e.target.value, pct: prev[key]?.pct ?? String(descVolumen?.pct ?? '') } }))}
+                                        onBlur={() => confirmarDescuentoVolumen(p.id, canal.id)}
+                                        onKeyDown={e => {
+                                          if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
+                                          if (e.key === 'Escape') setEditandoDescVolumen(null)
+                                        }}
+                                        className="w-11 text-center text-xs rounded border px-1 py-0.5 outline-none"
+                                        style={{ borderColor: color, color: 'var(--foreground)' }}
+                                      />
+                                      <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>u →</span>
+                                      <input
+                                        type="number"
+                                        min={0.01}
+                                        max={100}
+                                        step={0.01}
+                                        placeholder="%"
+                                        value={descVolumenTemp[key]?.pct ?? String(descVolumen?.pct ?? '')}
+                                        onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: prev[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? ''), pct: e.target.value } }))}
+                                        onBlur={() => confirmarDescuentoVolumen(p.id, canal.id)}
+                                        onKeyDown={e => {
+                                          if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
+                                          if (e.key === 'Escape') setEditandoDescVolumen(null)
+                                        }}
+                                        className="w-11 text-center text-xs rounded border px-1 py-0.5 outline-none"
+                                        style={{ borderColor: color, color: 'var(--foreground)' }}
+                                      />
+                                      <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>%</span>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setEditandoDescVolumen(key)
+                                        setDescVolumenTemp(prev => ({
+                                          ...prev,
+                                          [key]: {
+                                            cantidadMinima: descVolumen ? String(descVolumen.cantidadMinima) : '',
+                                            pct: descVolumen ? String(descVolumen.pct) : '',
+                                          },
+                                        }))
+                                      }}
+                                      title="Editar descuento por volumen"
+                                      className="text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity hover:opacity-70"
+                                      style={descVolumen
+                                        ? { background: '#10b98122', color: '#10b981' }
+                                        : { color: 'var(--color-acero-claro)' }
+                                      }
+                                    >
+                                      {guardandoDV
+                                        ? <Loader2 size={9} className="animate-spin inline" />
+                                        : descVolumen
+                                          ? `-${descVolumen.pct}% ×${descVolumen.cantidadMinima}+`
+                                          : '+ desc. volumen'
+                                      }
                                     </button>
                                   )
                                 )}

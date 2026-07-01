@@ -92,11 +92,8 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                         <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
                           {formatPrecio(foto.precio, foto.moneda)}
                         </p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          Precio s/ IVA
-                        </p>
                         <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          + IVA: {formatPrecio(precioConIva, foto.moneda)}
+                          IVA incluido: {formatPrecio(precioConIva, foto.moneda)}
                         </p>
                       </>
                     ) : (
@@ -108,7 +105,7 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                           IVA incluido
                         </p>
                         <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          s/ IVA: {formatPrecio(foto.precio, foto.moneda)}
+                          Sin impuestos: {formatPrecio(foto.precio, foto.moneda)}
                         </p>
                       </>
                     )

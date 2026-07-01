@@ -57,7 +57,7 @@ export async function crearPedidoBorrador(
       .maybeSingle(),
     service
       .from('canales_config')
-      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra')
       .eq('canal_id', perfil.canal_id)
       .maybeSingle(),
     service
@@ -70,14 +70,14 @@ export async function crearPedidoBorrador(
   if (!productos?.length) throw new Error('Productos no disponibles.')
 
   // Validar múltiplos contra producto_canales
-  const { data: multiplosDb } = await service
+  const { data: productoCanalDb } = await service
     .from('producto_canales')
-    .select('producto_id, multiplo')
+    .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
     .eq('canal_id', perfil.canal_id)
     .in('producto_id', lineas.map(l => l.productoId))
 
   for (const linea of lineas) {
-    const row = multiplosDb?.find(r => r.producto_id === linea.productoId)
+    const row = productoCanalDb?.find(r => r.producto_id === linea.productoId)
     const multiplo = row?.multiplo ?? 1
     if (multiplo > 1 && linea.cantidad % multiplo !== 0) {
       throw new Error(`La cantidad de un producto debe ser múltiplo de ${multiplo}.`)
@@ -111,13 +111,25 @@ export async function crearPedidoBorrador(
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
+  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
+  const ajusteVolumen = lineasResueltas.reduce((acc, l) => {
+    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
+    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
+    const pct = row?.descuento_volumen_pct ?? null
+    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
+      return acc - Math.round(l.precioUnit * l.cantidad * pct / 100)
+    }
+    return acc
+  }, 0)
+  const basePostVolumen = subtotal + ajusteVolumen
+
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
   const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(basePostVolumen * pctAutogestion / 100) : 0
   // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
-  const basePostAutogestion = subtotal + ajusteAutogestion
+  const basePostAutogestion = basePostVolumen + ajusteAutogestion
 
   // Descuento / recargo por método de pago (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
@@ -136,7 +148,14 @@ export async function crearPedidoBorrador(
 
   const totalFinal = basePostAutogestion + ajusteMetodoPago
 
+  // Validar mínimo de compra — sobre el total final, con todos los descuentos ya aplicados
+  const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
+  if (minimoCompra && totalFinal < minimoCompra) {
+    throw new Error(`El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`)
+  }
+
   const notaPartes: string[] = []
+  if (ajusteVolumen !== 0) notaPartes.push('desc. por volumen')
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
   if (ajusteMetodoPago !== 0) {
     notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)

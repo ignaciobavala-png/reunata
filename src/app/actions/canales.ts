@@ -100,6 +100,31 @@ export async function actualizarMultiplo(productoId: number, canalId: number, mu
   return { ok: true }
 }
 
+export async function actualizarDescuentoVolumen(
+  productoId: number,
+  canalId: number,
+  cantidadMinima: number | null,
+  pct: number | null,
+) {
+  const supabase = createServiceClient()
+
+  const ambosNulos = cantidadMinima === null && pct === null
+  const valorCantidad = ambosNulos ? null : Math.max(1, Math.round(cantidadMinima ?? 0))
+  const valorPct = ambosNulos ? null : Math.min(100, Math.max(0.01, pct ?? 0))
+
+  const { error } = await supabase
+    .from('producto_canales')
+    .update({
+      descuento_volumen_cantidad_minima: valorCantidad,
+      descuento_volumen_pct: valorPct,
+    })
+    .eq('producto_id', productoId)
+    .eq('canal_id', canalId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/dashboard/admin/productos')
+  return { ok: true }
+}
+
 export async function asignarCanalMasivo(productoIds: number[], canalId: number, activo: boolean) {
   const supabase = createServiceClient()
 

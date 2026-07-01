@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Search, Menu, X, ChevronDown, User } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, ChevronDown, User, Heart } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { LogoutButton } from '@/components/LogoutButton'
 
@@ -25,7 +25,6 @@ const tiendaLinks = [
   { label: 'Todos los productos', href: '/tienda/todos' },
   { label: 'Novedades',           href: '/tienda/novedades' },
   { label: 'Más elegidos',        href: '/tienda/mas-vendidos' },
-  { label: 'Favoritos',           href: '/favoritos' },
   { label: 'Vistos recientemente', href: '/historial' },
 ]
 
@@ -213,18 +212,6 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                       {cat.label}
                     </Link>
                   ))}
-
-                  <div className="mx-5 my-1 h-px" style={{ background: 'var(--color-acero-claro)' }} />
-
-                  {/* Promociones */}
-                  <Link
-                    href="/promociones"
-                    onClick={() => setDropdownOpen(false)}
-                    className="block px-5 py-3 text-xs font-semibold tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                    style={{ color: 'var(--color-granito)', background: 'var(--color-acero-claro)' }}
-                  >
-                    Promociones especiales →
-                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -321,6 +308,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
             </AnimatePresence>
             <button
               aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
+              title={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
               onClick={() => setSearchOpen(v => !v)}
               className={`transition-colors duration-300 flex-shrink-0 ${iconColor}`}
             >
@@ -328,12 +316,22 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
             </button>
           </div>
 
+          <Link
+            href="/favoritos"
+            aria-label="Favoritos"
+            title="Favoritos"
+            className={`hidden md:block transition-colors duration-300 ${iconColor}`}
+          >
+            <Heart size={20} strokeWidth={1.5} />
+          </Link>
+
           {/* Usuario / login */}
           <div ref={userRef} className="relative">
             {user ? (
               <button
                 onClick={() => setUserOpen(!userOpen)}
                 aria-label="Mi cuenta"
+                title="Mi cuenta"
                 aria-expanded={userOpen}
                 aria-controls="dropdown-usuario"
                 className={`transition-colors duration-300 ${iconColor}`}
@@ -341,7 +339,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                 <User size={20} strokeWidth={1.5} />
               </button>
             ) : (
-              <Link href="/login" aria-label="Iniciar sesión" className={`transition-colors duration-300 ${iconColor}`}>
+              <Link href="/login" aria-label="Iniciar sesión" title="Iniciar sesión" className={`transition-colors duration-300 ${iconColor}`}>
                 <User size={20} strokeWidth={1.5} />
               </Link>
             )}
@@ -422,6 +420,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <button
             onClick={() => setCartOpen(true)}
             aria-label="Abrir carrito"
+            title="Abrir carrito"
             className="relative"
           >
             <ShoppingCart
@@ -438,6 +437,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <button
             onClick={() => setOpen(!open)}
             aria-label="Menú"
+            title="Menú"
             aria-expanded={open}
             className={`md:hidden transition-colors duration-300 ${iconColor}`}
           >
@@ -481,16 +481,18 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
               {cat.label}
             </Link>
           ))}
-          <div className="h-px bg-[var(--border)] my-2" />
-          <Link
-            href="/promociones"
-            onClick={() => setOpen(false)}
-            className="text-lg font-semibold text-[var(--color-granito)] py-1"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Promociones especiales →
-          </Link>
         </div>
+
+        <div className="h-px bg-[var(--border)]" />
+
+        <Link
+          href="/favoritos"
+          onClick={() => setOpen(false)}
+          className="text-lg text-[var(--color-granito)] py-1"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Favoritos
+        </Link>
 
         {/* Corporativos en mobile */}
         <div className="flex flex-col gap-1">

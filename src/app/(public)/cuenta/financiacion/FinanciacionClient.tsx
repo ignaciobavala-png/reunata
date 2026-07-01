@@ -193,7 +193,7 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Monto solicitado (AR$) <span style={{ color: '#ef4444' }}>*</span>
+                Monto solicitado ($) <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="number" min="1" step="1000" required
