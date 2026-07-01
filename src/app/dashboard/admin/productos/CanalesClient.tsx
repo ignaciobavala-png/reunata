@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import { toggleProductoCanal, asignarCanalMasivo, actualizarMultiplo, actualizarDescuentoVolumen } from '@/app/actions/canales'
-import { Search, Loader2, ChevronRight, ChevronDown } from 'lucide-react'
+import { Search, Loader2, ChevronRight, ChevronDown, Percent, Check } from 'lucide-react'
 
 interface Producto { id: number; codigo_interno: string; titulo: string; categoria: string | null }
 interface Canal    { id: number; slug: string; nombre: string }
@@ -441,40 +441,59 @@ export function CanalesClient({
                                 {/* Descuento por volumen (solo si está asignado) */}
                                 {activo && (
                                   editandoDV ? (
-                                    <div className="flex items-center gap-0.5">
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        autoFocus
-                                        placeholder="cant."
-                                        value={descVolumenTemp[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? '')}
-                                        onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: e.target.value, pct: prev[key]?.pct ?? String(descVolumen?.pct ?? '') } }))}
-                                        onBlur={() => confirmarDescuentoVolumen(p.id, canal.id)}
-                                        onKeyDown={e => {
-                                          if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
-                                          if (e.key === 'Escape') setEditandoDescVolumen(null)
-                                        }}
-                                        className="w-11 text-center text-xs rounded border px-1 py-0.5 outline-none"
-                                        style={{ borderColor: color, color: 'var(--foreground)' }}
-                                      />
-                                      <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>u →</span>
-                                      <input
-                                        type="number"
-                                        min={0.01}
-                                        max={100}
-                                        step={0.01}
-                                        placeholder="%"
-                                        value={descVolumenTemp[key]?.pct ?? String(descVolumen?.pct ?? '')}
-                                        onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: prev[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? ''), pct: e.target.value } }))}
-                                        onBlur={() => confirmarDescuentoVolumen(p.id, canal.id)}
-                                        onKeyDown={e => {
-                                          if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
-                                          if (e.key === 'Escape') setEditandoDescVolumen(null)
-                                        }}
-                                        className="w-11 text-center text-xs rounded border px-1 py-0.5 outline-none"
-                                        style={{ borderColor: color, color: 'var(--foreground)' }}
-                                      />
-                                      <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>%</span>
+                                    <div
+                                      className="flex flex-col items-center gap-1 p-1.5 rounded-lg"
+                                      style={{ background: 'var(--color-acero-brillo)', border: `1px solid ${color}` }}
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-[9px] leading-none mb-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>Desde (u)</span>
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            autoFocus
+                                            placeholder="cant."
+                                            value={descVolumenTemp[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? '')}
+                                            onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: e.target.value, pct: prev[key]?.pct ?? String(descVolumen?.pct ?? '') } }))}
+                                            onKeyDown={e => {
+                                              if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
+                                              if (e.key === 'Escape') setEditandoDescVolumen(null)
+                                            }}
+                                            className="w-12 text-center text-xs rounded border px-1 py-0.5 outline-none"
+                                            style={{ borderColor: color, color: 'var(--foreground)' }}
+                                          />
+                                        </div>
+                                        <span className="text-xs mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>→</span>
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-[9px] leading-none mb-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>Desc. (%)</span>
+                                          <input
+                                            type="number"
+                                            min={0.01}
+                                            max={100}
+                                            step={0.01}
+                                            placeholder="%"
+                                            value={descVolumenTemp[key]?.pct ?? String(descVolumen?.pct ?? '')}
+                                            onChange={e => setDescVolumenTemp(prev => ({ ...prev, [key]: { cantidadMinima: prev[key]?.cantidadMinima ?? String(descVolumen?.cantidadMinima ?? ''), pct: e.target.value } }))}
+                                            onKeyDown={e => {
+                                              if (e.key === 'Enter') confirmarDescuentoVolumen(p.id, canal.id)
+                                              if (e.key === 'Escape') setEditandoDescVolumen(null)
+                                            }}
+                                            className="w-12 text-center text-xs rounded border px-1 py-0.5 outline-none"
+                                            style={{ borderColor: color, color: 'var(--foreground)' }}
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => confirmarDescuentoVolumen(p.id, canal.id)}
+                                          title="Guardar"
+                                          className="mt-3 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                                          style={{ background: '#10b981', color: 'white' }}
+                                        >
+                                          <Check size={12} strokeWidth={3} />
+                                        </button>
+                                      </div>
+                                      <span className="text-[9px] leading-none" style={{ color: 'var(--color-acero-oscuro)' }}>
+                                        Dejá los dos campos vacíos para quitar el descuento
+                                      </span>
                                     </div>
                                   ) : (
                                     <button
@@ -488,18 +507,22 @@ export function CanalesClient({
                                           },
                                         }))
                                       }}
-                                      title="Editar descuento por volumen"
-                                      className="text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity hover:opacity-70"
+                                      title={descVolumen ? 'Editar descuento por volumen' : 'Configurar descuento por volumen'}
+                                      className="text-[10px] px-2 py-0.5 rounded-full font-medium transition-opacity hover:opacity-70 inline-flex items-center gap-1"
                                       style={descVolumen
-                                        ? { background: '#10b98122', color: '#10b981' }
-                                        : { color: 'var(--color-acero-claro)' }
+                                        ? { background: '#10b98122', color: '#10b981', border: '1px solid #10b98155' }
+                                        : { background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px dashed var(--color-acero-claro)' }
                                       }
                                     >
                                       {guardandoDV
-                                        ? <Loader2 size={9} className="animate-spin inline" />
+                                        ? <Loader2 size={10} className="animate-spin" />
+                                        : <Percent size={10} />
+                                      }
+                                      {guardandoDV
+                                        ? 'Guardando…'
                                         : descVolumen
-                                          ? `-${descVolumen.pct}% ×${descVolumen.cantidadMinima}+`
-                                          : '+ desc. volumen'
+                                          ? `Desde ${descVolumen.cantidadMinima}u: -${descVolumen.pct}%`
+                                          : 'Desc. por volumen'
                                       }
                                     </button>
                                   )
