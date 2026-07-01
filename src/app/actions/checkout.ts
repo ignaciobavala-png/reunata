@@ -274,13 +274,25 @@ export async function iniciarCheckoutMP(
     const response = await preference.create({
       body: {
         items: [
-          ...lineas.map(l => ({
-            id: String(l.productoId),
-            title: l.titulo,
-            quantity: l.cantidad,
-            unit_price: l.precioUnit,
-            currency_id: 'ARS',
-          })),
+          ...lineas.map(l => {
+            const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
+            const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
+            const pct = row?.descuento_volumen_pct ?? null
+            const aplicaDescuento = cantidadMinima != null && pct != null && l.cantidad >= cantidadMinima
+            // MP no admite unit_price negativo: el descuento por volumen se pliega
+            // en el precio de la línea en vez de mandarse como ítem aparte.
+            const totalLinea = l.precioUnit * l.cantidad
+            const totalLineaConDescuento = aplicaDescuento
+              ? totalLinea - Math.round(totalLinea * (pct as number) / 100)
+              : totalLinea
+            return {
+              id: String(l.productoId),
+              title: l.titulo,
+              quantity: 1,
+              unit_price: totalLineaConDescuento,
+              currency_id: 'ARS',
+            }
+          }),
           ...(envio ? [{
             id: 'envio',
             title: envio.descripcion,

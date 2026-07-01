@@ -131,12 +131,6 @@ export async function crearPedidoBorrador(
   // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
   const basePostAutogestion = basePostVolumen + ajusteAutogestion
 
-  // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
-  const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
-  if (minimoCompra && basePostAutogestion < minimoCompra) {
-    throw new Error(`El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`)
-  }
-
   // Descuento / recargo por método de pago (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
   let ajusteMetodoPago = 0
@@ -153,6 +147,12 @@ export async function crearPedidoBorrador(
   }
 
   const totalFinal = basePostAutogestion + ajusteMetodoPago
+
+  // Validar mínimo de compra — sobre el total final, con todos los descuentos ya aplicados
+  const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
+  if (minimoCompra && totalFinal < minimoCompra) {
+    throw new Error(`El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`)
+  }
 
   const notaPartes: string[] = []
   if (ajusteVolumen !== 0) notaPartes.push('desc. por volumen')

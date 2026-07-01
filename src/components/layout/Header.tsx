@@ -320,7 +320,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
             href="/favoritos"
             aria-label="Favoritos"
             title="Favoritos"
-            className={`transition-colors duration-300 ${iconColor}`}
+            className={`hidden md:block transition-colors duration-300 ${iconColor}`}
           >
             <Heart size={20} strokeWidth={1.5} />
           </Link>
