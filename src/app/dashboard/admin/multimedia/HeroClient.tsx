@@ -63,7 +63,7 @@ export function HeroClient({
     titulo: 'El mate que te une.',
     subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
     boton_texto: 'Ver tienda',
-    boton_url: '/tienda',
+    boton_url: '/tienda/todos',
   })
   const [guardandoFallback, setGuardandoFallback] = useState(false)
 

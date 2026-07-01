@@ -15,7 +15,7 @@ export const HERO_DEFAULTS = {
   hero_fallback_titulo: 'El mate que te une.',
   hero_fallback_subtitulo: 'Productos importados, diseñados para quienes toman el mate en serio. Acero, granito y tradición en cada pieza.',
   hero_fallback_boton_texto: 'Ver tienda',
-  hero_fallback_boton_url: '/tienda',
+  hero_fallback_boton_url: '/tienda/todos',
 }
 
 export type HeroFallbackConfig = {
