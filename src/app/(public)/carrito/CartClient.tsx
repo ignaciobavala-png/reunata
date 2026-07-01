@@ -161,7 +161,7 @@ function UploaderComprobante({
 }
 
 export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva }: Props) {
-  const { items, remove, updateCantidad, updatePrecios, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
+  const { items, remove, updateCantidad, updatePrecios, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -179,7 +179,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const [guestModalOpen, setGuestModalOpen] = useState(false)
 
   const [envioSeleccionado, setEnvioSeleccionado] = useState<EnvioSeleccionado | null>(null)
-  const [stocks, setStocks] = useState<Record<number, number | null>>({})
+  const [stocks, setStocks] = useState<Record<string, number | null>>({})
   const [ivaRates, setIvaRates] = useState<Record<number, number>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
@@ -233,7 +233,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     fetch('/api/carrito/precios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ items: items.map(i => ({ productoId: i.productoId, variante: i.variante ?? null })) }),
     })
       .then(r => r.json())
       .then(({ precios, stocks: st, ivaRates: ir }) => {
@@ -244,7 +244,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           updatePrecios(precios)
           if (cambiaron) setPreciosCambiaron(true)
         }
-        if (st) setStocks(st)
+        if (st) {
+          setStocks(st)
+          updateStocks(st)
+        }
         if (ir) setIvaRates(ir)
         setRefreshingPrecios(false)
       })
@@ -483,15 +486,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalGeneral < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
-  // Stock: null = sin control, number = límite conocido
-  function stockDisponible(productoId: number): number | null {
-    return productoId in stocks ? stocks[productoId] : null
+  // Stock: null = sin control, number = límite conocido.
+  // Mientras no llegó el refresh desde el servidor, usamos el stock guardado al agregar
+  // al carrito (item.stock) en vez de asumir "sin control" — evita la ventana sin clamp.
+  function stockDisponible(item: (typeof items)[number]): number | null {
+    const key = item.itemKey ?? `${item.productoId}:`
+    if (key in stocks) return stocks[key]
+    return item.stock ?? null
   }
-  function exceedeStock(productoId: number, cantidad: number): boolean {
-    const s = stockDisponible(productoId)
-    return s !== null && cantidad > s
+  function exceedeStock(item: (typeof items)[number]): boolean {
+    const s = stockDisponible(item)
+    return s !== null && item.cantidad > s
   }
-  const hayProblemaStock = items.some(i => exceedeStock(i.productoId, i.cantidad))
+  const hayProblemaStock = items.some(i => exceedeStock(i))
 
   const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none'
   const inputStyle: React.CSSProperties = {
@@ -565,8 +572,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               const multiplo = item.multiplo ?? 1
               const subtotal = item.precio * item.cantidad
               const esUltimo = idx === items.length - 1
-              const stockItem = stockDisponible(item.productoId)
-              const masAllaDelStock = exceedeStock(item.productoId, item.cantidad)
+              const stockItem = stockDisponible(item)
+              const masAllaDelStock = exceedeStock(item)
               const plusDeshabilitado = stockItem !== null && item.cantidad + multiplo > stockItem
               const itemKey = item.itemKey ?? `${item.productoId}:`
               return (
@@ -624,7 +631,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       <QuantityStepper
                         value={item.cantidad}
                         multiplo={multiplo}
-                        max={stocks[item.productoId]}
+                        max={stockItem}
                         plusDisabled={plusDeshabilitado}
                         onCommit={n => updateCantidad(itemKey, n)}
                         onRemove={() => remove(itemKey)}

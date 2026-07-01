@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 
 interface LineaPedido {
   productoId: number
@@ -46,7 +47,7 @@ export async function crearPedidoBorrador(
   const [{ data: productos }, { data: tcRow }, { data: canalConfig }, { count: pedidosCount }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock')
+      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock, variantes')
       .in('id', lineas.map(l => l.productoId))
       .eq('activo', true),
     service
@@ -87,9 +88,9 @@ export async function crearPedidoBorrador(
   for (const linea of lineas) {
     const prod = productos.find(p => p.id === linea.productoId)
     if (prod) {
-      const stockDisponible = prod.stock_visible ?? prod.stock
-      if (stockDisponible !== null && stockDisponible < linea.cantidad) {
-        throw new Error(`Stock insuficiente para el producto #${linea.productoId}. Disponible: ${stockDisponible}.`)
+      const disponible = stockDisponible(prod, linea.variante)
+      if (disponible !== null && disponible < linea.cantidad) {
+        throw new Error(`Stock insuficiente para el producto #${linea.productoId}. Disponible: ${disponible}.`)
       }
     }
   }
