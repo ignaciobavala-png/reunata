@@ -6,6 +6,7 @@ import { getMPPreference, isSandbox } from '@/lib/mercadopago'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 import { cotizarEnvio } from '@/lib/enviopack'
+import { stockDisponible } from '@/lib/stock'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -102,7 +103,7 @@ export async function iniciarCheckoutMP(
   const [{ data: productos }, { data: tcRow }, { data: canalCfg }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, precio_lista5, moneda, stock, iva')
+      .select('id, titulo, precio_lista5, moneda, stock, variantes, iva')
       .in('id', items.map(i => i.productoId))
       .eq('activo', true),
     service
@@ -124,8 +125,8 @@ export async function iniciarCheckoutMP(
   for (const item of items) {
     const prod = productos.find(p => p.id === item.productoId)
     if (prod) {
-      const stockDisponible = prod.stock
-      if (stockDisponible !== null && stockDisponible < item.cantidad) {
+      const disponible = stockDisponible(prod, item.variante)
+      if (disponible !== null && disponible < item.cantidad) {
         return { ok: false, error: `"${prod.titulo}" ingresa próximamente. Reducí la cantidad para continuar.` }
       }
     }
@@ -363,7 +364,7 @@ export async function iniciarCheckoutTransferencia(
   const [{ data: productos }, { data: tcRow }, { data: canalCfg }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, precio_lista5, moneda, stock, iva')
+      .select('id, titulo, precio_lista5, moneda, stock, variantes, iva')
       .in('id', items.map(i => i.productoId))
       .eq('activo', true),
     service
@@ -391,7 +392,8 @@ export async function iniciarCheckoutTransferencia(
   for (const item of items) {
     const prod = productos.find(p => p.id === item.productoId)
     if (prod) {
-      if (prod.stock !== null && prod.stock < item.cantidad) {
+      const disponible = stockDisponible(prod, item.variante)
+      if (disponible !== null && disponible < item.cantidad) {
         return { ok: false, error: `"${prod.titulo}" ingresa próximamente. Reducí la cantidad para continuar.` }
       }
     }

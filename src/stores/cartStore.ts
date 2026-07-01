@@ -27,6 +27,7 @@ interface CartStore {
   remove: (itemKey: string) => void
   updateCantidad: (itemKey: string, cantidad: number) => void
   updatePrecios: (precios: Record<number, number>) => void
+  updateStocks: (stocksPorItemKey: Record<string, number | null>) => void
   clear: () => void
   setOwner: (userId: string | null) => void
   clearIfOwnerChanged: (userId: string | null) => void
@@ -50,29 +51,49 @@ export const useCartStore = create<CartStore>()(
         const existe = state.items.find(i => ik(i) === key)
         if (existe) {
           return {
-            items: state.items.map(i =>
-              ik(i) === key
-                ? { ...i, cantidad: i.cantidad + multiplo }
-                : i
-            ),
+            items: state.items.map(i => {
+              if (ik(i) !== key) return i
+              const nueva = i.cantidad + multiplo
+              return { ...i, cantidad: i.stock != null ? Math.min(nueva, i.stock) : nueva }
+            }),
           }
         }
-        return { items: [...state.items, { ...item, multiplo, cantidad: multiplo }] }
+        const cantidadInicial = item.stock != null ? Math.min(multiplo, Math.max(item.stock, 0)) : multiplo
+        return { items: [...state.items, { ...item, multiplo, cantidad: cantidadInicial }] }
       }),
 
       remove: (itemKey) => set(state => ({
         items: state.items.filter(i => ik(i) !== itemKey),
       })),
 
+      // Última línea de defensa: sin importar quién llame esto (stepper, drawer,
+      // localStorage editado a mano), nunca se persiste más cantidad que el stock conocido del ítem.
       updateCantidad: (itemKey, cantidad) => set(state => {
         if (cantidad <= 0) return { items: state.items.filter(i => ik(i) !== itemKey) }
-        return { items: state.items.map(i => ik(i) === itemKey ? { ...i, cantidad } : i) }
+        return {
+          items: state.items.map(i => {
+            if (ik(i) !== itemKey) return i
+            const clamped = i.stock != null ? Math.min(cantidad, i.stock) : cantidad
+            return { ...i, cantidad: clamped }
+          }),
+        }
       }),
 
       updatePrecios: (precios) => set(state => ({
         items: state.items.map(i =>
           i.productoId in precios ? { ...i, precio: precios[i.productoId] } : i
         ),
+      })),
+
+      // Refresca el stock conocido de cada ítem (por itemKey) y reclampa la cantidad si bajó.
+      updateStocks: (stocksPorItemKey) => set(state => ({
+        items: state.items.map(i => {
+          const key = ik(i)
+          if (!(key in stocksPorItemKey)) return i
+          const stock = stocksPorItemKey[key]
+          const cantidad = stock != null ? Math.min(i.cantidad, stock) : i.cantidad
+          return { ...i, stock, cantidad }
+        }),
       })),
 
       clear: () => set({ items: [], ownerId: null }),
