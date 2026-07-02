@@ -52,6 +52,8 @@ function buildDefaultConfig(canal: Canal): CanalConfigPayload {
     recargo_transf_blanco_pct: 21,
     desc_autogestion_primera_pct: 0,
     desc_autogestion_siguientes_pct: 0,
+    desc_volumen_monto_min: null,
+    desc_volumen_pct: null,
     envio_gratis_desde: null,
     envio_flex_activo: false,
     envio_amba_gratis_desde: null,
@@ -394,6 +396,28 @@ export function CanalConfigDrawer({
                 />
               </>
             )}
+
+            <div className={isMayorista ? 'space-y-3 pt-3 border-t' : 'space-y-3'} style={isMayorista ? { borderColor: 'var(--color-acero-claro)' } : undefined}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Descuento por volumen de compra
+              </p>
+              <NumField
+                label="Superando un total de"
+                value={form.desc_volumen_monto_min}
+                onChange={v => set('desc_volumen_monto_min', v)}
+                prefix="AR$"
+              />
+              <NumField
+                label="Descuento a otorgar"
+                value={form.desc_volumen_pct}
+                onChange={v => set('desc_volumen_pct', v)}
+                suffix="%"
+              />
+              <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Se aplica sobre el total de la compra cuando supera el monto. Completá ambos campos o dejá ambos vacíos para desactivarlo.
+              </p>
+            </div>
+
             {!isMayorista && (
               <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Códigos de descuento y gift cards se configuran en secciones separadas (próximamente).

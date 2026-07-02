@@ -57,7 +57,7 @@ export async function crearPedidoBorrador(
       .maybeSingle(),
     service
       .from('canales_config')
-      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra, desc_volumen_monto_min, desc_volumen_pct')
       .eq('canal_id', perfil.canal_id)
       .maybeSingle(),
     service
@@ -72,7 +72,7 @@ export async function crearPedidoBorrador(
   // Validar múltiplos contra producto_canales
   const { data: productoCanalDb } = await service
     .from('producto_canales')
-    .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
+    .select('producto_id, multiplo')
     .eq('canal_id', perfil.canal_id)
     .in('producto_id', lineas.map(l => l.productoId))
 
@@ -116,25 +116,21 @@ export async function crearPedidoBorrador(
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
-  const ajusteVolumen = lineasResueltas.reduce((acc, l) => {
-    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
-    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
-    const pct = row?.descuento_volumen_pct ?? null
-    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
-      return acc - Math.round(l.precioUnit * l.cantidad * pct / 100)
-    }
-    return acc
-  }, 0)
-  const basePostVolumen = subtotal + ajusteVolumen
+  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
+  const volMin = (canalConfig?.desc_volumen_monto_min as number | null) ?? null
+  const volPct = (canalConfig?.desc_volumen_pct as number | null) ?? null
+  const ajusteVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
+    ? -Math.round(subtotal * volPct / 100)
+    : 0
+  const basePostVolumenCanal = subtotal + ajusteVolumenCanal
 
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
   const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(basePostVolumen * pctAutogestion / 100) : 0
+  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(basePostVolumenCanal * pctAutogestion / 100) : 0
   // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
-  const basePostAutogestion = basePostVolumen + ajusteAutogestion
+  const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
 
   // Descuento / recargo por método de pago (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
@@ -160,7 +156,7 @@ export async function crearPedidoBorrador(
   }
 
   const notaPartes: string[] = []
-  if (ajusteVolumen !== 0) notaPartes.push('desc. por volumen')
+  if (ajusteVolumenCanal !== 0) notaPartes.push(`${volPct}% desc. por volumen de compra`)
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
   if (ajusteMetodoPago !== 0) {
     notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)

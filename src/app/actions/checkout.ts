@@ -82,11 +82,11 @@ export async function iniciarCheckoutMP(
   }
 
   // Validar múltiplos — aplica tanto a usuarios registrados como a guests
-  let productoCanalDb: { producto_id: number; multiplo: number | null; descuento_volumen_cantidad_minima: number | null; descuento_volumen_pct: number | null }[] | null = null
+  let productoCanalDb: { producto_id: number; multiplo: number | null }[] | null = null
   if (canalId) {
     const { data } = await service
       .from('producto_canales')
-      .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
+      .select('producto_id, multiplo')
       .eq('canal_id', canalId)
       .in('producto_id', items.map(i => i.productoId))
     productoCanalDb = data
@@ -116,7 +116,7 @@ export async function iniciarCheckoutMP(
     canalId
       ? service
           .from('canales_config')
-          .select('cuotas_mp_sin_interes, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde')
+          .select('cuotas_mp_sin_interes, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, desc_volumen_monto_min, desc_volumen_pct')
           .eq('canal_id', canalId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -171,17 +171,19 @@ export async function iniciarCheckoutMP(
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
-  const descuentoVolumen = lineas.reduce((acc, l) => {
-    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
-    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
-    const pct = row?.descuento_volumen_pct ?? null
-    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
-      return acc + Math.round(l.precioUnit * l.cantidad * pct / 100)
-    }
-    return acc
-  }, 0)
-  const subtotalPostDescuento = subtotal - descuentoVolumen
+  // Descuento por volumen del canal — sobre el total de la compra al superar el
+  // monto configurado; se pliega por línea porque MP no admite unit_price negativo.
+  const volMinMP = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
+  const volPctMP = (canalCfg?.desc_volumen_pct as number | null) ?? null
+  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotal >= volMinMP
+  const lineasFinales = lineas.map(l => {
+    const totalLinea = l.precioUnit * l.cantidad
+    const monto = aplicaVolumenCanalMP
+      ? totalLinea - Math.round(totalLinea * volPctMP / 100)
+      : totalLinea
+    return { ...l, monto }
+  })
+  const subtotalPostDescuento = lineasFinales.reduce((acc, l) => acc + l.monto, 0)
 
   // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
   const minimoCompraMP = (canalCfg?.minimo_compra as number | null) ?? null
@@ -279,25 +281,15 @@ export async function iniciarCheckoutMP(
     const response = await preference.create({
       body: {
         items: [
-          ...lineas.map(l => {
-            const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
-            const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
-            const pct = row?.descuento_volumen_pct ?? null
-            const aplicaDescuento = cantidadMinima != null && pct != null && l.cantidad >= cantidadMinima
-            // MP no admite unit_price negativo: el descuento por volumen se pliega
-            // en el precio de la línea en vez de mandarse como ítem aparte.
-            const totalLinea = l.precioUnit * l.cantidad
-            const totalLineaConDescuento = aplicaDescuento
-              ? totalLinea - Math.round(totalLinea * (pct as number) / 100)
-              : totalLinea
-            return {
-              id: String(l.productoId),
-              title: l.titulo,
-              quantity: 1,
-              unit_price: totalLineaConDescuento,
-              currency_id: 'ARS',
-            }
-          }),
+          // Cada línea lleva su total ya descontado (volumen de producto + volumen
+          // del canal) para que MP cobre exactamente el total del pedido.
+          ...lineasFinales.map(l => ({
+            id: String(l.productoId),
+            title: l.titulo,
+            quantity: 1,
+            unit_price: l.monto,
+            currency_id: 'ARS',
+          })),
           ...(envio ? [{
             id: 'envio',
             title: envio.descripcion,
@@ -374,11 +366,11 @@ export async function iniciarCheckoutTransferencia(
   }
 
   // Validar múltiplos
-  let productoCanalDb: { producto_id: number; multiplo: number | null; descuento_volumen_cantidad_minima: number | null; descuento_volumen_pct: number | null }[] | null = null
+  let productoCanalDb: { producto_id: number; multiplo: number | null }[] | null = null
   if (canalId) {
     const { data } = await service
       .from('producto_canales')
-      .select('producto_id, multiplo, descuento_volumen_cantidad_minima, descuento_volumen_pct')
+      .select('producto_id, multiplo')
       .eq('canal_id', canalId)
       .in('producto_id', items.map(i => i.productoId))
     productoCanalDb = data
@@ -408,7 +400,7 @@ export async function iniciarCheckoutTransferencia(
     canalId
       ? service
           .from('canales_config')
-          .select('desc_transferencia_pct, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, pagos_habilitados')
+          .select('desc_transferencia_pct, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, pagos_habilitados, desc_volumen_monto_min, desc_volumen_pct')
           .eq('canal_id', canalId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -465,20 +457,17 @@ export async function iniciarCheckoutTransferencia(
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Descuento por volumen — por línea, según cantidad comprada de ESE producto
-  const descuentoVolumen = lineas.reduce((acc, l) => {
-    const row = productoCanalDb?.find(r => r.producto_id === l.productoId)
-    const cantidadMinima = row?.descuento_volumen_cantidad_minima ?? null
-    const pct = row?.descuento_volumen_pct ?? null
-    if (cantidadMinima && pct && l.cantidad >= cantidadMinima) {
-      return acc + Math.round(l.precioUnit * l.cantidad * pct / 100)
-    }
-    return acc
-  }, 0)
+  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
+  const volMin = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
+  const volPct = (canalCfg?.desc_volumen_pct as number | null) ?? null
+  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
+    ? Math.round(subtotal * volPct / 100)
+    : 0
+  const basePostVolumenCanal = subtotal - descuentoVolumenCanal
 
   const descPct = (canalCfg?.desc_transferencia_pct as number | null) ?? 0
-  const descuento = descPct > 0 ? Math.round((subtotal - descuentoVolumen) * descPct / 100) : 0
-  const subtotalPostDescuento = subtotal - descuentoVolumen - descuento
+  const descuento = descPct > 0 ? Math.round(basePostVolumenCanal * descPct / 100) : 0
+  const subtotalPostDescuento = basePostVolumenCanal - descuento
 
   // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
   const minimoCompra = (canalCfg?.minimo_compra as number | null) ?? null

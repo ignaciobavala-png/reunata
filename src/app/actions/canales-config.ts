@@ -13,6 +13,8 @@ export type CanalConfigPayload = {
   recargo_transf_blanco_pct: number
   desc_autogestion_primera_pct: number
   desc_autogestion_siguientes_pct: number
+  desc_volumen_monto_min: number | null
+  desc_volumen_pct: number | null
   envio_gratis_desde: number | null
   envio_flex_activo: boolean
   envio_amba_gratis_desde: number | null
@@ -34,6 +36,11 @@ export type CanalConfigPayload = {
 }
 
 export async function guardarCanalConfig(payload: CanalConfigPayload) {
+  // La DB exige ambos campos o ninguno (CHECK); validar acá para dar un error legible
+  if ((payload.desc_volumen_monto_min != null) !== (payload.desc_volumen_pct != null)) {
+    return { ok: false, error: 'Descuento por volumen: completá el monto mínimo y el porcentaje, o dejá ambos vacíos.' }
+  }
+
   const supabase = createServiceClient()
 
   // Separar cuenta_sin_iva_id — va en canales, no en canales_config

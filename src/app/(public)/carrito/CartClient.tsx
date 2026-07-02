@@ -39,6 +39,8 @@ interface ReglaCanal {
   desc_transferencia_pct:          number
   desc_autogestion_primera_pct:    number
   desc_autogestion_siguientes_pct: number
+  desc_volumen_monto_min:          number | null
+  desc_volumen_pct:                number | null
   envio_gratis_desde:              number | null
   envio_amba_gratis_desde:         number | null
   cuotas_mp_sin_interes:           number
@@ -182,7 +184,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const [stocks, setStocks] = useState<Record<string, number | null>>({})
   const [ivaRates, setIvaRates] = useState<Record<number, number>>({})
   const [reglas, setReglas] = useState<ReglaCanal | null>(null)
-  const [descuentosVolumen, setDescuentosVolumen] = useState<Record<number, { cantidadMinima: number; pct: number }>>({})
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
   const [facturaIva, setFacturaIva] = useState<'con' | 'sin' | null>(null)
   // Método de pago para consumidor_final ('mercado_pago' | 'transferencia')
@@ -274,16 +275,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       .then(({ reglas: r }) => { if (r) setReglas(r) })
       .catch(() => {})
   }, [mounted, user])
-
-  // Cargar descuentos por volumen configurados para los productos del carrito
-  const idsCarrito = items.map(i => i.productoId).join(',')
-  useEffect(() => {
-    if (!mounted || !idsCarrito) { setDescuentosVolumen({}); return }
-    fetch(`/api/carrito/descuentos-volumen?ids=${idsCarrito}`)
-      .then(r => r.json())
-      .then(({ descuentos }) => setDescuentosVolumen(descuentos ?? {}))
-      .catch(() => {})
-  }, [mounted, idsCarrito])
 
   const esMinorista = user?.categoriaComercial === 'minorista'
   const esMayorista = user?.categoriaComercial === 'mayorista' || user?.categoriaComercial === 'especial'
@@ -435,15 +426,18 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const totalGeneral = total()
 
-  // Descuento por volumen — por línea, según cantidad de ESE producto en el carrito
-  const ajusteVolumen = items.reduce((acc, i) => {
-    const regla = descuentosVolumen[i.productoId]
-    if (regla && i.cantidad >= regla.cantidadMinima) {
-      return acc - Math.round(i.precio * i.cantidad * regla.pct / 100)
-    }
-    return acc
-  }, 0)
-  const basePostVolumen = totalGeneral + ajusteVolumen
+  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
+  const descVolCanalMin = reglas?.desc_volumen_monto_min ?? null
+  const descVolCanalPct = reglas?.desc_volumen_pct ?? 0
+  const ajusteVolumenCanal = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral >= descVolCanalMin
+    ? -Math.round(totalGeneral * descVolCanalPct / 100)
+    : 0
+  const basePostVolumenCanal = totalGeneral + ajusteVolumenCanal
+
+  // Cuánto falta para alcanzar el descuento por volumen del canal
+  const faltaParaDescVolumen = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral < descVolCanalMin
+    ? descVolCanalMin - totalGeneral
+    : null
 
   // Desglose IVA — solo para minoristas y guests (sus precios ya incluyen IVA)
   const totalSinIVA = (!esMayorista)
@@ -462,7 +456,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const descTransfPct = esMinorista && metodoPagoMinorista === 'transferencia'
     ? (reglas?.desc_transferencia_pct ?? 0)
     : 0
-  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(basePostVolumen * descTransfPct / 100) : 0
+  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(basePostVolumenCanal * descTransfPct / 100) : 0
 
   // Métodos de pago mayorista agrupados por IVA
   const canalHabilitaFinanciado = esMayorista && reglas
@@ -482,8 +476,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
         ? (reglas.desc_autogestion_primera_pct ?? 0)
         : (reglas.desc_autogestion_siguientes_pct ?? 0))
     : 0
-  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(basePostVolumen * descAutogestPct / 100) : 0
-  const basePostAutogestion = basePostVolumen + ajusteAutogestion
+  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(basePostVolumenCanal * descAutogestPct / 100) : 0
+  const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
 
   // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
   const ajuste = metodoPago && reglas
@@ -499,7 +493,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Base para evaluar mínimo de compra / envío gratis: post-descuentos, pre-envío
   const totalPostDescuentoPreEnvio = esMayorista
     ? basePostAutogestion + ajuste
-    : basePostVolumen + ajusteTransfMinorista
+    : basePostVolumenCanal + ajusteTransfMinorista
 
   // Envío gratis — mismo criterio que el server, evaluado sobre el total vigente
   const esAmbaEnvio = envioSeleccionado ? ['B', 'C'].includes(envioSeleccionado.provincia) : false
@@ -511,7 +505,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   )
   const costoEnvio = envioSeleccionado ? (envioEsGratis ? 0 : envioSeleccionado.costo) : 0
 
-  const totalConEnvio = basePostVolumen + ajusteTransfMinorista + costoEnvio
+  const totalConEnvio = basePostVolumenCanal + ajusteTransfMinorista + costoEnvio
   const totalFinal = basePostAutogestion + ajuste + costoEnvio
 
   // Cuánto falta para alcanzar el envío gratis (umbral aplicable más cercano)
@@ -769,10 +763,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     <span>{ajuste < 0 ? '-' : '+'}{formatPrecio(Math.abs(ajuste))}</span>
                   </div>
                 )}
-                {ajusteVolumen !== 0 && (
+                {ajusteVolumenCanal !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Descuento por volumen</span>
-                    <span>-{formatPrecio(Math.abs(ajusteVolumen))}</span>
+                    <span>Descuento por volumen de compra ({descVolCanalPct}%)</span>
+                    <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
                   </div>
                 )}
                 {ajusteAutogestion !== 0 && (
@@ -870,6 +864,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {faltaParaEnvioGratis !== null && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
+                </div>
+              )}
+
+              {/* Aviso descuento por volumen cercano */}
+              {faltaParaDescVolumen !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
                 </div>
               )}
 
@@ -1090,6 +1091,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </div>
               )}
 
+              {/* Aviso descuento por volumen cercano */}
+              {faltaParaDescVolumen !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
+                </div>
+              )}
+
               {/* Uploader de comprobante (mayorista, métodos que lo requieren) */}
               {facturaIva && metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago) && (
                 <UploaderComprobante
@@ -1163,6 +1171,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {faltaParaEnvioGratis !== null && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
+                </div>
+              )}
+              {faltaParaDescVolumen !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
                 </div>
               )}
 
