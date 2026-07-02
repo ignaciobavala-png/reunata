@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { PRODUCT_URL, TIENDA_URL, agregarAlCarrito } from './helpers'
+import { PRODUCT_URL, PRODUCT_TITLE, TIENDA_URL, agregarAlCarrito } from './helpers'
 
 test.describe('Guest — sin sesión', () => {
   test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe('Guest — sin sesión', () => {
     await agregarAlCarrito(page)
     // Drawer abierto — debe mostrar el producto
     await expect(page.getByText(/mi carrito/i)).toBeVisible()
-    await expect(page.getByRole('link', { name: /Yerbera Viajero/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: PRODUCT_TITLE })).toBeVisible()
   })
 
   test('carrito muestra subtotal y botón para pagar con MP', async ({ page }) => {

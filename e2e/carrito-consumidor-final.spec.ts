@@ -9,8 +9,8 @@ test.describe('Consumidor Final — minorista logueado', () => {
   test('ficha de producto muestra precio con IVA incluido', async ({ page }) => {
     await page.goto(PRODUCT_URL)
     await expect(page.getByText('IVA incluido')).toBeVisible()
-    // No debe mostrar etiqueta de mayorista
-    await expect(page.getByText('Precio s/ IVA')).not.toBeVisible()
+    // Minorista ve la referencia de precio sin impuestos
+    await expect(page.getByText('Precio Bruto')).toBeVisible()
   })
 
   test('puede agregar al carrito y ve el drawer', async ({ page }) => {
@@ -21,10 +21,10 @@ test.describe('Consumidor Final — minorista logueado', () => {
   test('carrito muestra total con IVA y botón de MP', async ({ page }) => {
     await agregarAlCarrito(page)
     await page.goto('/carrito')
-    await expect(page.getByText(/^Total$/i)).toBeVisible()
+    await expect(page.getByText('Total', { exact: true })).toBeVisible()
     await expect(page.getByText(/pagar con mercado pago/i)).toBeVisible()
-    // No debe mostrar "s/ IVA" en el total
-    await expect(page.getByText(/total s\/ iva/i)).not.toBeVisible()
+    // El resumen minorista muestra la referencia sin impuestos
+    await expect(page.getByText('Precio Bruto')).toBeVisible()
   })
 
   test('grilla de tienda muestra precios con IVA', async ({ page }) => {

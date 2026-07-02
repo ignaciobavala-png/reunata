@@ -1,6 +1,8 @@
 import { Page } from '@playwright/test'
 
-export const PRODUCT_URL = '/tienda/p/4001'
+// Producto con stock — si los tests fallan por botón "Sin stock", elegir otro id con stock disponible
+export const PRODUCT_URL = '/tienda/p/105'
+export const PRODUCT_TITLE = /Termo Sublimable/i
 export const TIENDA_URL = '/tienda/merchandising-promocionales'
 
 export async function login(page: Page, email: string, password = 'Test1234!') {

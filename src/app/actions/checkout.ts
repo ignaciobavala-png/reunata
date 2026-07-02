@@ -144,7 +144,7 @@ export async function iniciarCheckoutMP(
     // El checkout MP es solo para consumidor_final → aplicar IVA al precio neto
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     const precioConIva = Math.round(precioArs * (1 + ivaRate))
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, variante: item.variante ?? null }]
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, ivaRate, variante: item.variante ?? null }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -170,16 +170,19 @@ export async function iniciarCheckoutMP(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+  // Precio Bruto por línea con la misma fórmula que el cliente (round(precio / (1 + iva)))
+  const subtotalBrutoMP = lineas.reduce((acc, l) => acc + Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad, 0)
 
-  // Descuento por volumen del canal — sobre el total de la compra al superar el
-  // monto configurado; se pliega por línea porque MP no admite unit_price negativo.
+  // Descuento por volumen del canal — umbral y monto sobre el Precio Bruto (sin IVA);
+  // se pliega por línea porque MP no admite unit_price negativo.
   const volMinMP = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
   const volPctMP = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotal >= volMinMP
+  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotalBrutoMP >= volMinMP
   const lineasFinales = lineas.map(l => {
     const totalLinea = l.precioUnit * l.cantidad
+    const brutoLinea = Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad
     const monto = aplicaVolumenCanalMP
-      ? totalLinea - Math.round(totalLinea * volPctMP / 100)
+      ? totalLinea - Math.round(brutoLinea * volPctMP / 100)
       : totalLinea
     return { ...l, monto }
   })
@@ -436,7 +439,7 @@ export async function iniciarCheckoutTransferencia(
     if (precioArs === null) return []
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     const precioConIva = Math.round(precioArs * (1 + ivaRate))
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, variante: item.variante ?? null }]
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, ivaRate, variante: item.variante ?? null }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -459,12 +462,15 @@ export async function iniciarCheckoutTransferencia(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+  // Precio Bruto: derivado del precio con IVA redondeado, con la misma fórmula que el
+  // cliente (round(precio / (1 + iva))) para que ambos calculen idéntico descuento
+  const subtotalBruto = lineas.reduce((acc, l) => acc + Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad, 0)
 
-  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
+  // Descuento por volumen del canal — umbral y monto sobre el Precio Bruto (sin IVA)
   const volMin = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
   const volPct = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
-    ? Math.round(subtotal * volPct / 100)
+  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotalBruto >= volMin
+    ? Math.round(subtotalBruto * volPct / 100)
     : 0
   const basePostVolumenCanal = subtotal - descuentoVolumenCanal
 
