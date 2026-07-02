@@ -215,22 +215,31 @@ export async function iniciarCheckoutMP(
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 1
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
 
-  // Cancelar pedidos pendiente_pago previos del mismo usuario para evitar acumulación
-  // (ocurre cuando el usuario abandona MP y vuelve a intentar)
+  // Cancelar pedidos pendiente_pago previos SOLO si van al mismo destino de envío:
+  // eso es un reintento (usuario abandonó MP y volvió a intentar). Un pedido igual
+  // pero a otra dirección (ej: la misma compra para otro local) se conserva.
   if (user) {
-    await service
+    let q = service
       .from('pedidos')
       .update({ estado: 'cancelado' })
       .eq('cliente_id', user.id)
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'mercadopago')
+    q = envioParams
+      ? q.eq('envio_codigo_postal', envioParams.codigo_postal).eq('envio_calle', envioParams.calle).eq('envio_numero', envioParams.numero)
+      : q.is('envio_codigo_postal', null)
+    await q
   } else if (guestData?.email) {
-    await service
+    let q = service
       .from('pedidos')
       .update({ estado: 'cancelado' })
       .eq('guest_email', guestData.email.trim().toLowerCase())
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'mercadopago')
+    q = envioParams
+      ? q.eq('envio_codigo_postal', envioParams.codigo_postal).eq('envio_calle', envioParams.calle).eq('envio_numero', envioParams.numero)
+      : q.is('envio_codigo_postal', null)
+    await q
   }
 
   const pedidoInsert: Record<string, unknown> = {
@@ -504,13 +513,20 @@ export async function iniciarCheckoutTransferencia(
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 7
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
 
-  // Cancelar pedidos pendiente_pago previos de transferencia del mismo usuario
-  await service
-    .from('pedidos')
-    .update({ estado: 'cancelado' })
-    .eq('cliente_id', user.id)
-    .eq('estado', 'pendiente_pago')
-    .eq('medio_pago', 'transferencia')
+  // Cancelar pedidos pendiente_pago previos de transferencia SOLO al mismo destino
+  // (reintento). Pedidos a otra dirección — ej. la misma compra para otro local — conviven.
+  {
+    let q = service
+      .from('pedidos')
+      .update({ estado: 'cancelado' })
+      .eq('cliente_id', user.id)
+      .eq('estado', 'pendiente_pago')
+      .eq('medio_pago', 'transferencia')
+    q = envioParams
+      ? q.eq('envio_codigo_postal', envioParams.codigo_postal).eq('envio_calle', envioParams.calle).eq('envio_numero', envioParams.numero)
+      : q.is('envio_codigo_postal', null)
+    await q
+  }
 
   const { data: pedido, error: pedidoError } = await service
     .from('pedidos')

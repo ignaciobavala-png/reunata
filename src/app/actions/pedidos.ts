@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import { supabaseImg } from '@/lib/images'
 
 interface LineaPedido {
   productoId: number
@@ -260,4 +261,118 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
   revalidatePath('/dashboard/admin/pedidos')
   revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
   revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
+}
+
+// ── Volver a pedir ──────────────────────────────────────────────────────────
+// Devuelve los ítems de un pedido anterior con los datos DE HOY (precio según
+// la lista del canal, stock, múltiplo). Lo que ya no está disponible se omite
+// y se informa la cantidad para avisarle al cliente.
+
+export interface ItemRecompra {
+  productoId: number
+  itemKey: string
+  codigo_interno: string
+  titulo: string
+  precio: number
+  cantidad: number
+  multiplo: number
+  foto_url: string | null
+  variante?: string
+  stock: number | null
+}
+
+export async function getItemsParaRecomprar(
+  pedidoId: string,
+): Promise<{ ok: true; items: ItemRecompra[]; omitidos: number } | { ok: false; error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Necesitás iniciar sesión.' }
+
+  const service = createServiceClient()
+
+  // El pedido debe ser del usuario — nunca recomprar pedidos ajenos
+  const { data: pedido } = await service
+    .from('pedidos')
+    .select('id, cliente_id, pedido_items(producto_id, cantidad, variante)')
+    .eq('id', pedidoId)
+    .eq('cliente_id', user.id)
+    .single()
+
+  if (!pedido) return { ok: false, error: 'Pedido no encontrado.' }
+  const lineasPedido = (pedido.pedido_items ?? []) as { producto_id: number; cantidad: number; variante: string | null }[]
+  if (lineasPedido.length === 0) return { ok: false, error: 'El pedido no tiene productos.' }
+
+  const { data: perfil } = await service
+    .from('profiles')
+    .select('canal_id')
+    .eq('id', user.id)
+    .single()
+  const { data: canal } = await service
+    .from('canales')
+    .select('lista_precios')
+    .eq('id', perfil?.canal_id ?? 0)
+    .maybeSingle()
+
+  const listaPrecio = canal?.lista_precios ?? 'precio_lista5'
+  // Convención del carrito: consumidor final guarda precios con IVA, mayoristas neto
+  const aplicaIva = listaPrecio === 'precio_lista5'
+
+  const ids = [...new Set(lineasPedido.map(l => l.producto_id))]
+  const [{ data: productos }, { data: pcRows }, { data: tcRow }] = await Promise.all([
+    service
+      .from('productos')
+      .select('id, titulo, codigo_interno, moneda, iva, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+      .in('id', ids)
+      .eq('activo', true),
+    service
+      .from('producto_canales')
+      .select('producto_id, multiplo')
+      .eq('canal_id', perfil?.canal_id ?? 0)
+      .in('producto_id', ids),
+    service.from('configuracion').select('valor').eq('clave', 'tipo_cambio_usd').maybeSingle(),
+  ])
+
+  const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
+  const multiplos: Record<number, number> = {}
+  for (const r of pcRows ?? []) multiplos[r.producto_id] = r.multiplo ?? 1
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+
+  const items: ItemRecompra[] = []
+  let omitidos = 0
+
+  for (const linea of lineasPedido) {
+    const prod = productos?.find(p => p.id === linea.producto_id)
+    // Producto inactivo, fuera del canal del usuario o sin precio para su lista → se omite
+    if (!prod || !(linea.producto_id in multiplos)) { omitidos++; continue }
+    const precioRaw = (prod as Record<string, unknown>)[listaPrecio] as number | null
+    if (precioRaw == null) { omitidos++; continue }
+    const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
+    if (precioArs === null) { omitidos++; continue }
+    const precio = aplicaIva
+      ? Math.round(precioArs * (1 + ((prod.iva as number | null) ?? 21) / 100))
+      : precioArs
+
+    const disponible = stockDisponible(prod, linea.variante)
+    const multiplo = multiplos[linea.producto_id] ?? 1
+    // Cantidad del pedido original, ajustada al múltiplo vigente y al stock de hoy
+    let cantidad = Math.ceil(linea.cantidad / multiplo) * multiplo
+    if (disponible !== null) cantidad = Math.min(cantidad, Math.floor(disponible / multiplo) * multiplo)
+    if (cantidad <= 0) { omitidos++; continue }
+
+    const fotos = ((prod.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+    items.push({
+      productoId: prod.id,
+      itemKey: `${prod.id}:${linea.variante ?? ''}`,
+      codigo_interno: prod.codigo_interno,
+      titulo: prod.titulo,
+      precio,
+      cantidad,
+      multiplo,
+      foto_url: fotos[0]?.url ? supabaseImg(supabaseUrl, fotos[0].url, 200) : null,
+      variante: linea.variante ?? undefined,
+      stock: disponible,
+    })
+  }
+
+  return { ok: true, items, omitidos }
 }

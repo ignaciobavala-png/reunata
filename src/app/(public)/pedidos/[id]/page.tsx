@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
+import { VolverAPedirButton } from '../VolverAPedirButton'
 import { formatPrecio } from '@/lib/utils'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -174,6 +175,11 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
             </tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Volver a pedir — recarga estos productos al carrito con precios y stock de hoy */}
+      <div className="mb-6">
+        <VolverAPedirButton pedidoId={pedido.id} />
       </div>
 
       {esBorrador && (

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
+import { VolverAPedirButton } from './VolverAPedirButton'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
@@ -53,35 +54,39 @@ export default async function MisPedidosPage() {
           {pedidos.map((p, i) => {
             const col = ESTADO_COLOR[p.estado] ?? { bg: '#88888822', text: '#888' }
             return (
-              <Link
+              <div
                 key={p.id}
-                href={`/pedidos/${p.id}`}
-                className="flex items-center justify-between px-5 py-4 transition-colors duration-100"
+                className="flex items-center px-5 py-4 gap-3 transition-colors duration-100"
                 style={{
                   background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
                   borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
                 }}
               >
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    #{p.numero}
-                  </span>
-                  <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
-                    {ESTADO_LABEL[p.estado] ?? p.estado}
-                  </span>
-                  {p.total_usd != null && (
-                    <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
-                      {formatPrecio(Number(p.total_usd))}
+                <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      #{p.numero}
                     </span>
-                  )}
+                    <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
+                      {ESTADO_LABEL[p.estado] ?? p.estado}
+                    </span>
+                    {p.total_usd != null && (
+                      <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(Number(p.total_usd))}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+                <VolverAPedirButton pedidoId={p.id} compact />
+                <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
                   <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
-                </div>
-              </Link>
+                </Link>
+              </div>
             )
           })}
         </div>
