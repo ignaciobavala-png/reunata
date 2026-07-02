@@ -7,6 +7,7 @@ import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 
 export const metadata: Metadata = {
   title: 'Favoritos — Reunata',
@@ -65,6 +66,8 @@ export default async function FavoritosPage() {
     moneda?: string | null
     multiplo: number
     supabaseUrl: string
+    variantes?: { nombre: string; stock: number }[] | null
+    stock?: number | null
   }
 
   let productos: ProductoPublico[] = []
@@ -72,7 +75,7 @@ export default async function FavoritosPage() {
   if (idsValidos.length > 0) {
     const { data: prods } = await service
       .from('productos')
-      .select('id, titulo, codigo_interno, moneda, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+      .select('id, titulo, codigo_interno, moneda, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
       .in('id', idsValidos)
       .eq('activo', true)
       .order('titulo')
@@ -92,6 +95,11 @@ export default async function FavoritosPage() {
         moneda,
         multiplo: multiplos[p.id] ?? 1,
         supabaseUrl,
+        variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
+        stock: stockDisponible({
+          stock: (p.stock as number | null) ?? null,
+          stock_visible: (p.stock_visible as number | null) ?? null,
+        }),
       }
     })
   }

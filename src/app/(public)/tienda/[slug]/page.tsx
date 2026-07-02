@@ -5,9 +5,10 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
-import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
+import { TodosClient } from '@/app/(public)/tienda/todos/TodosClient'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
@@ -53,7 +54,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, iva'
+  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, iva, stock, stock_visible, categoria, created_at'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -80,8 +81,14 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       moneda,
       iva: p.iva ?? 21,
       multiplo: multiplos[p.id] ?? 1,
+      categoria: (p.categoria as string | null) ?? '',
+      created_at: (p.created_at as string | null) ?? '',
       supabaseUrl,
       variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
+      stock: stockDisponible({
+        stock: (p.stock as number | null) ?? null,
+        stock_visible: (p.stock_visible as number | null) ?? null,
+      }),
     }
   }
 
@@ -142,7 +149,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
             {productosGrid.length > 0 ? meta.subtitulo : 'No hay productos disponibles por el momento.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} aplicaIva={listaPrecio === 'precio_lista5'} />
+            <TodosClient productos={productosGrid} nombreCategoria={meta.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} aplicaIva={listaPrecio === 'precio_lista5'} />
           )}
         </div>
       </main>
@@ -202,10 +209,8 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         <h1 className="text-3xl md:text-5xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
           {categoriaHome.nombre}
         </h1>
-        <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {productosGrid.length} producto{productosGrid.length !== 1 ? 's' : ''}
-        </p>
-        <ProductGridPublic productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} aplicaIva={listaPrecio === 'precio_lista5'} />
+        <div className="mb-6" />
+        <TodosClient productos={productosGrid} nombreCategoria={categoriaHome.nombre} mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayorista} aplicaIva={listaPrecio === 'precio_lista5'} />
       </div>
     </main>
   )

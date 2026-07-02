@@ -37,9 +37,15 @@ const navMaster: NavItem[] = [
     icon: TrendingUp,
     children: [
       { label: 'Pedidos',       href: '/dashboard/admin/pedidos',      icon: ShoppingCart },
-      { label: 'Clientes',      href: '/dashboard/admin/clientes',     icon: Users },
       { label: 'Financiación',  href: '/dashboard/admin/financiacion', icon: CreditCard },
       { label: 'Corporativos',  href: '/dashboard/admin/corporativos', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Clientes',
+    icon: Users,
+    children: [
+      { label: 'Clientes', href: '/dashboard/admin/clientes', icon: Users },
     ],
   },
   {

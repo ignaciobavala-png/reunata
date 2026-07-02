@@ -18,6 +18,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 
 export default async function TiendaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
@@ -41,7 +42,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   if (busqueda) {
     const { data: resultados } = await supabase
       .from('productos')
-      .select(`id, titulo, codigo_interno, moneda, iva, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)`)
+      .select(`id, titulo, codigo_interno, moneda, iva, variantes, stock, stock_visible, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)`)
       .eq('activo', true)
       .in('id', idsCanal.length > 0 ? idsCanal : [-1])
       .or(`titulo.ilike.%${busqueda}%,codigo_interno.ilike.%${busqueda}%`)
@@ -67,6 +68,10 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
         multiplo: multiplos[p.id] ?? 1,
         supabaseUrl,
         variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
+        stock: stockDisponible({
+          stock: (p.stock as number | null) ?? null,
+          stock_visible: (p.stock_visible as number | null) ?? null,
+        }),
       }
     })
 

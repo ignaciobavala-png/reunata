@@ -78,7 +78,11 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
     setCartOpen(true)
   }
 
-  const agregarDeshabilitado = tieneVariantes && !varianteSeleccionada
+  // Sin stock: con variantes recién se sabe al elegir color; sin variantes, directo del producto
+  const sinStock = tieneVariantes
+    ? (varianteSeleccionada ? stockVariante <= 0 : (producto.variantes!.every(v => v.stock <= 0)))
+    : stockVariante !== Infinity && stockVariante <= 0
+  const agregarDeshabilitado = sinStock || (tieneVariantes && !varianteSeleccionada)
 
   function handleCommit(n: number) {
     const capped = stockVariante !== Infinity ? Math.min(n, stockVariante) : n
@@ -139,7 +143,7 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
           className="w-full px-6 py-4 text-xs tracking-widest uppercase transition-colors duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
         >
-          {agregarDeshabilitado ? 'Elegí un color' : '+ Agregar al carrito'}
+          {sinStock ? 'Sin stock' : agregarDeshabilitado ? 'Elegí un color' : '+ Agregar al carrito'}
         </button>
       )}
     </div>

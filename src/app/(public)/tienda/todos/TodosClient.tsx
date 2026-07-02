@@ -25,6 +25,7 @@ export type ProductoTodos = {
   iva?: number | null
   multiplo?: number
   variantes?: { nombre: string; stock: number }[] | null
+  stock?: number | null
   created_at: string
   supabaseUrl: string
 }
@@ -56,12 +57,14 @@ export function TodosClient({
   esMayorista,
   estaLogueado,
   aplicaIva,
+  nombreCategoria = 'todos los productos',
 }: {
   productos: ProductoTodos[]
   mostrarPrecios: boolean
   esMayorista: boolean
   estaLogueado: boolean
   aplicaIva: boolean
+  nombreCategoria?: string
 }) {
   const [categoriasSel, setCategoriasSel] = useState<Set<string>>(new Set())
   const [coloresSel, setColoresSel] = useState<Set<string>>(new Set())
@@ -147,6 +150,8 @@ export function TodosClient({
         ))}
       </FiltroSeccion>
 
+      {/* Con una sola categoría (páginas /tienda/[slug]) el filtro no aporta nada */}
+      {categorias.length > 1 && (
       <FiltroSeccion titulo="Categoría">
         {categorias.map(cat => (
           <label key={cat} className="flex items-center gap-2 py-1 cursor-pointer">
@@ -160,6 +165,7 @@ export function TodosClient({
           </label>
         ))}
       </FiltroSeccion>
+      )}
 
       {colores.length > 0 && (
         <FiltroSeccion titulo="Color">
@@ -262,7 +268,9 @@ export function TodosClient({
       {/* Desktop: sidebar + grid */}
       <div className="md:flex md:gap-12">
         <aside className="hidden md:block flex-shrink-0 w-52">
-          <div className="sticky top-28">
+          {/* max-h + overflow: si el panel es más alto que el viewport, scrollea adentro
+              en vez de quedar clavado hasta el final de la página */}
+          <div className="sticky top-28 max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
             <div className="flex items-center justify-between mb-5">
               <span className="text-xs font-medium tracking-wide" style={{ color: 'var(--foreground)' }}>
                 Filtros
@@ -288,7 +296,7 @@ export function TodosClient({
           {resultado.length > 0 ? (
             <ProductGridPublic
               productos={resultado}
-              nombreCategoria="todos los productos"
+              nombreCategoria={nombreCategoria}
               mostrarPrecios={mostrarPrecios}
               estaLogueado={estaLogueado}
               esMayorista={esMayorista}

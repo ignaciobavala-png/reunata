@@ -105,7 +105,7 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                           IVA incluido
                         </p>
                         <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          Sin impuestos: {formatPrecio(foto.precio, foto.moneda)}
+                          Precio Bruto: {formatPrecio(foto.precio, foto.moneda)}
                         </p>
                       </>
                     )

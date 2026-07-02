@@ -140,7 +140,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                         IVA incluido: {formatPrecio(precioConIva - precio, monedaFinal)}
                       </p>
                       <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Sin impuestos: {formatPrecio(precio, monedaFinal)}
+                        Precio Bruto: {formatPrecio(precio, monedaFinal)}
                       </p>
                     </>
                   )}

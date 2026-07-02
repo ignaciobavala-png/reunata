@@ -22,6 +22,14 @@ interface ProductoPublico {
   multiplo?: number
   supabaseUrl: string
   variantes?: { nombre: string; stock: number }[] | null
+  /** null = sin control de stock; number = disponible (0 = agotado) */
+  stock?: number | null
+}
+
+// Agotado solo cuando el stock se controla y es 0 — con variantes, cuando todas están en 0
+function sinStock(p: ProductoPublico): boolean {
+  if ((p.variantes?.length ?? 0) > 0) return p.variantes!.every(v => v.stock <= 0)
+  return p.stock != null && p.stock <= 0
 }
 
 export function ProductGridPublic({
@@ -91,6 +99,7 @@ export function ProductGridPublic({
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
+    if (sinStock(p)) return
     const tieneVariantes = (p.variantes?.length ?? 0) > 0
     if (tieneVariantes) {
       router.push(`/tienda/p/${p.id}`)
@@ -109,6 +118,7 @@ export function ProductGridPublic({
       precio: precioCarrito,
       multiplo: p.multiplo ?? 1,
       foto_url: p.foto_url ? supabaseImg(p.supabaseUrl, p.foto_url, 200) : null,
+      stock: p.stock ?? null,
     })
     setAgregados(prev => new Set(prev).add(p.id))
     setTimeout(() => {
@@ -125,6 +135,7 @@ export function ProductGridPublic({
         {productos.map((p) => {
           const agregado = agregados.has(p.id)
           const yaEsta = enCarrito(p.id)
+          const agotado = sinStock(p)
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -185,8 +196,18 @@ export function ProductGridPublic({
                   />
                 </button>
 
+                {/* Barra "sin stock" — fija, sin acción */}
+                {agotado && (
+                  <div
+                    className="absolute inset-x-0 bottom-0 z-10 py-3 text-center text-xs tracking-[0.15em] uppercase"
+                    style={{ background: 'var(--color-granito-oscuro)', color: 'white', opacity: 0.9 }}
+                  >
+                    Sin stock
+                  </div>
+                )}
+
                 {/* Barra hover slide-up — separada del Link para evitar anidado inválido */}
-                {!agregado && (
+                {!agregado && !agotado && (
                   <button
                     onClick={() => yaEsta ? router.push('/carrito') : handleAgregar(p)}
                     className="absolute inset-x-0 bottom-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
@@ -225,7 +246,7 @@ export function ProductGridPublic({
                         IVA incluido: {formatPrecio(precioConIva - p.precio, p.moneda)}
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Sin impuestos: {formatPrecio(p.precio, p.moneda)}
+                        Precio Bruto: {formatPrecio(p.precio, p.moneda)}
                       </p>
                     </>
                   )

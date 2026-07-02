@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { TodosClient } from './TodosClient'
 
@@ -28,7 +29,7 @@ export default async function TodosProductosPage() {
 
   const { data: rawProductos } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, moneda, iva, variantes, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, moneda, iva, variantes, stock, stock_visible, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
     .eq('activo', true)
     .in('id', filterCanal)
     .order('titulo')
@@ -52,6 +53,10 @@ export default async function TodosProductosPage() {
       iva: (p.iva as number | null) ?? 21,
       multiplo: multiplos[p.id] ?? 1,
       variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
+      stock: stockDisponible({
+        stock: (p.stock as number | null) ?? null,
+        stock_visible: (p.stock_visible as number | null) ?? null,
+      }),
       created_at: p.created_at as string,
       supabaseUrl,
     }
