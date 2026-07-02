@@ -412,6 +412,18 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   if (!mounted) return null
 
   if (items.length === 0) {
+    // Tras confirmar un pedido, clear() vacía el carrito antes de que cargue /pedidos/[id];
+    // sin este estado intermedio, el fallback de "carrito vacío" flashea durante la navegación.
+    if (pagando) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 pt-24">
+          <Loader2 size={32} className="animate-spin" style={{ color: 'var(--color-acero-oscuro)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Confirmando tu pedido…
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 pt-24">
         <ShoppingBag size={56} strokeWidth={1} style={{ color: 'var(--color-acero-claro)' }} />
