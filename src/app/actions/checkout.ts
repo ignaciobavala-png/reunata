@@ -258,7 +258,10 @@ export async function iniciarCheckoutMP(
     .select('id')
     .single()
 
-  if (pedidoError || !pedido) return { ok: false, error: 'Error al crear el pedido.' }
+  if (pedidoError || !pedido) {
+    console.error('[checkout/mp] insert pedido:', pedidoError?.message)
+    return { ok: false, error: 'Error al crear el pedido.' }
+  }
 
   const { error: itemsError } = await service.from('pedido_items').insert(
     lineas.map(l => ({
@@ -522,7 +525,10 @@ export async function iniciarCheckoutTransferencia(
     .select('id')
     .single()
 
-  if (pedidoError || !pedido) return { ok: false, error: 'Error al crear el pedido.' }
+  if (pedidoError || !pedido) {
+    console.error('[checkout/transferencia] insert pedido:', pedidoError?.message)
+    return { ok: false, error: 'Error al crear el pedido.' }
+  }
 
   if (comprobantePath) {
     await service.from('comprobantes').insert({ pedido_id: pedido.id, url: comprobantePath })
