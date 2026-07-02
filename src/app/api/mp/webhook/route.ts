@@ -77,6 +77,12 @@ export async function POST(req: NextRequest) {
 
     const yaConfirmado = pedidoActual?.estado === 'pago_confirmado'
 
+    // MP puede reintentar notificaciones o entregarlas fuera de orden: un evento
+    // rejected/cancelled tardío nunca debe pisar un pago ya confirmado.
+    if (yaConfirmado && nuevoEstado !== 'pago_confirmado') {
+      return NextResponse.json({ ok: true })
+    }
+
     const { data: pedidoActualizado } = await supabase
       .from('pedidos')
       .update({

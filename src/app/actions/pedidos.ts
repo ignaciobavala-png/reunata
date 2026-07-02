@@ -108,6 +108,11 @@ export async function crearPedidoBorrador(
   })
 
   if (lineasResueltas.length === 0) throw new Error('Ningún producto tiene precio configurado.')
+  // Nunca crear el pedido con menos ítems de los que el usuario ve en su carrito:
+  // si un producto se desactivó o quedó sin precio para su lista, se rechaza todo.
+  if (lineasResueltas.length !== lineas.length) {
+    throw new Error('Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.')
+  }
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
@@ -188,7 +193,7 @@ export async function crearPedidoBorrador(
 
   if (error || !pedido) throw new Error(error?.message ?? 'Error creando pedido')
 
-  await service.from('pedido_items').insert(
+  const { error: itemsError } = await service.from('pedido_items').insert(
     lineasResueltas.map(l => ({
       pedido_id: pedido.id,
       producto_id: l.productoId,
@@ -197,6 +202,10 @@ export async function crearPedidoBorrador(
       variante: l.variante,
     }))
   )
+  if (itemsError) {
+    await service.from('pedidos').delete().eq('id', pedido.id)
+    throw new Error('Error al registrar los ítems del pedido. Intentá de nuevo.')
+  }
 
   if (tieneComprobante) {
     await service.from('comprobantes').insert({ pedido_id: pedido.id, url: opciones!.comprobantePath })

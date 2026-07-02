@@ -148,6 +148,11 @@ export async function iniciarCheckoutMP(
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
+  // Nunca crear el pedido con menos ítems de los que el usuario ve en su carrito:
+  // si un producto se desactivó o quedó sin precio, se rechaza todo el checkout.
+  if (lineas.length !== items.length) {
+    return { ok: false, error: 'Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.' }
+  }
 
   // Re-cotizar envío server-side — nunca confiar en el precio del cliente (fix #3)
   let envio: EnvioResuelto | undefined
@@ -440,6 +445,9 @@ export async function iniciarCheckoutTransferencia(
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
+  if (lineas.length !== items.length) {
+    return { ok: false, error: 'Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.' }
+  }
 
   let envio: EnvioResuelto | undefined
   if (envioParams) {

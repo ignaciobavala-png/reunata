@@ -54,11 +54,14 @@ export const useCartStore = create<CartStore>()(
             items: state.items.map(i => {
               if (ik(i) !== key) return i
               const nueva = i.cantidad + multiplo
-              return { ...i, cantidad: i.stock != null ? Math.min(nueva, i.stock) : nueva }
+              return { ...i, cantidad: i.stock != null ? Math.min(nueva, Math.max(i.stock, 0)) : nueva }
             }),
           }
         }
         const cantidadInicial = item.stock != null ? Math.min(multiplo, Math.max(item.stock, 0)) : multiplo
+        // Sin stock disponible no se agrega nada — un ítem con cantidad 0 queda
+        // invisible en los totales pero viaja igual al pedido.
+        if (cantidadInicial <= 0) return state
         return { items: [...state.items, { ...item, multiplo, cantidad: cantidadInicial }] }
       }),
 
@@ -73,7 +76,7 @@ export const useCartStore = create<CartStore>()(
         return {
           items: state.items.map(i => {
             if (ik(i) !== itemKey) return i
-            const clamped = i.stock != null ? Math.min(cantidad, i.stock) : cantidad
+            const clamped = i.stock != null ? Math.min(cantidad, Math.max(i.stock, 0)) : cantidad
             return { ...i, cantidad: clamped }
           }),
         }
@@ -86,11 +89,13 @@ export const useCartStore = create<CartStore>()(
       })),
 
       // Refresca el stock conocido de cada ítem (por itemKey) y reclampa la cantidad si bajó.
+      // Piso en 0: un stock negativo desde el server nunca debe producir cantidades negativas.
       updateStocks: (stocksPorItemKey) => set(state => ({
         items: state.items.map(i => {
           const key = ik(i)
           if (!(key in stocksPorItemKey)) return i
-          const stock = stocksPorItemKey[key]
+          const raw = stocksPorItemKey[key]
+          const stock = raw != null ? Math.max(raw, 0) : null
           const cantidad = stock != null ? Math.min(i.cantidad, stock) : i.cantidad
           return { ...i, stock, cantidad }
         }),

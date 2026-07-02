@@ -265,9 +265,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     if (mounted && guestItemsMerged) clearGuestMergedFlag()
   }, [mounted, guestItemsMerged, clearGuestMergedFlag])
 
-  // Cargar reglas del canal (todos los usuarios autenticados)
+  // Cargar reglas del canal — también para guests (resuelven a consumidor_final):
+  // el server les aplica mínimo de compra y envío gratis, así que deben verlos acá.
   useEffect(() => {
-    if (!mounted || !user) return
+    if (!mounted) return
     fetch('/api/carrito/reglas')
       .then(r => r.json())
       .then(({ reglas: r }) => { if (r) setReglas(r) })
@@ -310,15 +311,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     else if (transf) setMetodoPagoMinorista('transferencia')
   }, [reglas, esMinorista])
 
+  // Se guarda la cotización original; el envío gratis se recalcula en cada render
+  // sobre el total vigente — congelarlo acá desincronizaba lo mostrado de lo cobrado
+  // cuando el usuario cambiaba cantidades después de cotizar.
   function handleEnvioSelect(opcion: EnvioSeleccionado | null) {
-    if (!opcion) { setEnvioSeleccionado(null); return }
-    const esAmba = ['B', 'C'].includes(opcion.provincia)
-    const umbralAmba = reglas?.envio_amba_gratis_desde ?? null
-    const umbralGeneral = reglas?.envio_gratis_desde ?? null
-    const gratis =
-      (umbralAmba !== null && esAmba && totalPostDescuentoPreEnvio >= umbralAmba) ||
-      (umbralGeneral !== null && totalPostDescuentoPreEnvio >= umbralGeneral)
-    setEnvioSeleccionado(gratis ? { ...opcion, costo: 0 } : opcion)
+    setEnvioSeleccionado(opcion)
   }
 
 
@@ -455,7 +452,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
         return acc + Math.round(i.precio / (1 + rate)) * i.cantidad
       }, 0)
     : 0
-  const montoIVA = (!esMayorista) ? totalGeneral - totalSinIVA : 0
 
   // Métodos disponibles para consumidor_final (leídos de reglas del canal)
   const mpActivo          = esMinorista ? (reglas?.pagos_habilitados?.['mercado_pago']?.activo  ?? false) : false
@@ -467,8 +463,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     ? (reglas?.desc_transferencia_pct ?? 0)
     : 0
   const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(basePostVolumen * descTransfPct / 100) : 0
-
-  const totalConEnvio = basePostVolumen + ajusteTransfMinorista + (envioSeleccionado?.costo ?? 0)
 
   // Métodos de pago mayorista agrupados por IVA
   const canalHabilitaFinanciado = esMayorista && reglas
@@ -502,11 +496,33 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           : 0
     : 0
 
-  const totalFinal = basePostAutogestion + ajuste + (envioSeleccionado?.costo ?? 0)
   // Base para evaluar mínimo de compra / envío gratis: post-descuentos, pre-envío
   const totalPostDescuentoPreEnvio = esMayorista
     ? basePostAutogestion + ajuste
     : basePostVolumen + ajusteTransfMinorista
+
+  // Envío gratis — mismo criterio que el server, evaluado sobre el total vigente
+  const esAmbaEnvio = envioSeleccionado ? ['B', 'C'].includes(envioSeleccionado.provincia) : false
+  const umbralAmba = reglas?.envio_amba_gratis_desde ?? null
+  const umbralGeneral = reglas?.envio_gratis_desde ?? null
+  const envioEsGratis = envioSeleccionado !== null && (
+    (umbralAmba !== null && esAmbaEnvio && totalPostDescuentoPreEnvio >= umbralAmba) ||
+    (umbralGeneral !== null && totalPostDescuentoPreEnvio >= umbralGeneral)
+  )
+  const costoEnvio = envioSeleccionado ? (envioEsGratis ? 0 : envioSeleccionado.costo) : 0
+
+  const totalConEnvio = basePostVolumen + ajusteTransfMinorista + costoEnvio
+  const totalFinal = basePostAutogestion + ajuste + costoEnvio
+
+  // Cuánto falta para alcanzar el envío gratis (umbral aplicable más cercano)
+  const umbralEnvioAplicable = esAmbaEnvio && umbralAmba !== null
+    ? Math.min(umbralAmba, umbralGeneral ?? Infinity)
+    : umbralGeneral
+  const faltaParaEnvioGratis =
+    (esMinorista || esGuest) && umbralEnvioAplicable !== null && totalPostDescuentoPreEnvio < umbralEnvioAplicable
+      ? umbralEnvioAplicable - totalPostDescuentoPreEnvio
+      : null
+
   const minimoInsuficiente = Boolean(reglas?.minimo_compra && totalPostDescuentoPreEnvio < reglas.minimo_compra)
   const totalUnidades = items.reduce((a, i) => a + i.cantidad, 0)
 
@@ -720,16 +736,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
             {mostrarPrecios && totalGeneral > 0 && (
               <>
-                {/* Desglose IVA — minoristas y guests */}
+                {/* Desglose IVA — minoristas y guests: primero el precio con IVA
+                    (es lo que pagan), abajo el valor sin impuestos como referencia */}
                 {!esMayorista ? (
                   <>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Sin Impuestos</span>
-                      <span>{formatPrecio(totalSinIVA)}</span>
+                      <span>Subtotal (IVA incluido)</span>
+                      <span>{formatPrecio(totalGeneral)}</span>
                     </div>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>IVA incluido</span>
-                      <span>{formatPrecio(montoIVA)}</span>
+                      <span>Sin impuestos</span>
+                      <span>{formatPrecio(totalSinIVA)}</span>
                     </div>
                   </>
                 ) : (
@@ -741,7 +758,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 {envioSeleccionado && (
                   <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                     <span>Envío</span>
-                    <span>{formatPrecio(envioSeleccionado.costo)}</span>
+                    {envioEsGratis
+                      ? <span className="font-medium" style={{ color: '#16a34a' }}>Gratis</span>
+                      : <span>{formatPrecio(costoEnvio)}</span>}
                   </div>
                 )}
                 {ajuste !== 0 && (
@@ -788,7 +807,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           {(esMinorista || esGuest) && (
             <EnvioCotizador
               items={items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad }))}
-              seleccionada={envioSeleccionado}
+              seleccionada={envioSeleccionado ? { ...envioSeleccionado, costo: costoEnvio } : null}
               onSelect={handleEnvioSelect}
               envioFlexActivo={reglas?.envio_flex_activo ?? true}
               defaultOpen
@@ -844,6 +863,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
                   Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
                   Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
+                </div>
+              )}
+
+              {/* Aviso envío gratis cercano */}
+              {faltaParaEnvioGratis !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
                 </div>
               )}
 
@@ -1126,9 +1152,23 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   Calculá el envío para continuar.
                 </p>
               )}
+
+              {/* Avisos de mínimo de compra y envío gratis — el server los aplica también a guests */}
+              {minimoInsuficiente && reglas?.minimo_compra && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
+                </div>
+              )}
+              {faltaParaEnvioGratis !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
+                </div>
+              )}
+
               <button
                 onClick={() => setGuestModalOpen(true)}
-                disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado}
+                disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
                 className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: '#009ee3', color: 'white' }}
               >

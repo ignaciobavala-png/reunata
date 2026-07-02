@@ -84,7 +84,7 @@ export function CategoryGallery({ initialCategorias }: Props) {
           Categorías
         </h2>
         <Link
-          href="/tienda"
+          href="/tienda/todos"
           className="text-[10px] tracking-widest uppercase text-[var(--color-granito-claro)] hover:text-[var(--foreground)] transition-colors"
         >
           Ver todo
