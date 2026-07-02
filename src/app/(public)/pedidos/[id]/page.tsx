@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
 import { VolverAPedirButton } from '../VolverAPedirButton'
+import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -57,6 +58,11 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
 
   const col = ESTADO_COLOR[pedido.estado] ?? { bg: '#88888822', text: '#888' }
   const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido', 'borrador'].includes(pedido.estado)
+
+  // Transferencia sin IVA: los datos son de la cuenta asignada al canal, no del banco oficial
+  const cuentaSinIva = mostrarInstrucciones && pedido.medio_pago === 'transferencia_cueva'
+    ? await getCuentaSinIvaDelUsuario(user.id)
+    : null
   const esBorrador = pedido.estado === 'borrador'
 
   const expiraEn = (pedido as { expira_en?: string | null }).expira_en
@@ -232,6 +238,8 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
           costoEnvio={pedido.costo_envio ? Number(pedido.costo_envio) : undefined}
           cfg={cfg}
           estado={pedido.estado}
+          medioPago={pedido.medio_pago}
+          cuentaSinIva={cuentaSinIva}
         />
       )}
 

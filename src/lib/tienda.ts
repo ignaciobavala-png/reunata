@@ -154,3 +154,26 @@ export async function getProductosDelCanal(canalId: number): Promise<{ ids: numb
   }
   return { ids, multiplos }
 }
+
+// Cuenta bancaria "sin IVA" asignada al canal del usuario — para instrucciones
+// de pago de pedidos con medio transferencia_cueva.
+export async function getCuentaSinIvaDelUsuario(userId: string): Promise<{
+  tipo: string; cbu: string; alias: string | null; cuit: string | null; banco: string | null
+} | null> {
+  const service = createServiceClient()
+  const { data: perfil } = await service
+    .from('profiles')
+    .select('canal_id')
+    .eq('id', userId)
+    .single()
+  if (!perfil?.canal_id) return null
+  const { data: canalRow } = await service
+    .from('canales')
+    .select('cuentas_sin_iva(tipo, cbu, alias, cuit, banco)')
+    .eq('id', perfil.canal_id)
+    .maybeSingle()
+  const cuenta = (canalRow as {
+    cuentas_sin_iva: { tipo: string; cbu: string; alias: string | null; cuit: string | null; banco: string | null } | null
+  } | null)?.cuentas_sin_iva
+  return cuenta?.cbu ? cuenta : null
+}

@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
 import { formatPrecio } from '@/lib/utils'
+import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente_pago:     'Pendiente de pago',
@@ -57,6 +58,11 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const expiraEn = (pedido as { expira_en?: string | null }).expira_en
   const diasRestantes = esBorrador && expiraEn
     ? Math.ceil((new Date(expiraEn).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
+
+  // Transferencia sin IVA: los datos son de la cuenta asignada al canal, no del banco oficial
+  const cuentaSinIva = mostrarInstrucciones && pedido.medio_pago === 'transferencia_cueva'
+    ? await getCuentaSinIvaDelUsuario(user.id)
     : null
 
   return (
@@ -164,6 +170,8 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
           costoEnvio={pedido.costo_envio ? Number(pedido.costo_envio) : undefined}
           cfg={cfg}
           estado={pedido.estado}
+          medioPago={pedido.medio_pago}
+          cuentaSinIva={cuentaSinIva}
         />
       )}
 
