@@ -49,9 +49,10 @@ interface Props {
   seleccionada: EnvioSeleccionado | null
   defaultOpen?: boolean
   envioFlexActivo?: boolean
+  gratis?: boolean
 }
 
-export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = false, envioFlexActivo = true }: Props) {
+export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = false, envioFlexActivo = true, gratis = false }: Props) {
   const [abierto, setAbierto] = useState(defaultOpen)
   const [provincia, setProvincia] = useState('')
   const [cp, setCp] = useState('')
@@ -154,7 +155,7 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
         <div className="flex items-center gap-2">
           {seleccionada && (
             <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>
-              {formatPrecio(seleccionada.costo)}
+              {gratis || seleccionada.costo === 0 ? 'Gratis' : formatPrecio(seleccionada.costo)}
             </span>
           )}
           {abierto
@@ -167,6 +168,11 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
       {/* Panel expandible */}
       {abierto && (
         <div className="px-3 pb-3 pt-1 flex flex-col gap-2.5" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+          {gratis && (
+            <p className="text-xs font-medium pt-1" style={{ color: '#16a34a' }}>
+              Tu envío es gratis por el monto de tu compra. Solo necesitamos la dirección de entrega.
+            </p>
+          )}
           {/* Provincia + CP */}
           <select
             value={provincia}
@@ -232,8 +238,8 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(op.costo)}
+                  <span className="text-xs font-semibold" style={{ color: gratis ? '#16a34a' : 'var(--foreground)' }}>
+                    {gratis ? 'Gratis' : formatPrecio(op.costo)}
                   </span>
                 </label>
               ))}

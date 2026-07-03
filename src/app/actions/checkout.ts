@@ -40,7 +40,8 @@ interface EnvioResuelto {
 export async function iniciarCheckoutMP(
   items: CheckoutItem[],
   guestData?: GuestData,
-  envioParams?: EnvioParams
+  envioParams?: EnvioParams,
+  telefono?: string,
 ): Promise<{ ok: boolean; init_point?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -52,7 +53,7 @@ export async function iniciarCheckoutMP(
   if (user) {
     const { data: profileCanal } = await supabase
       .from('profiles')
-      .select('canal_id')
+      .select('canal_id, telefono')
       .eq('id', user.id)
       .single()
     canalId = profileCanal?.canal_id ?? null
@@ -67,10 +68,24 @@ export async function iniciarCheckoutMP(
     if (canalRow?.categoria_comercial !== 'minorista') {
       return { ok: false, error: 'Este método de pago es solo para minoristas.' }
     }
+
+    // WhatsApp obligatorio: sin él no podríamos avisar por faltantes de stock.
+    // Se acepta el que venga del carrito y se persiste en el perfil si cambió.
+    const telefonoActual = (profileCanal?.telefono as string | null) ?? null
+    const telefonoFinal = telefono?.trim() || telefonoActual
+    if (!telefonoFinal || telefonoFinal.replace(/\D/g, '').length < 8) {
+      return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
+    }
+    if (telefono?.trim() && telefono.trim() !== telefonoActual) {
+      await service.from('profiles').update({ telefono: telefono.trim() }).eq('id', user.id)
+    }
   } else {
-    // Guest: requiere datos del comprador
+    // Guest: requiere datos del comprador, incluido el WhatsApp
     if (!guestData?.nombre?.trim() || !guestData?.email?.trim()) {
       return { ok: false, error: 'Completá tu nombre y email para continuar.' }
+    }
+    if (!guestData?.telefono?.trim() || guestData.telefono.replace(/\D/g, '').length < 8) {
+      return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
     }
     // Guests operan como consumidor_final
     const { data: cfCanal } = await service
@@ -355,6 +370,7 @@ export async function iniciarCheckoutTransferencia(
   items: CheckoutItem[],
   envioParams?: EnvioParams,
   comprobantePath?: string,
+  telefono?: string,
 ): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -363,7 +379,7 @@ export async function iniciarCheckoutTransferencia(
 
   const { data: perfil } = await supabase
     .from('profiles')
-    .select('canal_id')
+    .select('canal_id, telefono')
     .eq('id', user.id)
     .single()
 
@@ -378,6 +394,16 @@ export async function iniciarCheckoutTransferencia(
 
   if (canalRow?.categoria_comercial !== 'minorista') {
     return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+  }
+
+  // WhatsApp obligatorio (mismo criterio que MP): sin él no podríamos avisar por stock.
+  const telefonoActual = (perfil?.telefono as string | null) ?? null
+  const telefonoFinal = telefono?.trim() || telefonoActual
+  if (!telefonoFinal || telefonoFinal.replace(/\D/g, '').length < 8) {
+    return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
+  }
+  if (telefono?.trim() && telefono.trim() !== telefonoActual) {
+    await service.from('profiles').update({ telefono: telefono.trim() }).eq('id', user.id)
   }
 
   // Validar múltiplos

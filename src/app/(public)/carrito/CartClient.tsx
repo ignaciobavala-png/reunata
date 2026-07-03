@@ -79,6 +79,7 @@ interface PageUser {
   nombre: string | null
   rol: string
   categoriaComercial: string | null
+  telefono: string | null
 }
 
 interface Props {
@@ -200,6 +201,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const [metodoPagoMinorista, setMetodoPagoMinorista] = useState<string | null>(null)
   const [direcciones, setDirecciones] = useState<DireccionEntrega[]>([])
   const [direccionId, setDireccionId] = useState<string | null>(null)
+
+  // WhatsApp de contacto del minorista logueado — precargado del perfil, editable y obligatorio.
+  // Sin un WhatsApp no podríamos avisarle si un producto de su pedido queda sin stock.
+  const [telefonoMinorista, setTelefonoMinorista] = useState(user?.telefono ?? '')
+  const telefonoMinoristaValido = telefonoMinorista.replace(/\D/g, '').length >= 8
 
   // Uploader de comprobante en carrito
   const [comprobantePath, setComprobantePath] = useState<string | null>(null)
@@ -338,7 +344,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             numero: envioSeleccionado.numero,
             piso: envioSeleccionado.piso,
           }
-        : undefined
+        : undefined,
+      esMinorista ? telefonoMinorista.trim() : undefined,
     )
 
     if (result.ok && result.init_point) {
@@ -353,13 +360,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     const nombre = guestNombre.trim()
     const email  = guestEmail.trim()
 
+    const telefono = guestTelefono.trim()
+
     if (!nombre) { setGuestErrors('Ingresá tu nombre.'); return }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setGuestErrors('Ingresá un email válido.')
       return
     }
+    if (telefono.replace(/\D/g, '').length < 8) {
+      setGuestErrors('Ingresá tu WhatsApp — lo necesitamos para avisarte si hay algún tema con el stock.')
+      return
+    }
 
-    handlePagarMP({ nombre, email, telefono: guestTelefono.trim() || undefined })
+    handlePagarMP({ nombre, email, telefono })
   }
 
   async function handlePagarTransferencia() {
@@ -380,6 +393,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           }
         : undefined,
       comprobantePath ?? undefined,
+      telefonoMinorista.trim() || undefined,
     )
 
     if (result.ok && result.pedidoId) {
@@ -566,6 +580,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     (esMinorista || esGuest) && umbralEnvioAplicable !== null && totalPostDescuentoPreEnvio < umbralEnvioAplicable
       ? umbralEnvioAplicable - totalPostDescuentoPreEnvio
       : null
+
+  // Envío gratis conocido ANTES de cotizar: el umbral general no depende de la
+  // provincia, así que si el monto ya lo alcanza sabemos que el envío es gratis
+  // sin pedirle al usuario que calcule un costo. Solo necesitamos su dirección.
+  const envioGratisPorMonto =
+    (esMinorista || esGuest) && umbralGeneral !== null && totalPostDescuentoPreEnvio >= umbralGeneral
 
   // Total final si el minorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMinoristaConMetodo(metodo: string): number {
@@ -873,6 +893,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               seleccionada={envioSeleccionado ? { ...envioSeleccionado, costo: costoEnvio } : null}
               onSelect={handleEnvioSelect}
               envioFlexActivo={reglas?.envio_flex_activo ?? true}
+              gratis={envioGratisPorMonto}
               defaultOpen
             />
           )}
@@ -880,10 +901,34 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           {/* CTA según rol */}
           {esMinorista ? (
             <>
-              {!envioSeleccionado && (
+              {/* WhatsApp de contacto — obligatorio para poder avisar por stock */}
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  WhatsApp de contacto *
+                </label>
+                <input
+                  type="tel"
+                  value={telefonoMinorista}
+                  onChange={e => setTelefonoMinorista(e.target.value)}
+                  placeholder="+54 9 11 1234-5678"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Te avisamos por acá si hay algún tema con el stock de tu pedido.
+                </p>
+              </div>
+
+              {!envioSeleccionado && !envioGratisPorMonto && (
                 <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Calculá el envío para continuar.
                 </p>
+              )}
+
+              {envioGratisPorMonto && (
+                <div className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  🎉 ¡Tenés envío gratis! Ingresá la dirección de entrega para continuar.
+                </div>
               )}
 
               {/* Selector de método si ambos están activos */}
@@ -950,7 +995,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {metodoPagoMinorista === 'mercado_pago' && (
                 <button
                   onClick={() => handlePagarMP()}
-                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
+                  disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente || !telefonoMinoristaValido}
                   className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                   style={{ background: '#009ee3', color: 'white' }}
                 >
@@ -969,7 +1014,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 <>
                   <button
                     onClick={handlePagarTransferencia}
-                    disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente}
+                    disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente || !telefonoMinoristaValido}
                     className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                     style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
                   >
@@ -1228,10 +1273,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
             <>
-              {!envioSeleccionado && (
+              {!envioSeleccionado && !envioGratisPorMonto && (
                 <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Calculá el envío para continuar.
                 </p>
+              )}
+
+              {envioGratisPorMonto && (
+                <div className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  🎉 ¡Tenés envío gratis! Ingresá la dirección de entrega para continuar.
+                </div>
               )}
 
               {/* Avisos de mínimo de compra y envío gratis — el server los aplica también a guests */}
@@ -1337,12 +1388,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               />
               <input
                 type="tel"
-                placeholder="Teléfono (opcional)"
+                placeholder="WhatsApp *"
                 value={guestTelefono}
-                onChange={e => setGuestTelefono(e.target.value)}
+                onChange={e => { setGuestTelefono(e.target.value); setGuestErrors(null) }}
                 className={inputClass}
                 style={inputStyle}
               />
+              <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Te avisamos por WhatsApp si hay algún tema con el stock de tu pedido.
+              </p>
             </div>
 
             {guestErrors && (
