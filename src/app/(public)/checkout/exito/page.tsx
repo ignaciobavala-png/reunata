@@ -9,32 +9,49 @@ export const metadata: Metadata = { title: 'Pago confirmado — Reunata' }
 export default async function CheckoutExitoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ external_reference?: string; payment_id?: string }>
+  searchParams: Promise<{
+    external_reference?: string
+    payment_id?: string
+    status?: string
+    collection_status?: string
+  }>
 }) {
-  const { external_reference: pedidoId } = await searchParams
+  const { external_reference: pedidoId, status, collection_status } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   let numeroPedido: number | null = null
+  let estadoPedido: string | null = null
   if (pedidoId) {
-    const { data } = await supabase.from('pedidos').select('numero').eq('id', pedidoId).single()
+    const { data } = await supabase.from('pedidos').select('numero, estado').eq('id', pedidoId).single()
     numeroPedido = data?.numero ?? null
+    estadoPedido = data?.estado ?? null
   }
+
+  // Solo vaciar el carrito si el pago está realmente aprobado. MP rebota al usuario
+  // a esta URL también cuando abandona el checkout (botón "Volver"); sin este guard,
+  // ClearCart le borraba el carrito completo sin haber pagado.
+  const pagoAprobado =
+    status === 'approved' ||
+    collection_status === 'approved' ||
+    estadoPedido === 'pago_confirmado'
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--background)' }}>
-      <ClearCart />
+      {pagoAprobado && <ClearCart />}
       <div className="max-w-md w-full text-center flex flex-col items-center gap-6 py-24">
-        <CheckCircle size={56} strokeWidth={1.2} style={{ color: '#10b981' }} />
+        <CheckCircle size={56} strokeWidth={1.2} style={{ color: pagoAprobado ? '#10b981' : '#f59e0b' }} />
 
         <div>
           <h1 className="text-3xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-            ¡Gracias por tu compra!
+            {pagoAprobado ? '¡Gracias por tu compra!' : 'Tu pago quedó pendiente'}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {user
-              ? 'Tu pedido fue recibido. La confirmación del pago puede demorar unos minutos en procesarse.'
-              : 'Tu pedido fue recibido. Mercado Pago te enviará la confirmación a tu email en breve.'
+            {pagoAprobado
+              ? (user
+                  ? 'Tu pedido fue recibido. La confirmación del pago puede demorar unos minutos en procesarse.'
+                  : 'Tu pedido fue recibido. Mercado Pago te enviará la confirmación a tu email en breve.')
+              : 'Todavía no registramos el pago. Si no llegaste a pagar, tu carrito sigue disponible para que lo intentes de nuevo.'
             }
           </p>
         </div>
