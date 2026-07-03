@@ -365,45 +365,67 @@ export async function iniciarCheckoutMP(
   }
 }
 
-// ── Checkout por Transferencia — solo consumidor_final autenticado ─────────
+// ── Checkout por Transferencia — consumidor_final (con o sin cuenta) ─────────
+// El invitado debe adjuntar el comprobante en el carrito (no tiene una cuenta a
+// la que volver): así el pedido queda con sus datos + comprobante para que el
+// admin no pierda el rastro del consumidor final.
 export async function iniciarCheckoutTransferencia(
   items: CheckoutItem[],
   envioParams?: EnvioParams,
   comprobantePath?: string,
   telefono?: string,
-): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
+  guestData?: GuestData,
+): Promise<{ ok: boolean; pedidoId?: string; numero?: number; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return { ok: false, error: 'Necesitás iniciar sesión para pagar por transferencia.' }
-
-  const { data: perfil } = await supabase
-    .from('profiles')
-    .select('canal_id, telefono')
-    .eq('id', user.id)
-    .single()
-
-  const canalId = perfil?.canal_id ?? null
   const service = createServiceClient()
 
-  const { data: canalRow } = await service
-    .from('canales')
-    .select('categoria_comercial')
-    .eq('id', canalId ?? 0)
-    .maybeSingle()
+  let canalId: number | null = null
 
-  if (canalRow?.categoria_comercial !== 'minorista') {
-    return { ok: false, error: 'Este método de pago es solo para minoristas.' }
-  }
+  if (user) {
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('canal_id, telefono')
+      .eq('id', user.id)
+      .single()
+    canalId = perfil?.canal_id ?? null
 
-  // WhatsApp obligatorio (mismo criterio que MP): sin él no podríamos avisar por stock.
-  const telefonoActual = (perfil?.telefono as string | null) ?? null
-  const telefonoFinal = telefono?.trim() || telefonoActual
-  if (!telefonoFinal || telefonoFinal.replace(/\D/g, '').length < 8) {
-    return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
-  }
-  if (telefono?.trim() && telefono.trim() !== telefonoActual) {
-    await service.from('profiles').update({ telefono: telefono.trim() }).eq('id', user.id)
+    const { data: canalRow } = await service
+      .from('canales')
+      .select('categoria_comercial')
+      .eq('id', canalId ?? 0)
+      .maybeSingle()
+
+    if (canalRow?.categoria_comercial !== 'minorista') {
+      return { ok: false, error: 'Este método de pago es solo para minoristas.' }
+    }
+
+    // WhatsApp obligatorio (mismo criterio que MP): sin él no podríamos avisar por stock.
+    const telefonoActual = (perfil?.telefono as string | null) ?? null
+    const telefonoFinal = telefono?.trim() || telefonoActual
+    if (!telefonoFinal || telefonoFinal.replace(/\D/g, '').length < 8) {
+      return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
+    }
+    if (telefono?.trim() && telefono.trim() !== telefonoActual) {
+      await service.from('profiles').update({ telefono: telefono.trim() }).eq('id', user.id)
+    }
+  } else {
+    // Invitado: requiere datos de contacto y el comprobante ya subido
+    if (!guestData?.nombre?.trim() || !guestData?.email?.trim()) {
+      return { ok: false, error: 'Completá tu nombre y email para continuar.' }
+    }
+    if (!guestData?.telefono?.trim() || guestData.telefono.replace(/\D/g, '').length < 8) {
+      return { ok: false, error: 'Ingresá tu WhatsApp para continuar.' }
+    }
+    if (!comprobantePath) {
+      return { ok: false, error: 'Adjuntá el comprobante de la transferencia para continuar.' }
+    }
+    const { data: cfCanal } = await service
+      .from('canales')
+      .select('id')
+      .eq('slug', 'consumidor_final')
+      .single()
+    canalId = cfCanal?.id ?? null
   }
 
   // Validar múltiplos
@@ -545,9 +567,11 @@ export async function iniciarCheckoutTransferencia(
     let q = service
       .from('pedidos')
       .update({ estado: 'cancelado' })
-      .eq('cliente_id', user.id)
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'transferencia')
+    q = user
+      ? q.eq('cliente_id', user.id)
+      : q.eq('guest_email', guestData!.email.trim().toLowerCase())
     q = envioParams
       ? q.eq('envio_codigo_postal', envioParams.codigo_postal).eq('envio_calle', envioParams.calle).eq('envio_numero', envioParams.numero)
       : q.is('envio_codigo_postal', null)
@@ -557,7 +581,13 @@ export async function iniciarCheckoutTransferencia(
   const { data: pedido, error: pedidoError } = await service
     .from('pedidos')
     .insert({
-      cliente_id: user.id,
+      ...(user
+        ? { cliente_id: user.id }
+        : {
+            guest_nombre:   guestData!.nombre.trim(),
+            guest_email:    guestData!.email.trim().toLowerCase(),
+            guest_telefono: guestData!.telefono?.trim() ?? null,
+          }),
       estado: comprobantePath ? 'comprobante_subido' : 'pendiente_pago',
       total_usd: total,
       medio_pago: 'transferencia',
@@ -570,7 +600,7 @@ export async function iniciarCheckoutTransferencia(
       envio_numero: envioParams?.numero ?? null,
       envio_piso: envioParams?.piso ?? null,
     })
-    .select('id')
+    .select('id, numero')
     .single()
 
   if (pedidoError || !pedido) {
@@ -598,5 +628,5 @@ export async function iniciarCheckoutTransferencia(
   }
 
   revalidatePath('/pedidos')
-  return { ok: true, pedidoId: String(pedido.id) }
+  return { ok: true, pedidoId: String(pedido.id), numero: pedido.numero ?? undefined }
 }
