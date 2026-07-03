@@ -794,16 +794,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 {/* Desglose IVA — minoristas y guests: primero el precio con IVA
                     (es lo que pagan), abajo el valor sin impuestos como referencia */}
                 {!esMayorista ? (
-                  <>
-                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Subtotal (IVA incluido)</span>
-                      <span>{formatPrecio(totalGeneral)}</span>
-                    </div>
-                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Precio Bruto</span>
-                      <span>{formatPrecio(totalSinIVA)}</span>
-                    </div>
-                  </>
+                  <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    <span>Subtotal (IVA incluido)</span>
+                    <span>{formatPrecio(totalGeneral)}</span>
+                  </div>
                 ) : (
                   <>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>

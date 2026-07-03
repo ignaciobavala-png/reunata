@@ -239,14 +239,11 @@ export function ProductGridPublic({
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                      <p className="text-base font-bold mt-0.5" style={{ color: 'var(--foreground)' }}>
                         {formatPrecio(precioConIva, p.moneda)}
                       </p>
-                      <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        IVA incluido: {formatPrecio(precioConIva - p.precio, p.moneda)}
-                      </p>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Precio Bruto: {formatPrecio(p.precio, p.moneda)}
+                        Precio sin impuestos nacionales: {formatPrecio(p.precio, p.moneda)}
                       </p>
                     </>
                   )

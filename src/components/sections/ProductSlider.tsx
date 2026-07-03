@@ -98,14 +98,11 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
+                        <p className="text-sm font-bold mt-1" style={{ color: 'var(--foreground)' }}>
                           {formatPrecio(precioConIva, foto.moneda)}
                         </p>
                         <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          IVA incluido
-                        </p>
-                        <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          Precio Bruto: {formatPrecio(foto.precio, foto.moneda)}
+                          Precio sin impuestos nacionales: {formatPrecio(foto.precio, foto.moneda)}
                         </p>
                       </>
                     )

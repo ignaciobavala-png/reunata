@@ -127,7 +127,10 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
               const precioConIva = Math.round(precio * (1 + ((producto.iva as number | null) ?? 21) / 100))
               return (
                 <div className="mb-2">
-                  <p className="text-2xl font-medium" style={{ color: 'var(--foreground)' }}>
+                  <p
+                    className={esMayorista ? 'text-2xl font-medium' : 'text-3xl font-bold'}
+                    style={{ color: 'var(--foreground)' }}
+                  >
                     {formatPrecio(esMayorista ? precio : precioConIva, monedaFinal)}
                   </p>
                   {esMayorista ? (
@@ -135,14 +138,9 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                       IVA incluido: {formatPrecio(precioConIva, monedaFinal)}
                     </p>
                   ) : (
-                    <>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        IVA incluido: {formatPrecio(precioConIva - precio, monedaFinal)}
-                      </p>
-                      <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Precio Bruto: {formatPrecio(precio, monedaFinal)}
-                      </p>
-                    </>
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Precio sin impuestos nacionales: {formatPrecio(precio, monedaFinal)}
+                    </p>
                   )}
                 </div>
               )
