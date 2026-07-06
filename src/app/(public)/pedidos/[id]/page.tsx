@@ -6,28 +6,9 @@ import { ComprobanteUploader } from './ComprobanteUploader'
 import { VolverAPedirButton } from '../VolverAPedirButton'
 import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
+import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
-
-const ESTADO_LABEL: Record<string, string> = {
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante enviado',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
-}
-
-const ESTADO_COLOR: Record<string, { bg: string; text: string }> = {
-  pendiente_pago:     { bg: '#f59e0b22', text: '#f59e0b' },
-  comprobante_subido: { bg: '#6366f122', text: '#6366f1' },
-  pago_confirmado:    { bg: '#0ea5e922', text: '#0ea5e9' },
-  en_preparacion:     { bg: '#8b5cf622', text: '#8b5cf6' },
-  enviado:            { bg: '#06b6d422', text: '#06b6d4' },
-  entregado:          { bg: '#10b98122', text: '#10b981' },
-  cancelado:          { bg: '#ef444422', text: '#ef4444' },
-}
 
 export default async function DetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -38,7 +19,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const { data: pedido } = await supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en, descuento_nota,
+      id, numero, estado, editable, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en, descuento_nota,
       pedido_items (
         id, cantidad, precio_unit,
         producto:producto_id ( id, codigo_interno, titulo )
@@ -56,8 +37,8 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
 
-  const col = ESTADO_COLOR[pedido.estado] ?? { bg: '#88888822', text: '#888' }
-  const mostrarInstrucciones = ['pendiente_pago', 'comprobante_subido', 'borrador'].includes(pedido.estado)
+  const col = estadoColor(pedido.estado)
+  const mostrarInstrucciones = pedido.editable
 
   // Transferencia sin IVA: los datos son de la cuenta asignada al canal, no del banco oficial
   const cuentaSinIva = mostrarInstrucciones && pedido.medio_pago === 'transferencia_cueva'
@@ -87,7 +68,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
           </p>
         </div>
         <span className="text-sm px-3 py-1.5 rounded-full" style={{ background: col.bg, color: col.text }}>
-          {ESTADO_LABEL[pedido.estado] ?? pedido.estado}
+          {estadoLabel(pedido.estado)}
         </span>
       </div>
 

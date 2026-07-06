@@ -6,28 +6,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { EstadoActions } from './EstadoActions'
 import { PrintButton } from './PrintButton'
-
-const ESTADO_LABEL: Record<string, string> = {
-  borrador:           'Borrador',
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante subido',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
-}
-
-const COLOR_ESTADO: Record<string, { bg: string; text: string }> = {
-  borrador:           { bg: '#88888822', text: '#888888' },
-  pendiente_pago:     { bg: '#f59e0b22', text: '#f59e0b' },
-  comprobante_subido: { bg: '#6366f122', text: '#6366f1' },
-  pago_confirmado:    { bg: '#0ea5e922', text: '#0ea5e9' },
-  en_preparacion:     { bg: '#8b5cf622', text: '#8b5cf6' },
-  enviado:            { bg: '#06b6d422', text: '#06b6d4' },
-  entregado:          { bg: '#10b98122', text: '#10b981' },
-  cancelado:          { bg: '#ef444422', text: '#ef4444' },
-}
+import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 
 export default async function AdminDetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -59,6 +38,12 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     .eq('pedido_id', id)
     .order('subido_at', { ascending: false })
 
+  const { data: historialEstados } = await service
+    .from('pedido_estado_historial')
+    .select('id, estado_anterior, estado_nuevo, created_at, usuario:usuario_id ( nombre, email )')
+    .eq('pedido_id', id)
+    .order('created_at', { ascending: false })
+
   // Generar signed URLs para comprobantes (bucket comprobantes, 1h)
   const comprobantesConUrl = await Promise.all(
     (comprobantes ?? []).map(async c => {
@@ -67,7 +52,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     })
   )
 
-  const col = COLOR_ESTADO[pedido.estado] ?? { bg: '#88888822', text: '#888888' }
+  const col = estadoColor(pedido.estado)
   const cliente = pedido.cliente as {
     nombre?: string; razon_social?: string; email?: string; telefono?: string; rol?: string
     cuit_dni?: string; direccion?: string; localidad?: string; sitio_web?: string; puntos_venta?: number
@@ -105,14 +90,14 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
         <div className="flex items-center gap-3">
           <PrintButton />
           <span className="text-sm px-3 py-1.5 rounded-full shrink-0" style={{ background: col.bg, color: col.text }}>
-            {ESTADO_LABEL[pedido.estado] ?? pedido.estado}
+            {estadoLabel(pedido.estado)}
           </span>
         </div>
       </div>
 
       {/* Acciones de estado */}
       <div className="print:hidden mb-6">
-        <EstadoActions pedidoId={id} estadoActual={pedido.estado} />
+        <EstadoActions pedidoId={id} estadoActual={pedido.estado} medioPago={pedido.medio_pago} />
       </div>
 
       {/* Info del cliente */}
@@ -375,6 +360,38 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Historial de estados — oculto en impresión */}
+      {(historialEstados?.length ?? 0) > 0 && (
+        <div className="print:hidden rounded-xl border p-5 mb-6" style={{ borderColor: 'var(--color-acero-claro)' }}>
+          <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Historial de estados
+          </h2>
+          <div className="flex flex-col gap-2">
+            {historialEstados!.map(h => {
+              const usuario = h.usuario as unknown as { nombre?: string; email?: string } | null
+              return (
+                <div key={h.id} className="flex items-center justify-between text-sm">
+                  <span style={{ color: 'var(--foreground)' }}>
+                    {h.estado_anterior ? `${estadoLabel(h.estado_anterior)} → ` : ''}
+                    {estadoLabel(h.estado_nuevo)}
+                    {usuario && (
+                      <span className="text-xs ml-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        {usuario.nombre ?? usuario.email}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    {new Date(h.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {' · '}
+                    {new Date(h.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

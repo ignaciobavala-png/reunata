@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { ShoppingCart, Store, Tag } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
+import { estadoLabel } from '@/lib/estadosPedido'
 
 const LABEL_ROL: Record<string, string> = {
   consumidor_final: 'Consumidor Final',
@@ -16,16 +17,6 @@ const CANAL_COLOR: Record<string, string> = {
   distribuidor:     '#0ea5e9',
   local:            '#10b981',
   mercha:           '#f59e0b',
-}
-
-const ESTADO_LABEL: Record<string, string> = {
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante enviado',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
 }
 
 export default async function ClienteDashboardPage() {
@@ -142,7 +133,7 @@ export default async function ClienteDashboardPage() {
           </span>
         </Link>
         <Link
-          href="/dashboard/cliente/pedidos"
+          href="/pedidos"
           className="rounded-xl p-5 border flex flex-col gap-2 transition-colors duration-150"
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
@@ -160,7 +151,7 @@ export default async function ClienteDashboardPage() {
             {pedidos.map((p, i) => (
               <Link
                 key={p.id}
-                href={`/dashboard/cliente/pedidos/${p.id}`}
+                href={`/pedidos/${p.id}`}
                 className="flex items-center justify-between px-5 py-3.5 text-base hover:bg-[var(--color-acero-brillo)] transition-colors duration-150"
                 style={{
                   borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
@@ -177,7 +168,7 @@ export default async function ClienteDashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-claro)' }}>
-                    {ESTADO_LABEL[p.estado] ?? p.estado}
+                    {estadoLabel(p.estado)}
                   </span>
                   {p.total_usd && (
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>

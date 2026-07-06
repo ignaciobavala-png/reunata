@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
       .from('pedidos')
       .update({
         estado: nuevoEstado,
+        editable: false,
         mp_payment_id: String(data.id),
         ...(status === 'approved' && !yaConfirmado
           ? { fecha_pago: new Date().toISOString() }

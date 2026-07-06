@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as XLSX from 'xlsx'
-
-const LABEL_ESTADO: Record<string, string> = {
-  borrador:           'Borrador',
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante subido',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
-}
+import { estadoLabel, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 function periodoToRange(periodo: string | undefined): { desde?: string; hasta?: string } {
   if (!periodo) return {}
@@ -45,6 +35,7 @@ export async function GET(request: NextRequest) {
   const estado  = sp.get('estado') ?? undefined
   const q       = sp.get('q')?.trim() ?? ''
   const periodo = sp.get('periodo') ?? undefined
+  const bandeja = sp.get('bandeja') ?? undefined
 
   const supabase = createServiceClient()
   const { desde, hasta } = periodoToRange(periodo)
@@ -68,6 +59,8 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(5000)
 
+  if (bandeja === 'proceso')     query = query.not('estado', 'in', `(${ESTADOS_FINALIZADOS.join(',')})`)
+  if (bandeja === 'finalizados') query = query.in('estado', ESTADOS_FINALIZADOS)
   if (estado) query = query.eq('estado', estado)
   if (desde)  query = query.gte('created_at', desde)
   if (hasta)  query = query.lte('created_at', hasta)
@@ -96,7 +89,7 @@ export async function GET(request: NextRequest) {
       'Cliente':      cliente?.nombre || (p as any).guest_nombre || '—',
       'Email':        cliente?.email  || (p as any).guest_email  || '—',
       'Tipo':         cliente ? 'Registrado' : 'No registrado',
-      'Estado':       LABEL_ESTADO[p.estado] ?? p.estado,
+      'Estado':       estadoLabel(p.estado),
       'Medio de pago': p.medio_pago?.replace(/_/g, ' ') ?? '—',
       'Total':        p.total_usd != null ? Number(p.total_usd) : null,
       'Fecha':        new Date(p.created_at).toLocaleDateString('es-AR'),

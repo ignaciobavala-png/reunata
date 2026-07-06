@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   // Transferencia vencida → borrador (el cliente puede retomarla con precios actualizados)
   const { data: revertidos, error: errRevertir } = await supabase
     .from('pedidos')
-    .update({ estado: 'borrador', expira_en: null })
+    .update({ estado: 'borrador', editable: true, expira_en: null })
     .eq('estado', 'pendiente_pago')
     .eq('medio_pago', 'transferencia')
     .lt('expira_en', ahora)
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // MP vencido → cancelado (la preferencia de MP ya no sirve)
   const { data: cancelados, error: errCancelar } = await supabase
     .from('pedidos')
-    .update({ estado: 'cancelado' })
+    .update({ estado: 'cancelado', editable: false })
     .eq('estado', 'pendiente_pago')
     .eq('medio_pago', 'mercadopago')
     .lt('expira_en', ahora)
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   // Borradores sin comprobante vencidos → cancelar (1 semana sin completar)
   const { data: borradoresCancelados, error: errBorradores } = await supabase
     .from('pedidos')
-    .update({ estado: 'cancelado' })
+    .update({ estado: 'cancelado', editable: false })
     .eq('estado', 'borrador')
     .lt('expira_en', ahora)
     .not('expira_en', 'is', null)

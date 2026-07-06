@@ -4,28 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, XCircle, Clock, ShoppingCart } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
-
-const LABEL_ESTADO: Record<string, string> = {
-  borrador:           'Borrador',
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante subido',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
-}
-
-const COLOR_ESTADO: Record<string, { bg: string; text: string }> = {
-  borrador:           { bg: '#88888822', text: '#888888' },
-  pendiente_pago:     { bg: '#f59e0b22', text: '#f59e0b' },
-  comprobante_subido: { bg: '#6366f122', text: '#6366f1' },
-  pago_confirmado:    { bg: '#0ea5e922', text: '#0ea5e9' },
-  en_preparacion:     { bg: '#8b5cf622', text: '#8b5cf6' },
-  enviado:            { bg: '#06b6d422', text: '#06b6d4' },
-  entregado:          { bg: '#10b98122', text: '#10b981' },
-  cancelado:          { bg: '#ef444422', text: '#ef4444' },
-}
+import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 
 const ESTADO_CREDITO: Record<string, { label: string; icon: React.ReactNode; bg: string; text: string }> = {
   pendiente:  { label: 'En revisión',  icon: <Clock size={13} />,        bg: '#fef9c322', text: '#854d0e' },
@@ -162,13 +141,13 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
             </thead>
             <tbody>
               {pedidos.map((p, i) => {
-                const col = COLOR_ESTADO[p.estado] ?? { bg: '#88888822', text: '#888888' }
+                const col = estadoColor(p.estado)
                 return (
                   <tr key={p.id} style={{ background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)', borderTop: '1px solid var(--color-acero-claro)' }}>
                     <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>#{p.numero}</td>
                     <td className="px-4 py-2.5">
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: col.bg, color: col.text }}>
-                        {LABEL_ESTADO[p.estado] ?? p.estado}
+                        {estadoLabel(p.estado)}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 capitalize text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>

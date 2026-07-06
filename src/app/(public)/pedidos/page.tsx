@@ -5,27 +5,62 @@ import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { VolverAPedirButton } from './VolverAPedirButton'
+import { estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
-const ESTADO_LABEL: Record<string, string> = {
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante enviado',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
+interface PedidoRow {
+  id: string
+  numero: number
+  estado: string
+  medio_pago: string | null
+  total_usd: number | null
+  created_at: string
 }
 
-const ESTADO_COLOR: Record<string, { bg: string; text: string }> = {
-  pendiente_pago:     { bg: '#f59e0b22', text: '#f59e0b' },
-  comprobante_subido: { bg: '#6366f122', text: '#6366f1' },
-  pago_confirmado:    { bg: '#0ea5e922', text: '#0ea5e9' },
-  en_preparacion:     { bg: '#8b5cf622', text: '#8b5cf6' },
-  enviado:            { bg: '#06b6d422', text: '#06b6d4' },
-  entregado:          { bg: '#10b98122', text: '#10b981' },
-  cancelado:          { bg: '#ef444422', text: '#ef4444' },
+function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRow[]; mostrarVolverAPedir: boolean }) {
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
+      {pedidos.map((p, i) => {
+        const col = estadoColor(p.estado)
+        return (
+          <div
+            key={p.id}
+            className="flex items-center px-5 py-4 gap-3 transition-colors duration-100"
+            style={{
+              background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
+              borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
+            }}
+          >
+            <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  #{p.numero}
+                </span>
+                <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
+                  {estadoLabel(p.estado)}
+                </span>
+                {p.total_usd != null && (
+                  <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
+                    {formatPrecio(Number(p.total_usd))}
+                  </span>
+                )}
+              </div>
+            </Link>
+            {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
+            <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
+              <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
+            </Link>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export default async function MisPedidosPage() {
@@ -40,55 +75,46 @@ export default async function MisPedidosPage() {
     .neq('estado', 'borrador')
     .order('created_at', { ascending: false })
 
+  const todos = pedidos ?? []
+  const enProceso = todos.filter(p => !ESTADOS_FINALIZADOS.includes(p.estado))
+  const finalizados = todos.filter(p => ESTADOS_FINALIZADOS.includes(p.estado))
+
   return (
     <main className="pt-36 pb-24 px-6 md:px-16 max-w-3xl mx-auto">
       <h1 className="text-3xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
         Mis pedidos
       </h1>
       <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
-        {pedidos?.length ?? 0} pedidos en total
+        {todos.length} pedidos en total
       </p>
 
-      {pedidos && pedidos.length > 0 ? (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
-          {pedidos.map((p, i) => {
-            const col = ESTADO_COLOR[p.estado] ?? { bg: '#88888822', text: '#888' }
-            return (
-              <div
-                key={p.id}
-                className="flex items-center px-5 py-4 gap-3 transition-colors duration-100"
-                style={{
-                  background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
-                  borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
-                }}
-              >
-                <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      #{p.numero}
-                    </span>
-                    <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
-                      {ESTADO_LABEL[p.estado] ?? p.estado}
-                    </span>
-                    {p.total_usd != null && (
-                      <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
-                        {formatPrecio(Number(p.total_usd))}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-                <VolverAPedirButton pedidoId={p.id} compact />
-                <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
-                  <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
-                </Link>
-              </div>
-            )
-          })}
+      {todos.length > 0 ? (
+        <div className="flex flex-col gap-10">
+          <section>
+            <h2 className="text-lg mb-3" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+              En proceso {enProceso.length > 0 && <span style={{ color: 'var(--color-acero-oscuro)' }}>({enProceso.length})</span>}
+            </h2>
+            {enProceso.length > 0 ? (
+              <ListaPedidos pedidos={enProceso} mostrarVolverAPedir={false} />
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                No tenés pedidos en proceso.
+              </p>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-lg mb-3" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+              Finalizados {finalizados.length > 0 && <span style={{ color: 'var(--color-acero-oscuro)' }}>({finalizados.length})</span>}
+            </h2>
+            {finalizados.length > 0 ? (
+              <ListaPedidos pedidos={finalizados} mostrarVolverAPedir />
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Todavía no tenés pedidos finalizados.
+              </p>
+            )}
+          </section>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 gap-3">

@@ -3,30 +3,15 @@ import { ShoppingCart, Search, Download } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
 import { ExportButton } from './ExportButton'
+import { ESTADOS_PEDIDO, estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 const PAGE_SIZE = 30
 
-const LABEL_ESTADO: Record<string, string> = {
-  borrador:           'Borrador',
-  pendiente_pago:     'Pendiente de pago',
-  comprobante_subido: 'Comprobante subido',
-  pago_confirmado:    'Pago confirmado',
-  en_preparacion:     'En preparación',
-  enviado:            'Enviado',
-  entregado:          'Entregado',
-  cancelado:          'Cancelado',
-}
-
-const COLOR_ESTADO: Record<string, { bg: string; text: string }> = {
-  borrador:           { bg: '#88888822', text: '#888888' },
-  pendiente_pago:     { bg: '#f59e0b22', text: '#f59e0b' },
-  comprobante_subido: { bg: '#6366f122', text: '#6366f1' },
-  pago_confirmado:    { bg: '#0ea5e922', text: '#0ea5e9' },
-  en_preparacion:     { bg: '#8b5cf622', text: '#8b5cf6' },
-  enviado:            { bg: '#06b6d422', text: '#06b6d4' },
-  entregado:          { bg: '#10b98122', text: '#10b981' },
-  cancelado:          { bg: '#ef444422', text: '#ef4444' },
-}
+const BANDEJAS = [
+  { value: 'proceso',     label: 'En proceso' },
+  { value: 'finalizados', label: 'Finalizados' },
+  { value: 'todos',       label: 'Todos' },
+] as const
 
 const PERIODOS = [
   { value: 'hoy',    label: 'Hoy' },
@@ -65,11 +50,12 @@ function periodoToRange(periodo: string | undefined): { desde?: string; hasta?: 
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; q?: string; page?: string; periodo?: string }>
+  searchParams: Promise<{ estado?: string; q?: string; page?: string; periodo?: string; bandeja?: string }>
 }) {
-  const { estado, q: rawQ, page: rawPage, periodo } = await searchParams
+  const { estado, q: rawQ, page: rawPage, periodo, bandeja: rawBandeja } = await searchParams
   const q    = rawQ?.trim() ?? ''
   const page = Math.max(1, parseInt(rawPage ?? '1'))
+  const bandeja = rawBandeja === 'finalizados' || rawBandeja === 'todos' ? rawBandeja : 'proceso'
   const supabase = await createClient()
 
   const { desde, hasta } = periodoToRange(periodo)
@@ -94,6 +80,8 @@ export default async function PedidosPage({
     .order('created_at', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
+  if (bandeja === 'proceso')     query = query.not('estado', 'in', `(${ESTADOS_FINALIZADOS.join(',')})`)
+  if (bandeja === 'finalizados') query = query.in('estado', ESTADOS_FINALIZADOS)
   if (estado) query = query.eq('estado', estado)
   if (desde)  query = query.gte('created_at', desde)
   if (hasta)  query = query.lte('created_at', hasta)
@@ -115,6 +103,7 @@ export default async function PedidosPage({
 
   function url(overrides: Record<string, string | undefined>) {
     const merged: Record<string, string | undefined> = {
+      bandeja: bandeja !== 'proceso' ? bandeja : undefined,
       estado:  estado  || undefined,
       q:       q       || undefined,
       periodo: periodo || undefined,
@@ -127,10 +116,15 @@ export default async function PedidosPage({
     return `/dashboard/admin/pedidos${qs ? `?${qs}` : ''}`
   }
 
-  const estadosList = Object.keys(LABEL_ESTADO)
+  // Solo se ofrecen como filtro fino los estados que existen dentro de la pestaña activa —
+  // evita combinaciones vacías (ej. filtrar "Entregado" estando en la pestaña "En proceso").
+  const estadosList = Object.keys(ESTADOS_PEDIDO).filter(e =>
+    bandeja === 'todos' ? true : bandeja === 'finalizados' ? ESTADOS_FINALIZADOS.includes(e) : !ESTADOS_FINALIZADOS.includes(e)
+  )
 
   // Params para el export (sin paginación)
   const exportParams = new URLSearchParams()
+  if (bandeja !== 'proceso') exportParams.set('bandeja', bandeja)
   if (estado)  exportParams.set('estado', estado)
   if (q)       exportParams.set('q', q)
   if (periodo) exportParams.set('periodo', periodo)
@@ -147,6 +141,24 @@ export default async function PedidosPage({
           </p>
         </div>
         <ExportButton params={exportParams.toString()} count={count ?? 0} />
+      </div>
+
+      {/* Bandeja: en proceso / finalizados / todos */}
+      <div className="flex gap-2 mt-6 mb-5 flex-wrap">
+        {BANDEJAS.map(b => (
+          <a
+            key={b.value}
+            href={url({ bandeja: b.value === 'proceso' ? undefined : b.value, estado: undefined, page: undefined })}
+            className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors duration-150"
+            style={{
+              borderColor: bandeja === b.value ? 'var(--color-granito)' : 'var(--color-acero-claro)',
+              background:  bandeja === b.value ? 'var(--color-granito)' : 'white',
+              color:       bandeja === b.value ? 'var(--color-acero-brillo)' : 'var(--color-acero-oscuro)',
+            }}
+          >
+            {b.label}
+          </a>
+        ))}
       </div>
 
       {/* Filtros de período */}
@@ -232,12 +244,12 @@ export default async function PedidosPage({
             href={url({ estado: e, page: undefined })}
             className="px-3 py-1.5 rounded-lg text-sm border transition-colors duration-150"
             style={{
-              borderColor: estado === e ? COLOR_ESTADO[e].text : 'var(--color-acero-claro)',
-              background:  estado === e ? COLOR_ESTADO[e].bg  : 'white',
-              color:       estado === e ? COLOR_ESTADO[e].text : 'var(--color-acero-oscuro)',
+              borderColor: estado === e ? estadoColor(e).text : 'var(--color-acero-claro)',
+              background:  estado === e ? estadoColor(e).bg  : 'white',
+              color:       estado === e ? estadoColor(e).text : 'var(--color-acero-oscuro)',
             }}
           >
-            {LABEL_ESTADO[e]}
+            {estadoLabel(e)}
           </a>
         ))}
       </div>
@@ -257,7 +269,7 @@ export default async function PedidosPage({
             </thead>
             <tbody>
               {(pedidos ?? []).map((p, i) => {
-                const col = COLOR_ESTADO[p.estado] ?? { bg: '#88888822', text: '#888888' }
+                const col = estadoColor(p.estado)
                 const cliente = p.cliente as { nombre?: string; email?: string } | null
                 const nombreMostrado = cliente?.nombre || (p as any).guest_nombre || '—'
                 const emailMostrado  = cliente?.email  || (p as any).guest_email  || ''
@@ -296,7 +308,7 @@ export default async function PedidosPage({
                     </td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: col.bg, color: col.text }}>
-                        {LABEL_ESTADO[p.estado] ?? p.estado}
+                        {estadoLabel(p.estado)}
                       </span>
                     </td>
                     <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -326,8 +338,8 @@ export default async function PedidosPage({
                   <td colSpan={7} className="px-4 py-16 text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
                     <ShoppingCart size={24} strokeWidth={1.2} className="mx-auto mb-3 opacity-30" />
                     {q
-                      ? `Sin resultados para "${q}"${estado ? ` con estado "${LABEL_ESTADO[estado]}"` : ''}.`
-                      : `No hay pedidos${estado ? ` con estado "${LABEL_ESTADO[estado]}"` : periodo ? ' en este período' : ' registrados todavía'}.`
+                      ? `Sin resultados para "${q}"${estado ? ` con estado "${estadoLabel(estado)}"` : ''}.`
+                      : `No hay pedidos${estado ? ` con estado "${estadoLabel(estado)}"` : periodo ? ' en este período' : ' registrados todavía'}.`
                     }
                   </td>
                 </tr>

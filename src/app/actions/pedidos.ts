@@ -18,6 +18,37 @@ const METODO_NOTA: Record<string, string> = {
   transferencia_blanco: 'transf. banco',
 }
 
+const ROLES_ADMIN = ['master', 'empleado']
+
+async function verificarRolAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+  return ROLES_ADMIN.includes(perfil?.rol ?? '')
+}
+
+// Espejo server-side de EstadoActions.tsx — mismas transiciones que ofrece la UI de admin.
+// Server actions e RLS no deben confiar únicamente en que la UI oculte botones inválidos.
+const TRANSICIONES_PERMITIDAS: Record<string, string[]> = {
+  borrador:           ['pendiente_pago', 'cancelado'],
+  pendiente_pago:     ['pago_confirmado', 'sena_confirmada', 'cancelado'],
+  comprobante_subido: ['pago_confirmado', 'cancelado'],
+  sena_confirmada:    ['pago_confirmado', 'cancelado'],
+  pago_confirmado:    ['en_preparacion'],
+  en_preparacion:     ['enviado'],
+  enviado:            ['entregado'],
+}
+
+// Único lugar que decide editabilidad — no derivarla del label del estado en la UI.
+// Hoy la única "edición" post-creación es subir un comprobante; deja de admitirla
+// desde que el pago queda confirmado en adelante (incluido cancelado).
+const ESTADOS_EDITABLES = ['borrador', 'pendiente_pago', 'comprobante_subido']
+
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
   opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
@@ -208,47 +239,105 @@ export async function crearPedidoBorrador(
     await service.from('comprobantes').insert({ pedido_id: pedido.id, url: opciones!.comprobantePath })
   }
 
-  revalidatePath('/dashboard/cliente/pedidos')
+  revalidatePath('/pedidos')
   return pedido.id
 }
 
 export async function subirComprobante(pedidoId: string, path: string) {
   const supabase = await createClient()
-  await supabase.from('comprobantes').insert({ pedido_id: pedidoId, url: path })
-  await supabase.from('pedidos').update({ estado: 'comprobante_subido' }).eq('id', pedidoId)
-  revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+
+  const service = createServiceClient()
+
+  const { data: pedido } = await service
+    .from('pedidos')
+    .select('cliente_id, estado')
+    .eq('id', pedidoId)
+    .single()
+
+  if (!pedido || pedido.cliente_id !== user.id) throw new Error('Pedido no encontrado.')
+  if (!['borrador', 'pendiente_pago'].includes(pedido.estado)) {
+    throw new Error('Este pedido ya no admite un nuevo comprobante.')
+  }
+
+  await service.from('comprobantes').insert({ pedido_id: pedidoId, url: path })
+  await service.from('pedidos').update({ estado: 'comprobante_subido' }).eq('id', pedidoId)
   revalidatePath(`/pedidos/${pedidoId}`)
 }
 
 export async function confirmarPago(pedidoId: string, medioPago: string, referencia?: string) {
+  if (!await verificarRolAdmin()) throw new Error('Sin permisos.')
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  await supabase.from('pedidos').update({
+  const service = createServiceClient()
+
+  const { data: pedido } = await service
+    .from('pedidos')
+    .select('estado')
+    .eq('id', pedidoId)
+    .single()
+
+  if (!pedido) throw new Error('Pedido no encontrado.')
+  if (!(TRANSICIONES_PERMITIDAS[pedido.estado] ?? []).includes('pago_confirmado')) {
+    throw new Error(`No se puede confirmar el pago desde el estado "${pedido.estado}".`)
+  }
+
+  await service.from('pedidos').update({
     estado: 'pago_confirmado',
+    editable: false,
     medio_pago: medioPago,
     referencia_pago: referencia ?? null,
     pago_confirmado_por: user!.id,
     fecha_pago: new Date().toISOString(),
   }).eq('id', pedidoId)
   revalidatePath(`/dashboard/admin/pedidos`)
-  revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
+  revalidatePath(`/pedidos/${pedidoId}`)
 }
 
 export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
+  if (!await verificarRolAdmin()) throw new Error('Sin permisos.')
+
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const service = createServiceClient()
-  const updates: Record<string, unknown> = { estado }
+
+  const { data: pedidoActual } = await service
+    .from('pedidos')
+    .select('estado, medio_pago')
+    .eq('id', pedidoId)
+    .single()
+
+  if (!pedidoActual) throw new Error('Pedido no encontrado.')
+
+  const permitidos = TRANSICIONES_PERMITIDAS[pedidoActual.estado] ?? []
+  if (!permitidos.includes(estado)) {
+    throw new Error(`No se puede pasar de "${pedidoActual.estado}" a "${estado}".`)
+  }
+  if (estado === 'sena_confirmada' && pedidoActual.medio_pago !== 'efectivo') {
+    throw new Error('La seña solo aplica a pedidos con medio de pago efectivo.')
+  }
+
+  const updates: Record<string, unknown> = { estado, editable: ESTADOS_EDITABLES.includes(estado) }
   if (estado === 'pago_confirmado') {
     updates.fecha_pago = new Date().toISOString()
     updates.expira_en = null
   }
 
-  const { data: pedido } = await supabase
+  const { data: pedido } = await service
     .from('pedidos')
     .update(updates)
     .eq('id', pedidoId)
     .select('cliente_id')
     .single()
+
+  await service.from('pedido_estado_historial').insert({
+    pedido_id: pedidoId,
+    estado_anterior: pedidoActual.estado,
+    estado_nuevo: estado,
+    usuario_id: user?.id ?? null,
+  })
 
   // Sincronizar última compra para recontacto (espejo del webhook de MP)
   if (estado === 'pago_confirmado' && pedido?.cliente_id) {
@@ -260,7 +349,7 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
 
   revalidatePath('/dashboard/admin/pedidos')
   revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
-  revalidatePath(`/dashboard/cliente/pedidos/${pedidoId}`)
+  revalidatePath(`/pedidos/${pedidoId}`)
 }
 
 // ── Volver a pedir ──────────────────────────────────────────────────────────

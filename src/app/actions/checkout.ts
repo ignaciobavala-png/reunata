@@ -185,19 +185,16 @@ export async function iniciarCheckoutMP(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
-  // Precio Bruto por línea con la misma fórmula que el cliente (round(precio / (1 + iva)))
-  const subtotalBrutoMP = lineas.reduce((acc, l) => acc + Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad, 0)
 
-  // Descuento por volumen del canal — umbral y monto sobre el Precio Bruto (sin IVA);
+  // Descuento por volumen del canal — umbral y monto sobre el precio con IVA incluido;
   // se pliega por línea porque MP no admite unit_price negativo.
   const volMinMP = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
   const volPctMP = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotalBrutoMP >= volMinMP
+  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotal >= volMinMP
   const lineasFinales = lineas.map(l => {
     const totalLinea = l.precioUnit * l.cantidad
-    const brutoLinea = Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad
     const monto = aplicaVolumenCanalMP
-      ? totalLinea - Math.round(brutoLinea * volPctMP / 100)
+      ? totalLinea - Math.round(totalLinea * volPctMP / 100)
       : totalLinea
     return { ...l, monto }
   })
@@ -236,7 +233,7 @@ export async function iniciarCheckoutMP(
   if (user) {
     let q = service
       .from('pedidos')
-      .update({ estado: 'cancelado' })
+      .update({ estado: 'cancelado', editable: false })
       .eq('cliente_id', user.id)
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'mercadopago')
@@ -247,7 +244,7 @@ export async function iniciarCheckoutMP(
   } else if (guestData?.email) {
     let q = service
       .from('pedidos')
-      .update({ estado: 'cancelado' })
+      .update({ estado: 'cancelado', editable: false })
       .eq('guest_email', guestData.email.trim().toLowerCase())
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'mercadopago')
@@ -519,15 +516,12 @@ export async function iniciarCheckoutTransferencia(
   }
 
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
-  // Precio Bruto: derivado del precio con IVA redondeado, con la misma fórmula que el
-  // cliente (round(precio / (1 + iva))) para que ambos calculen idéntico descuento
-  const subtotalBruto = lineas.reduce((acc, l) => acc + Math.round(l.precioUnit / (1 + l.ivaRate)) * l.cantidad, 0)
 
-  // Descuento por volumen del canal — umbral y monto sobre el Precio Bruto (sin IVA)
+  // Descuento por volumen del canal — umbral y monto sobre el precio con IVA incluido
   const volMin = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
   const volPct = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotalBruto >= volMin
-    ? Math.round(subtotalBruto * volPct / 100)
+  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
+    ? Math.round(subtotal * volPct / 100)
     : 0
   const basePostVolumenCanal = subtotal - descuentoVolumenCanal
 
@@ -566,7 +560,7 @@ export async function iniciarCheckoutTransferencia(
   {
     let q = service
       .from('pedidos')
-      .update({ estado: 'cancelado' })
+      .update({ estado: 'cancelado', editable: false })
       .eq('estado', 'pendiente_pago')
       .eq('medio_pago', 'transferencia')
     q = user

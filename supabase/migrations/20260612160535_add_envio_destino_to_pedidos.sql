@@ -1,0 +1,10 @@
+-- Reconstruida el 2026-07-06: esta migración se había aplicado directo en la
+-- base (Studio/SQL manual) sin dejar archivo versionado.
+--
+-- No se pudo recuperar el DDL original exacto. Por el nombre y la fecha, agregó
+-- una primera versión de `pedidos.direccion_entrega_id`, columna que quedó
+-- completamente superada por 20260618000002_phase_c_credito_direcciones.sql
+-- (crea la tabla `direcciones_entrega` y vuelve a agregar la columna con
+-- `ADD COLUMN IF NOT EXISTS` + FK). No se repite el DDL acá para no arriesgar
+-- una definición distinta a la que terminó vigente — el estado final del
+-- esquema queda cubierto por esa migración posterior.

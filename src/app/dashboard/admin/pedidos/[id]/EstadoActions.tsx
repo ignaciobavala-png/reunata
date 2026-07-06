@@ -18,15 +18,24 @@ const TRANSICIONES: Record<string, { label: string; estado: string; danger?: boo
     { label: 'Confirmar pago',   estado: 'pago_confirmado' },
     { label: 'Cancelar pedido',  estado: 'cancelado', danger: true },
   ],
+  sena_confirmada:    [
+    { label: 'Confirmar saldo / pago final', estado: 'pago_confirmado' },
+    { label: 'Cancelar pedido',              estado: 'cancelado', danger: true },
+  ],
   pago_confirmado:    [{ label: 'Pasar a preparación', estado: 'en_preparacion' }],
   en_preparacion:     [{ label: 'Marcar como enviado', estado: 'enviado' }],
   enviado:            [{ label: 'Marcar como entregado', estado: 'entregado' }],
 }
 
-export function EstadoActions({ pedidoId, estadoActual }: { pedidoId: string; estadoActual: string }) {
+export function EstadoActions({ pedidoId, estadoActual, medioPago }: { pedidoId: string; estadoActual: string; medioPago?: string | null }) {
   const [pending, startTransition] = useTransition()
   const router = useRouter()
-  const opciones = TRANSICIONES[estadoActual] ?? []
+  const base = TRANSICIONES[estadoActual] ?? []
+  // La seña solo tiene sentido para efectivo, y solo antes de confirmar el pago completo.
+  const ofreceSena = medioPago === 'efectivo' && ['pendiente_pago', 'comprobante_subido'].includes(estadoActual)
+  const opciones = ofreceSena
+    ? [{ label: 'Confirmar seña (10%)', estado: 'sena_confirmada' }, ...base]
+    : base
 
   if (!opciones.length) return null
 

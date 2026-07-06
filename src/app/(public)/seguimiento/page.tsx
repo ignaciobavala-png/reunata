@@ -30,7 +30,7 @@ export default function SeguimientoPage() {
             Consultar por WhatsApp
           </a>
           <Link
-            href="/dashboard/cliente/pedidos"
+            href="/pedidos"
             className="px-6 py-3 text-sm font-medium rounded-full border transition-colors duration-200"
             style={{ borderColor: 'var(--color-granito-claro)', color: 'var(--color-granito-oscuro)' }}
           >
