@@ -541,7 +541,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const metodosSinIva = esMayorista && reglas
     ? METODOS_SIN_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
-  const metodosActivosActuales = facturaIva === 'con' ? metodosConIva : facturaIva === 'sin' ? metodosSinIva : []
 
   // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — sobre el precio ya descontado por volumen
   const descAutogestPct = esMayorista && reglas
@@ -596,7 +595,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     return basePostAutogestion
   }
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')
-  const totalBtnSinIva = basePostAutogestion
 
   // Ajuste a reflejar en el Total: si todavía no eligió forma de pago, usar el ajuste
   // representativo del tipo de facturación (Con IVA / Sin IVA) ya seleccionado, para
@@ -1116,6 +1114,126 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           ) : esMayorista ? (
             <div className="flex flex-col gap-3">
 
+              {/* Forma de pago — todas las opciones a la vez, agrupadas en dos columnas por tipo de factura */}
+              {(metodosConIva.length > 0 || metodosSinIva.length > 0) && (
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Forma de pago
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</p>
+                      {metodosConIva.map(k => (
+                        <label
+                          key={k}
+                          className="flex flex-col items-start gap-0.5 cursor-pointer px-2.5 py-2 rounded-lg border transition-colors"
+                          style={{
+                            borderColor: metodoPago === k ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                            background:  metodoPago === k ? 'var(--color-acero-brillo)' : 'white',
+                          }}
+                        >
+                          <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
+                            onChange={() => { setFacturaIva('con'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
+                          <span className="text-xs" style={{ color: 'var(--foreground)' }}>
+                            {METODO_LABEL[k] ?? k}
+                          </span>
+                          {mostrarPrecios && totalGeneral > 0 && (
+                            <span
+                              className="text-xs font-medium"
+                              style={{ color: totalMayoristaConMetodo(k) < totalBtnConIva ? '#16a34a' : 'var(--foreground)' }}
+                            >
+                              {formatPrecio(totalMayoristaConMetodo(k))}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</p>
+                      {metodosSinIva.map(k => (
+                        <label
+                          key={k}
+                          className="flex flex-col items-start gap-0.5 cursor-pointer px-2.5 py-2 rounded-lg border transition-colors"
+                          style={{
+                            borderColor: metodoPago === k ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
+                            background:  metodoPago === k ? 'var(--color-acero-brillo)' : 'white',
+                          }}
+                        >
+                          <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
+                            onChange={() => { setFacturaIva('sin'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
+                          <span className="text-xs" style={{ color: 'var(--foreground)' }}>
+                            {METODO_LABEL[k] ?? k}
+                          </span>
+                          {mostrarPrecios && totalGeneral > 0 && (
+                            <span
+                              className="text-xs font-medium"
+                              style={{ color: totalMayoristaConMetodo(k) < totalBtnConIva ? '#16a34a' : 'var(--foreground)' }}
+                            >
+                              {formatPrecio(totalMayoristaConMetodo(k))}
+                            </span>
+                          )}
+                          {k === 'transferencia_negro' && metodoPago === k && cbuSinIva && (
+                            <span className="text-xs mt-0.5 font-mono leading-relaxed" style={{ color: 'var(--color-acero-oscuro)' }}>
+                              {tipoCuentaSinIva === 'deposito' ? (
+                                <>
+                                  {cuitSinIva && `CUIT: ${cuitSinIva}`}{cuitSinIva && bancoSinIva && ' · '}{bancoSinIva && `Banco: ${bancoSinIva}`}
+                                  <br />CTA/CTE: {cbuSinIva}
+                                </>
+                              ) : (
+                                <>{aliasSinIva && `Alias: ${aliasSinIva}`}{aliasSinIva && ' · '}{tipoCuentaSinIva}: {cbuSinIva}</>
+                              )}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso línea de crédito */}
+              {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
+                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
+                    <p style={{ color: '#92400e' }}>
+                      Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.
+                      Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
+                    </p>
+                  </div>
+                  <a
+                    href="/cuenta/financiacion"
+                    className="self-start px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{ background: '#854d0e', color: '#fef9c3' }}
+                  >
+                    Calificar para pago diferido
+                  </a>
+                </div>
+              )}
+
+              {/* Aviso mínimo de compra */}
+              {minimoInsuficiente && reglas?.minimo_compra && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
+                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
+                </div>
+              )}
+
+              {/* Aviso descuento por volumen cercano */}
+              {faltaParaDescVolumen !== null && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
+                </div>
+              )}
+
+              {/* Dirección de retiro */}
+              {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-acero-brillo)', border: '1px solid var(--color-acero-claro)' }}>
+                  <p className="font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Dirección de retiro</p>
+                  <p style={{ color: 'var(--color-acero-oscuro)' }}>{reglas.direccion_negocio}</p>
+                </div>
+              )}
+
               {/* Selector de dirección de entrega */}
               {direcciones.length > 0 && (
                 <div>
@@ -1149,142 +1267,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
                   + Agregar dirección de entrega
                 </a>
-              )}
-
-              {/* Toggle Con IVA / Sin IVA */}
-              {(metodosConIva.length > 0 || metodosSinIva.length > 0) && (
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    Tipo de facturación
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {metodosConIva.length > 0 && (
-                      <label
-                        className="flex flex-col items-center justify-center p-2.5 rounded-lg border cursor-pointer transition-colors"
-                        style={{
-                          borderColor: facturaIva === 'con' ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
-                          background:  facturaIva === 'con' ? 'var(--color-acero-brillo)' : 'white',
-                        }}
-                      >
-                        <input type="radio" name="factura_iva" value="con" checked={facturaIva === 'con'}
-                          onChange={() => { setFacturaIva('con'); setMetodoPago(null); setComprobantePath(null) }} className="sr-only" />
-                        <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</span>
-                        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          {mostrarPrecios && totalGeneral > 0 ? formatPrecio(totalBtnConIva) : 'Factura A'}
-                        </span>
-                      </label>
-                    )}
-                    {metodosSinIva.length > 0 && (
-                      <label
-                        className="flex flex-col items-center justify-center p-2.5 rounded-lg border cursor-pointer transition-colors"
-                        style={{
-                          borderColor: facturaIva === 'sin' ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
-                          background:  facturaIva === 'sin' ? 'var(--color-acero-brillo)' : 'white',
-                        }}
-                      >
-                        <input type="radio" name="factura_iva" value="sin" checked={facturaIva === 'sin'}
-                          onChange={() => { setFacturaIva('sin'); setMetodoPago(null); setComprobantePath(null) }} className="sr-only" />
-                        <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</span>
-                        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          {mostrarPrecios && totalGeneral > 0 ? formatPrecio(totalBtnSinIva) : 'Precio base'}
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Métodos de pago filtrados por IVA */}
-              {facturaIva && metodosActivosActuales.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    Forma de pago
-                  </p>
-                  <div className="flex flex-col gap-1.5">
-                    {metodosActivosActuales.map(k => (
-                      <label
-                        key={k}
-                        className="flex items-start gap-2.5 cursor-pointer px-3 py-2.5 rounded-lg border transition-colors"
-                        style={{
-                          borderColor: metodoPago === k ? 'var(--color-granito-oscuro)' : 'var(--color-acero-claro)',
-                          background:  metodoPago === k ? 'var(--color-acero-brillo)' : 'white',
-                        }}
-                      >
-                        <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
-                          onChange={() => { setMetodoPago(k); setComprobantePath(null) }} className="flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm" style={{ color: 'var(--foreground)' }}>
-                            {METODO_LABEL[k] ?? k}
-                          </span>
-                          {k === 'transferencia_negro' && metodoPago === k && cbuSinIva && (
-                            <span className="text-xs mt-0.5 block font-mono leading-relaxed" style={{ color: 'var(--color-acero-oscuro)' }}>
-                              {tipoCuentaSinIva === 'deposito' ? (
-                                <>
-                                  {cuitSinIva && `CUIT: ${cuitSinIva}`}{cuitSinIva && bancoSinIva && ' · '}{bancoSinIva && `Banco: ${bancoSinIva}`}
-                                  <br />CTA/CTE: {cbuSinIva}
-                                </>
-                              ) : (
-                                <>{aliasSinIva && `Alias: ${aliasSinIva}`}{aliasSinIva && ' · '}{tipoCuentaSinIva}: {cbuSinIva}</>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                        {/* Total final del método en $ — verde cuando queda por debajo del precio con IVA */}
-                        {mostrarPrecios && totalGeneral > 0 && (
-                          <span
-                            className="text-xs font-medium flex-shrink-0"
-                            style={{ color: totalMayoristaConMetodo(k) < totalBtnConIva ? '#16a34a' : 'var(--foreground)' }}
-                          >
-                            {formatPrecio(totalMayoristaConMetodo(k))}
-                          </span>
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Aviso línea de crédito */}
-              {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
-                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
-                    <p style={{ color: '#92400e' }}>
-                      Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.
-                      Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
-                    </p>
-                  </div>
-                  <a
-                    href="/cuenta/financiacion"
-                    className="self-start px-3 py-1.5 rounded-lg text-xs font-medium"
-                    style={{ background: '#854d0e', color: '#fef9c3' }}
-                  >
-                    Calificar para pago diferido
-                  </a>
-                </div>
-              )}
-
-              {/* Dirección de retiro */}
-              {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-acero-brillo)', border: '1px solid var(--color-acero-claro)' }}>
-                  <p className="font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Dirección de retiro</p>
-                  <p style={{ color: 'var(--color-acero-oscuro)' }}>{reglas.direccion_negocio}</p>
-                </div>
-              )}
-
-              {/* Aviso mínimo de compra */}
-              {minimoInsuficiente && reglas?.minimo_compra && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
-                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
-                </div>
-              )}
-
-              {/* Aviso descuento por volumen cercano */}
-              {faltaParaDescVolumen !== null && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
-                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
-                </div>
               )}
 
               {/* Confirmar pedido (requiere IVA + método seleccionados) */}
