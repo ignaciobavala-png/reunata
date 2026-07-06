@@ -1120,7 +1120,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Forma de pago
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={metodosConIva.length > 0 && metodosSinIva.length > 0 ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}>
+                    {metodosConIva.length > 0 && (
                     <div className="flex flex-col gap-1.5">
                       <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</p>
                       {metodosConIva.map(k => (
@@ -1148,6 +1149,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                         </label>
                       ))}
                     </div>
+                    )}
+                    {metodosSinIva.length > 0 && (
                     <div className="flex flex-col gap-1.5">
                       <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</p>
                       {metodosSinIva.map(k => (
@@ -1187,6 +1190,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                         </label>
                       ))}
                     </div>
+                    )}
                   </div>
                 </div>
               )}
