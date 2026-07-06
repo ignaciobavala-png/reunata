@@ -103,20 +103,39 @@ Macrocategorías para el bento de portada.
 
 ### `pedidos`
 
+> Actualizado 2026-07-06. Estado (`estado`) y editabilidad (`editable`) son dos
+> columnas independientes — ver `docs/auditorias/pedidos-2026-07-06.md` para el
+> detalle de por qué se separaron y la máquina de transiciones completa.
+
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `cliente_id` | uuid FK → `profiles.id` | |
-| `estado` | text | CHECK: borrador, pendiente_pago, comprobante_subido, pago_confirmado, en_preparacion, enviado, entregado, cancelado |
-| `total_usd` | numeric | |
-| `medio_pago` | text | CHECK: mercadopago, transferencia_blanco, transferencia_cueva, efectivo, echeq_propio, echeq_tercero, cheque_fisico_propio, cheque_fisico_tercero, cuenta_corriente |
+| `cliente_id` | uuid FK → `profiles.id` | Nullable — pedidos de invitado (guest checkout) no tienen cliente asociado |
+| `empleado_id` | uuid FK → `profiles.id` | |
+| `comisionista_id` | uuid FK → `profiles.id` | |
+| `numero` | integer | Serial legible para el cliente/admin (secuencia propia). **Sin UNIQUE constraint** — pendiente de agregar |
+| `estado` | text | CHECK: `borrador`, `pendiente_pago`, `comprobante_subido`, `sena_confirmada`, `pago_confirmado`, `en_preparacion`, `enviado`, `entregado`, `cancelado`. Transiciones válidas centralizadas en `TRANSICIONES_PERMITIDAS` (`src/app/actions/pedidos.ts`) |
+| `editable` | boolean | NOT NULL default `true`. Independiente del label de `estado` — `true` mientras el pedido admite subir/reemplazar comprobante (`borrador`, `pendiente_pago`, `comprobante_subido`); `false` desde `sena_confirmada` en adelante |
+| `medio_pago` | text | CHECK ampliado varias veces: `efectivo`, `transferencia`, `transferencia_blanco`, `transferencia_cueva`, `echeq_propio`, `echeq_tercero`, `echeq_al_dia`, `cheque_propio`, `cheque_tercero`, `cuenta_corriente`, `mercadopago` |
 | `referencia_pago` | text | |
 | `pago_confirmado_por` | uuid | FK → `profiles.id` |
-| `fecha_pago` | timestamptz | |
-| `canal_id` | integer | FK → `canales.id` |
-| `comisionista_id` | uuid | FK → `profiles.id` |
+| `fecha_pago` | timestamptz | Se limpia (`null`) al confirmar seña o pago, y se vuelve a fijar al confirmar el pago final |
+| `expira_en` | timestamptz | Usada por el cron `api/pedidos/limpiar` para vencer pedidos `pendiente_pago` sin completar (transferencia y efectivo → vuelven a `borrador`; MercadoPago → `cancelado`) |
+| `nota_cancelacion` | text | |
 | `notas` | text | |
-| `created_at` | timestamptz | |
+| `descuento_sugerido` | numeric | |
+| `descuento_aprobado` | numeric | |
+| `descuento_nota` | text | |
+| `total_usd` | numeric | |
+| `costo_envio` | numeric | |
+| `envio_descripcion` | text | |
+| `envio_calle` / `envio_numero` / `envio_piso` | text | |
+| `envio_codigo_postal` / `envio_provincia` | text | |
+| `direccion_entrega_id` | uuid | FK → `direcciones_entrega.id` |
+| `guest_nombre` / `guest_email` / `guest_telefono` | text | Solo pedidos de invitado (`cliente_id` null) |
+| `mp_preference_id` / `mp_payment_id` | text | Solo pedidos pagados con Mercado Pago |
+| `factura_iva` | boolean | |
+| `created_at` / `updated_at` | timestamptz | |
 
 ### `pedido_items`
 Líneas de cada pedido con snapshot del precio.
@@ -128,6 +147,7 @@ Líneas de cada pedido con snapshot del precio.
 | `producto_id` | integer FK → `productos.id` |
 | `cantidad` | integer |
 | `precio_unit` | numeric |
+| `variante` | text |
 
 ### `comprobantes`
 Archivos de pago subidos por el cliente.
@@ -137,6 +157,20 @@ Archivos de pago subidos por el cliente.
 | `id` | serial PK |
 | `pedido_id` | uuid FK → `pedidos.id` |
 | `url` | text |
+| `subido_at` | timestamptz |
+
+### `pedido_estado_historial`
+Auditoría de cambios de estado: quién, cuándo, de qué estado a cuál. Se inserta
+automáticamente desde `actualizarEstadoPedido`. **Nota:** la pantalla de admin
+todavía no muestra este historial — falta la parte de UI.
+
+| Columna | Tipo |
+|---|---|
+| `id` | uuid PK |
+| `pedido_id` | uuid FK → `pedidos.id` |
+| `estado_anterior` | text |
+| `estado_nuevo` | text |
+| `usuario_id` | uuid FK → `profiles.id` |
 | `created_at` | timestamptz |
 
 ### `configuracion`
@@ -263,9 +297,10 @@ Resumen de políticas por tabla:
 | `producto_canales` | Lectura: según canal del usuario. Escritura: master |
 | `canales` | Lectura: autenticados. Escritura: master |
 | `categorias_home` | Lectura: público. Escritura: master |
-| `pedidos` | master = todos. cliente = propios. empleado = por asignar |
-| `pedido_items` | Misma lógica que pedidos (hereda visibilidad) |
-| `comprobantes` | master = todos. cliente = propios |
+| `pedidos` | master/empleado = todos (`FOR ALL`, vía service role en server actions). cliente/comisionista = **solo lectura** de lo propio (`FOR SELECT`, desde 2026-07-06 — antes era `FOR ALL` y un cliente podía escribir su propio pedido directo con `supabase-js`) |
+| `pedido_items` | Misma lógica que pedidos — cliente = solo lectura desde 2026-07-06 |
+| `comprobantes` | master/empleado = todos. cliente = solo lectura de lo propio desde 2026-07-06 |
+| `pedido_estado_historial` | Lectura: master, empleado. Escritura: solo service role (desde server actions) |
 | `configuracion` | Lectura: autenticados. Escritura: master |
 | `hero_assets` | Lectura: público. Escritura: master |
 | `ofertas` | Lectura: público. Escritura: master, empleado |
