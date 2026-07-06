@@ -72,7 +72,6 @@ export default async function MisPedidosPage() {
     .from('pedidos')
     .select('id, numero, estado, medio_pago, total_usd, created_at')
     .eq('cliente_id', user.id)
-    .neq('estado', 'borrador')
     .order('created_at', { ascending: false })
 
   const todos = pedidos ?? []

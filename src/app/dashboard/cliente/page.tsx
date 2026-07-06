@@ -35,7 +35,6 @@ export default async function ClienteDashboardPage() {
       .from('pedidos')
       .select('id, numero, estado, created_at, total_usd', { count: 'exact' })
       .eq('cliente_id', user.id)
-      .neq('estado', 'borrador')
       .order('created_at', { ascending: false })
       .limit(5),
     profile?.canal_id
