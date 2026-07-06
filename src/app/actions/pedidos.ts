@@ -52,10 +52,10 @@ const ESTADOS_EDITABLES = ['borrador', 'pendiente_pago', 'comprobante_subido']
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
   opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
-): Promise<string> {
+): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
+  if (!user) return { ok: false, error: 'No autenticado' }
 
   const service = createServiceClient()
 
@@ -65,7 +65,7 @@ export async function crearPedidoBorrador(
     .eq('id', user.id)
     .single()
 
-  if (!perfil?.aprobado) throw new Error('Tu cuenta aún no está aprobada para hacer pedidos.')
+  if (!perfil?.aprobado) return { ok: false, error: 'Tu cuenta aún no está aprobada para hacer pedidos.' }
 
   // Resolver lista de precios del canal del usuario
   const { data: canal } = await service
@@ -99,7 +99,7 @@ export async function crearPedidoBorrador(
       .neq('estado', 'cancelado'),
   ])
 
-  if (!productos?.length) throw new Error('Productos no disponibles.')
+  if (!productos?.length) return { ok: false, error: 'Productos no disponibles.' }
 
   // Validar múltiplos contra producto_canales
   const { data: productoCanalDb } = await service
@@ -112,7 +112,7 @@ export async function crearPedidoBorrador(
     const row = productoCanalDb?.find(r => r.producto_id === linea.productoId)
     const multiplo = row?.multiplo ?? 1
     if (multiplo > 1 && linea.cantidad % multiplo !== 0) {
-      throw new Error(`La cantidad de un producto debe ser múltiplo de ${multiplo}.`)
+      return { ok: false, error: `La cantidad de un producto debe ser múltiplo de ${multiplo}.` }
     }
   }
 
@@ -122,7 +122,7 @@ export async function crearPedidoBorrador(
     if (prod) {
       const disponible = stockDisponible(prod, linea.variante)
       if (disponible !== null && disponible < linea.cantidad) {
-        throw new Error(`Stock insuficiente para el producto #${linea.productoId}. Disponible: ${disponible}.`)
+        return { ok: false, error: `Stock insuficiente para el producto #${linea.productoId}. Disponible: ${disponible}.` }
       }
     }
   }
@@ -139,11 +139,11 @@ export async function crearPedidoBorrador(
     return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs, variante: l.variante ?? null }]
   })
 
-  if (lineasResueltas.length === 0) throw new Error('Ningún producto tiene precio configurado.')
+  if (lineasResueltas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
   // Nunca crear el pedido con menos ítems de los que el usuario ve en su carrito:
   // si un producto se desactivó o quedó sin precio para su lista, se rechaza todo.
   if (lineasResueltas.length !== lineas.length) {
-    throw new Error('Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.')
+    return { ok: false, error: 'Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.' }
   }
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
@@ -184,7 +184,7 @@ export async function crearPedidoBorrador(
   // Validar mínimo de compra — sobre el total final, con todos los descuentos ya aplicados
   const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
   if (minimoCompra && totalFinal < minimoCompra) {
-    throw new Error(`El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`)
+    return { ok: false, error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.` }
   }
 
   const notaPartes: string[] = []
@@ -219,7 +219,7 @@ export async function crearPedidoBorrador(
     .select('id')
     .single()
 
-  if (error || !pedido) throw new Error(error?.message ?? 'Error creando pedido')
+  if (error || !pedido) return { ok: false, error: error?.message ?? 'Error creando pedido' }
 
   const { error: itemsError } = await service.from('pedido_items').insert(
     lineasResueltas.map(l => ({
@@ -232,7 +232,7 @@ export async function crearPedidoBorrador(
   )
   if (itemsError) {
     await service.from('pedidos').delete().eq('id', pedido.id)
-    throw new Error('Error al registrar los ítems del pedido. Intentá de nuevo.')
+    return { ok: false, error: 'Error al registrar los ítems del pedido. Intentá de nuevo.' }
   }
 
   if (tieneComprobante) {
@@ -240,7 +240,7 @@ export async function crearPedidoBorrador(
   }
 
   revalidatePath('/pedidos')
-  return pedido.id
+  return { ok: true, pedidoId: pedido.id }
 }
 
 export async function subirComprobante(pedidoId: string, path: string) {

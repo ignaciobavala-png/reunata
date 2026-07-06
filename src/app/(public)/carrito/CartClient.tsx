@@ -441,15 +441,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     if (!metodoPago || !facturaIva) { setErrorPago('Seleccioná tipo de facturación y forma de pago.'); return }
     setPagando(true)
     setErrorPago(null)
-    try {
-      const pedidoId = await crearPedidoBorrador(
-        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
-        { medioPago: metodoPago, facturaIva: facturaIva === 'con', comprobantePath: comprobantePath ?? undefined },
-      )
+    const result = await crearPedidoBorrador(
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      { medioPago: metodoPago, facturaIva: facturaIva === 'con', comprobantePath: comprobantePath ?? undefined },
+    )
+    if (result.ok && result.pedidoId) {
       clear()
-      router.push(`/pedidos/${pedidoId}`)
-    } catch (e) {
-      setErrorPago(e instanceof Error ? e.message : 'Error al confirmar el pedido. Intentá de nuevo.')
+      router.push(`/pedidos/${result.pedidoId}`)
+    } else {
+      setErrorPago(result.error ?? 'Error al confirmar el pedido. Intentá de nuevo.')
       setPagando(false)
     }
   }

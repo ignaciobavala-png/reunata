@@ -34,16 +34,15 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
     if (items.length === 0) return
     setEnviando(true)
     setErrorEnvio(null)
-    try {
-      const pedidoId = await crearPedidoBorrador(
-        items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante }))
-      )
+    const result = await crearPedidoBorrador(
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante }))
+    )
+    if (result.ok && result.pedidoId) {
       clear()
       setCartOpen(false)
-      router.push(`/pedidos/${pedidoId}`)
-    } catch (e) {
-      setErrorEnvio(e instanceof Error ? e.message : 'Error al enviar el pedido. Intentá de nuevo.')
-    } finally {
+      router.push(`/pedidos/${result.pedidoId}`)
+    } else {
+      setErrorEnvio(result.error ?? 'Error al enviar el pedido. Intentá de nuevo.')
       setEnviando(false)
     }
   }
