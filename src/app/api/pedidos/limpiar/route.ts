@@ -19,18 +19,20 @@ export async function POST(req: NextRequest) {
 
   const ahora = new Date().toISOString()
 
-  // Transferencia vencida → borrador (el cliente puede retomarla con precios actualizados)
+  // Transferencia o efectivo vencidos → borrador (el cliente puede retomarlo con precios
+  // actualizados). Efectivo no tiene comprobante que lo distinga de una intención sin
+  // confirmar, así que se trata igual que transferencia — nunca se cancela de una.
   const { data: revertidos, error: errRevertir } = await supabase
     .from('pedidos')
     .update({ estado: 'borrador', editable: true, expira_en: null })
     .eq('estado', 'pendiente_pago')
-    .eq('medio_pago', 'transferencia')
+    .in('medio_pago', ['transferencia', 'efectivo'])
     .lt('expira_en', ahora)
     .not('expira_en', 'is', null)
     .select('id')
 
   if (errRevertir) {
-    console.error('[pedidos/limpiar] revertir transferencia:', errRevertir)
+    console.error('[pedidos/limpiar] revertir transferencia/efectivo:', errRevertir)
     return NextResponse.json({ ok: false, error: errRevertir.message }, { status: 500 })
   }
 
@@ -63,6 +65,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: errBorradores.message }, { status: 500 })
   }
 
-  console.log(`[pedidos/limpiar] Revertidos: ${revertidos?.length ?? 0} transferencia | Cancelados: ${cancelados?.length ?? 0} mp | Borradores vencidos: ${borradoresCancelados?.length ?? 0}`)
+  console.log(`[pedidos/limpiar] Revertidos: ${revertidos?.length ?? 0} transferencia/efectivo | Cancelados: ${cancelados?.length ?? 0} mp | Borradores vencidos: ${borradoresCancelados?.length ?? 0}`)
   return NextResponse.json({ ok: true, revertidos: revertidos?.length ?? 0, cancelados: cancelados?.length ?? 0, borradores: borradoresCancelados?.length ?? 0 })
 }

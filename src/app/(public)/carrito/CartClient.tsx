@@ -18,11 +18,6 @@ const WA_NUMBER = '5491132720974'
 
 const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
 const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
-const METODOS_CON_COMPROBANTE = new Set([
-  'transferencia', 'transferencia_negro', 'transferencia_blanco',
-  'echeq_al_dia', 'echeq_propio', 'echeq_tercero',
-  'cheque_fisico_al_dia', 'cheque_fisico_financiado',
-])
 const METODO_LABEL: Record<string, string> = {
   efectivo:             'Efectivo',
   transferencia_negro:  'Transferencia',
@@ -507,18 +502,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       }, 0)
     : totalGeneral
 
-  // Descuento por volumen del canal — toma como referencia el Precio Bruto (sin IVA),
-  // tanto para el umbral como para el monto. Mismo criterio que el server (checkout.ts).
+  // Descuento por volumen del canal — toma como referencia el precio con IVA incluido
+  // (totalGeneral), tanto para el umbral como para el monto. Mismo criterio que el
+  // server (checkout.ts).
   const descVolCanalMin = reglas?.desc_volumen_monto_min ?? null
   const descVolCanalPct = reglas?.desc_volumen_pct ?? 0
-  const ajusteVolumenCanal = descVolCanalMin !== null && descVolCanalPct > 0 && totalSinIVA >= descVolCanalMin
-    ? -Math.round(totalSinIVA * descVolCanalPct / 100)
+  const ajusteVolumenCanal = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral >= descVolCanalMin
+    ? -Math.round(totalGeneral * descVolCanalPct / 100)
     : 0
   const basePostVolumenCanal = totalGeneral + ajusteVolumenCanal
 
-  // Cuánto falta para alcanzar el descuento por volumen del canal (en Precio Bruto)
-  const faltaParaDescVolumen = descVolCanalMin !== null && descVolCanalPct > 0 && totalSinIVA < descVolCanalMin
-    ? descVolCanalMin - totalSinIVA
+  // Cuánto falta para alcanzar el descuento por volumen del canal
+  const faltaParaDescVolumen = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral < descVolCanalMin
+    ? descVolCanalMin - totalGeneral
     : null
 
   // Métodos disponibles para consumidor_final (leídos de reglas del canal).
@@ -557,13 +553,22 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
 
   // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
+  const ajustePct = metodoPago && reglas
+    ? metodoPago === 'efectivo'
+      ? (reglas.desc_efectivo_pct ?? 0)
+      : metodoPago === 'transferencia_negro'
+        ? (reglas.desc_transferencia_pct ?? 0)
+        : metodoPago === 'transferencia_blanco'
+          ? (reglas.recargo_transf_blanco_pct ?? 21)
+          : 0
+    : 0
   const ajuste = metodoPago && reglas
     ? metodoPago === 'efectivo'
-      ? -Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
+      ? -Math.round(basePostAutogestion * ajustePct / 100)
       : metodoPago === 'transferencia_negro'
-        ? -Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
+        ? -Math.round(basePostAutogestion * ajustePct / 100)
         : metodoPago === 'transferencia_blanco'
-          ? Math.round(basePostAutogestion * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+          ? Math.round(basePostAutogestion * ajustePct / 100)
           : 0
     : 0
 
@@ -593,9 +598,18 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')
   const totalBtnSinIva = basePostAutogestion
 
+  // Ajuste a reflejar en el Total: si todavía no eligió forma de pago, usar el ajuste
+  // representativo del tipo de facturación (Con IVA / Sin IVA) ya seleccionado, para
+  // que el Total cambie sin necesidad de marcar una forma de pago primero.
+  const ajusteEfectivo = metodoPago
+    ? ajuste
+    : facturaIva === 'con'
+      ? totalBtnConIva - basePostAutogestion
+      : 0
+
   // Base para evaluar mínimo de compra / envío gratis: post-descuentos, pre-envío
   const totalPostDescuentoPreEnvio = esMayorista
-    ? basePostAutogestion + ajuste
+    ? basePostAutogestion + ajusteEfectivo
     : basePostVolumenCanal + ajusteTransfMinorista
 
   // Envío gratis — mismo criterio que el server, evaluado sobre el total vigente
@@ -609,7 +623,14 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const costoEnvio = envioSeleccionado ? (envioEsGratis ? 0 : envioSeleccionado.costo) : 0
 
   const totalConEnvio = basePostVolumenCanal + ajusteTransfMinorista + costoEnvio
-  const totalFinal = basePostAutogestion + ajuste + costoEnvio
+  const totalFinal = basePostAutogestion + ajusteEfectivo + costoEnvio
+
+  // "Precio sin impuestos nacionales" a mostrar chico bajo el Total
+  const netTotalDisplay = esMayorista
+    ? (enConIva ? Math.round(totalFinal / (1 + recargoIvaPct / 100)) : totalFinal)
+    : (totalGeneral > 0
+        ? Math.round((totalConEnvio - costoEnvio) * (totalSinIVA / totalGeneral)) + costoEnvio
+        : totalConEnvio)
 
   // Cuánto falta para alcanzar el envío gratis (umbral aplicable más cercano)
   const umbralEnvioAplicable = esAmbaEnvio && umbralAmba !== null
@@ -850,22 +871,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
             {mostrarPrecios && totalGeneral > 0 && (
               <>
-                {/* Desglose IVA — minoristas y guests: primero el precio con IVA
-                    (es lo que pagan), abajo el valor sin impuestos como referencia */}
+                {/* Subtotal — minoristas y guests: precio final que pagan.
+                    Mayoristas: precio con IVA incluido, con el descuento de IVA
+                    debajo cuando facturan sin IVA. */}
                 {!esMayorista ? (
                   <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    <span>Subtotal (IVA incluido)</span>
+                    <span>Subtotal</span>
                     <span>{formatPrecio(totalGeneral)}</span>
                   </div>
                 ) : (
                   <>
                     <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Subtotal (IVA incluido)</span>
+                      <span>Subtotal</span>
                       <span>{formatPrecio(totalConIvaMayorista)}</span>
-                    </div>
-                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Precio Bruto</span>
-                      <span>{formatPrecio(totalGeneral)}</span>
                     </div>
                     {/* Al facturar sin IVA, el IVA se resta del precio de arranque como descuento */}
                     {!enConIva && descIvaMayorista > 0 && (
@@ -887,7 +905,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 {/* Con "Con IVA" el total ya incluye el IVA — no se muestra recargo en rojo */}
                 {ajuste < 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. ({METODO_LABEL[metodoPago!] ?? metodoPago})</span>
+                    <span>Desc. ({METODO_LABEL[metodoPago!] ?? metodoPago}) ({ajustePct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajuste))}</span>
                   </div>
                 )}
@@ -899,7 +917,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 )}
                 {ajusteAutogestion !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. web</span>
+                    <span>Desc. web ({descAutogestPct}%)</span>
                     <span>-{formatPrecio(Math.abs(dispAutogestion))}</span>
                   </div>
                 )}
@@ -913,6 +931,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                   <span>Total</span>
                   <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
+                </div>
+                <div className="flex justify-between text-xs -mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span>Precio sin impuestos nacionales:</span>
+                  <span>{formatPrecio(netTotalDisplay)}</span>
                 </div>
                 {!esMayorista && metodoPagoMinorista !== 'transferencia' && (
                   <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -1101,7 +1123,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
                       Dirección de entrega
                     </p>
-                    <a href="/cuenta/direcciones" className="text-xs underline"
+                    <a href="/cuenta/direcciones?from=carrito" className="text-xs underline"
                       style={{ color: 'var(--color-acero-oscuro)' }}>
                       Gestionar
                     </a>
@@ -1122,7 +1144,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               )}
 
               {direcciones.length === 0 && (
-                <a href="/cuenta/direcciones"
+                <a href="/cuenta/direcciones?from=carrito"
                   className="text-xs py-2 px-3 rounded-lg border border-dashed text-center transition-colors"
                   style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}>
                   + Agregar dirección de entrega
@@ -1224,13 +1246,21 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Aviso línea de crédito */}
               {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
-                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-1" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
-                  <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
-                  <p style={{ color: '#92400e' }}>
-                    Tu canal permite operar con cheques a plazo, pero necesitás una{' '}
-                    <a href="/cuenta/financiacion" className="underline font-medium">línea de crédito aprobada</a>.
-                    Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
-                  </p>
+                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
+                    <p style={{ color: '#92400e' }}>
+                      Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.
+                      Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
+                    </p>
+                  </div>
+                  <a
+                    href="/cuenta/financiacion"
+                    className="self-start px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{ background: '#854d0e', color: '#fef9c3' }}
+                  >
+                    Calificar para pago diferido
+                  </a>
                 </div>
               )}
 
@@ -1255,17 +1285,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
                 </div>
-              )}
-
-              {/* Uploader de comprobante (mayorista, métodos que lo requieren) */}
-              {facturaIva && metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago) && (
-                <UploaderComprobante
-                  path={comprobantePath}
-                  uploading={uploadingComp}
-                  error={compError}
-                  onFile={handleUploadComprobante}
-                  onClear={() => { setComprobantePath(null); setCompError(null) }}
-                />
               )}
 
               {/* Confirmar pedido (requiere IVA + método seleccionados) */}
@@ -1302,7 +1321,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 }}
               >
                 <WhatsAppIcon />
-                Pedir por WhatsApp
+                Consultanos por WhatsApp
               </a>
 
               {errorPago && (

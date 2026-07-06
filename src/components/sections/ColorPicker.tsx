@@ -79,13 +79,21 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
 
+// Variantes que expresan una medida (ej. bombillas: "15CM", "20 CM") en vez de un color.
+function esMedida(nombre: string): boolean {
+  return /\d/.test(nombre)
+}
+
 export function ColorPicker({ variantes, selected, onSelect }: Props) {
   if (!variantes || variantes.length === 0) return null
+
+  const todasMedidas = variantes.every(v => esMedida(v.nombre))
+  const label = todasMedidas ? 'Medida' : 'Color'
 
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Color:{' '}
+        {label}:{' '}
         {selected && (
           <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>
             {capitalize(selected)}
@@ -96,6 +104,27 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
         {variantes.map(v => {
           const sinStock = v.stock <= 0
           const isSelected = selected === v.nombre
+          if (todasMedidas) {
+            return (
+              <button
+                key={v.nombre}
+                onClick={() => !sinStock && onSelect(v.nombre)}
+                disabled={sinStock}
+                title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
+                aria-pressed={isSelected}
+                className="rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed"
+                style={{
+                  border: `1px solid ${isSelected ? 'var(--foreground)' : 'var(--color-acero-claro)'}`,
+                  color: sinStock ? 'var(--color-acero-oscuro)' : 'var(--foreground)',
+                  background: isSelected ? 'var(--color-acero-brillo)' : 'transparent',
+                  opacity: sinStock ? 0.5 : 1,
+                  textDecoration: sinStock ? 'line-through' : 'none',
+                }}
+              >
+                {capitalize(v.nombre)}
+              </button>
+            )
+          }
           return (
             <button
               key={v.nombre}

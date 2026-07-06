@@ -320,6 +320,9 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
   }
 
   const updates: Record<string, unknown> = { estado, editable: ESTADOS_EDITABLES.includes(estado) }
+  if (estado === 'sena_confirmada') {
+    updates.expira_en = null
+  }
   if (estado === 'pago_confirmado') {
     updates.fecha_pago = new Date().toISOString()
     updates.expira_en = null

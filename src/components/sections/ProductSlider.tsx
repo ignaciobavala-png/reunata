@@ -40,7 +40,7 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
           Más elegidos
         </h2>
         <Link
-          href="/tienda"
+          href="/tienda/mas-vendidos"
           className="text-[10px] tracking-widest uppercase text-[var(--color-granito-claro)] hover:text-[var(--foreground)] transition-colors"
         >
           Ver todo

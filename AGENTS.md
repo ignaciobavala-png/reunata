@@ -1,175 +1,106 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# AGENTS.md — web
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+> Generado automáticamente por brain-agents-inject desde brain-data.
+> No editar manualmente — se sobreescribe al abrir Claude Code.
 
-<!-- BEGIN:deploy-rules -->
-## Regla de pushes
+## Proyecto
 
-- Hacer commits locales a medida que se avanza
-- **NO hacer push sin que el usuario lo pida explícitamente**
-- Solo pushear cuando los cambios estén consolidados (evitar deploys innecesarios en Vercel)
-<!-- END:deploy-rules -->
+| Campo | Valor |
+|-------|-------|
+| Nombre | web |
+| Tipo | — |
+| Cliente | — |
+| Stack | Next.js 16.2.4 + React 19.2.4 + Supabase + Tailwind v4 + Framer Motion + Zustand |
+| Estado | desconocido |
+| Último commit | — |
 
-<!-- BEGIN:conventions -->
-## Convenciones críticas del proyecto
+## Perfil del desarrollador
 
-### Next.js 16.x — interceptación de requests
-El archivo de middleware se llama `proxy.ts` (no `middleware.ts`) y exporta `proxy` (no `middleware`). El matcher excluye `auth/` para no romper el code_verifier de PKCE.
+# SKILL — perfil-desarrollador
 
-### Supabase browser client — nunca a nivel módulo
-`createClient()` ejecutado fuera de `useEffect`/`useRef` falla en SSR (Turbopack lo ejecuta en el servidor). Patrón correcto para handlers:
-```ts
-const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-function getSupabase() {
-  if (!supabaseRef.current) supabaseRef.current = createClient()
-  return supabaseRef.current
-}
+## Descripción
+Perfil técnico del desarrollador Ignacio Bavala. Define el stack tecnológico, convenciones y preferencias para cualquier proyecto nuevo.
+
+## Cuándo usarla
+- Al iniciar un proyecto nuevo
+- Cuando necesites saber qué stack usar por defecto
+- Para mantener consistencia tecnológica entre proyectos
+
+## Stack por defecto para nuevos proyectos
+
 ```
-Para `useEffect`-only: instanciar dentro del efecto.
+Framework:    Next.js 16 (App Router)
+UI:           React 19 + Tailwind CSS v4 + Framer Motion v12
+Estado:       Zustand v5
+DB:           Supabase (PostgreSQL + Auth + Storage + RLS)
+Deploy:       Vercel
+Package:      pnpm
+Linting:      ESLint 9 (flat config)
+Lenguaje:     TypeScript strict
+```
 
-### Zustand persist + SSR
-`useCartStore` rehidrata desde `localStorage` en cliente. Cualquier UI que dependa de su estado necesita un flag `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`); renderizar condicionalmente cuando `mounted === true`.
+## Convenciones
 
-### Precios
-- Siempre leídos desde DB (`precio_lista1/2/3/5`), nunca desde el cliente.
-- Moneda: **ARS** (pesos argentinos). Formato con `formatPrecio()` → `$ X.XXX` (`es-AR`).
-- Gesu mapea: Lista1→Distribuidor, Lista2→Local, Lista3→Mercha, Lista4→sin asignar, Lista5→Consumidor Final.
-- La columna en DB se llama `total_usd` (legacy cosmético, no renombrar sin migración).
-<!-- END:conventions -->
+- Server Components por defecto, Client Components solo cuando hay interactividad
+- State global con Zustand v5 (no Context a menos que sea trivial)
+- Animaciones con Framer Motion v12
+- Estilos con Tailwind v4, configuración vía CSS `@theme` tokens
+- Migraciones SQL como archivos `.sql` planos
+- `vercel.json` con crons para keep-alive de Supabase
+- Cada proyecto necesita su `AGENTS.md`
+- **Next.js 16**: `middleware.ts` fue renombrado a `proxy.ts`; exportar `export function proxy(request)` en vez de `middleware`. Runtime Node.js por defecto. Codemod: `npx @next/codemod@canary middleware-to-proxy .`
+- Sin testing, sin Docker
+- Sin CSS-in-JS más allá de Tailwind
+- `@/*` como path alias (apunta a `./*` o `./src/*`)
+- **No subir binarios a git/GitHub** (fonts, imágenes pesadas, videos, PDFs): no se comprimen, no se pueden diffear, inflan el clone para siempre aunque se borren después, y hay límites duros de tamaño en GitHub. Para assets de proyecto usar Supabase Storage o Vercel Blob y referenciar por URL. Excepción: binarios chicos e imprescindibles para el build (ej. un logo o una fuente puntual) pueden ir directo al repo.
 
-<!-- BEGIN:architecture -->
-## Arquitectura — tienda por canal
+## ESLint
 
-### `src/lib/tienda.ts`
-- `resolverCanalTienda()`: sesión → canal de venta → lista de precios.
-  - Usuario con `canal_id` + `aprobado=true` → `mostrarPrecios=true`, devuelve `listaPrecio`.
-  - Mayorista (`distribuidor|local|mercha`) con `aprobado=false` → `pendienteAprobacion=true`.
-  - `consumidor_final` sin `canal_id` → escribe `canal_id` + `aprobado=true` al perfil en DB (necesario para que RLS funcione en browser). Solo ocurre en el primer acceso.
-  - Fallback (sin sesión): usa canal `consumidor_final` con `mostrarPrecios=true` (Lista 5 pública). Canal `publico` eliminado de DB.
-  - Canal `fabricantes`: existe solo para asignación manual desde admin. No tiene rol en `profiles` ni flujo de registro automático.
-- `getProductosDelCanal(canalId)`: devuelve `{ ids, multiplos }` desde `producto_canales`.
+Usar flat config (`eslint.config.mjs`):
+```js
+import { dirname } from "path"
+import { fileURLToPath } from "url"
+import { FlatCompat } from "@eslint/eslintrc"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const compat = new FlatCompat({ baseDirectory: __dirname })
+const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript")]
+export default eslintConfig
+```
 
-### Sync Gesu (`src/app/api/sync/productos/route.ts`)
-- Cada sync reactiva productos que vienen de Gesu (`activo: true` en upsert).
-- Categorías nuevas en Gesu → `categorias_home` creada con `activo: true` automáticamente.
-- Al final de cada sync: filas de `categorias_home` sin productos activos → `activo: false`.
-- `keysAsignadas` solo cuenta categorías activas.
-- `aprobarCliente()` en `actions/clientes.ts`: al aprobar, asigna `canal_id` cuyo slug coincide con `profiles.rol`.
-- Filtro `CATEGORIAS_INTERNAS` excluye: `Preventa *`, `Productos Importados`, `Productos en Desarrollo`, `Bienes de Uso`, categorías `M)*` y `O)*`.
+## Skills relevantes para este proyecto
 
-### Hero carousel — video externo
-`hero_assets.url` puede ser path de Storage (`hero/archivo.mp4`) o URL completa (YouTube/Vimeo). `getEmbedUrl()` en `HeroCarousel.tsx` detecta el tipo y renderiza `<iframe>` o `<video>`. Al eliminar: omitir llamada a Storage si `url.startsWith('http')`.
+Leer el archivo completo solo si la tarea actual lo requiere — esta lista es solo un índice.
 
-### Auth
-- `SupabaseAuthListener` (root layout): llama `router.refresh()` en `SIGNED_IN` y `TOKEN_REFRESHED`.
-- `auth/callback/route.ts`: escribe cookies de sesión directamente en `NextResponse`.
-- `(public)/layout.tsx`: async, obtiene sesión server-side, pasa `user` a `Header` y monta `CartDrawer` con `tipoCliente` y `aprobado` resueltos server-side.
-- `src/app/page.tsx` (homepage `/`): también lee sesión y pasa `user` al Header (está fuera del grupo `(public)`).
-
-### CartDrawer
-- Montado en `(public)/layout.tsx` — disponible en todas las páginas públicas excepto `/carrito` (se suprime con `usePathname`).
-- Estado de apertura via `cartStore.cartOpen / setCartOpen` (no estado local).
-- `tipoCliente`: `'mayorista'` para `distribuidor|local|mercha`, `'minorista'` para el resto.
-- `aprobado`: leído de `profiles.aprobado`; si es `false`, muestra mensaje en lugar del botón "Enviar pedido".
-- `AddToCartButton` llama `setCartOpen(true)` al agregar; el ícono del Header también abre el drawer.
-- Fotos de producto renderizadas en cada ítem del drawer (64×64, fallback `ShoppingBag`).
-- `+/-` respetan `item.multiplo` (bug corregido en esta sesión).
-<!-- END:architecture -->
-
-<!-- BEGIN:schema -->
-## Tablas y buckets relevantes
-
-| Tabla | RLS — lectura | RLS — escritura |
-|---|---|---|
-| `hero_assets` | pública | master/empleado |
-| `ofertas` | pública | master/empleado |
-| `banners` | pública | master/empleado |
-| `configuracion` | pública | master/empleado |
-| `comunidad_fotos` | pública | master/empleado |
-| `newsletter_suscriptores` | master/empleado | pública (INSERT) |
-| `postulaciones` | master/empleado | pública (INSERT, rate limit 5/h por IP) |
-| `corporativos` | master/empleado | pública via service client |
-| `catalogos` | master/empleado/comisionista/distribuidor/local/mercha | master/empleado |
-| `categorias_home` | pública | master/empleado |
-| `producto_canales` | — | master/empleado |
-
-### Columnas clave
-- `pedidos`: `cliente_id` nullable, `guest_nombre`, `guest_email`, `guest_telefono`, `mp_preference_id`, `mp_payment_id`
-- `productos`: `es_novedad boolean DEFAULT false`
-- `producto_canales`: `multiplo integer DEFAULT 1`
-- `profiles`: `razon_social`, `direccion`, `localidad`, `sitio_web`, `puntos_venta`
-- `categorias_home`: `foto_url text`, `href text`
-- `corporativos`: `logo_url text`
-
-### Buckets Storage
-`cv`, `multimedia` (categorías, banners, hero), `corporativos` (logos, adjuntos), `catalogos` (PDF privado, 20MB)
-<!-- END:schema -->
-
-<!-- BEGIN:features -->
-## Features implementadas (resumen)
-
-- **Postulaciones** — 3 formularios (fulltime/comisionista/proveedor), CV upload, panel admin con filtros
-- **Hero carousel** — assets en Storage + YouTube/Vimeo embed; panel de gestión con editor de contenido
-- **CategoryGallery** — grilla 4 col desktop, foto de portada manual o fallback a productos, auto-sincronizada con Gesu
-- **FloatingActions** — WhatsApp, Ofertas, Hot Sale; drawers con productos de tabla `ofertas`
-- **Tienda por canal** — precios diferenciados por rol; `PendingApproval` para mayoristas sin aprobar
-- **PromoTicker** — animación por píxeles absolutos (velocidad uniforme mobile/desktop); configurable desde DB
-- **Carrito** — Zustand persist, multiplos de cantidad, guest checkout (sin sesión), Mercado Pago Checkout Pro. Página `/carrito`: título clickeable por producto, botón vaciar con confirmación, banner `mediosdepago.png` (minoristas/guests).
-- **CartDrawer lateral** — conectado a `cartStore`, se abre al agregar producto, fotos en ítems, suprimido en `/carrito`.
-- **Ficha de producto** — selector de cantidad con stepper (respeta múltiplo), sección "Medios de pago" diferenciada por rol.
-- **Mercado Pago** — `iniciarCheckoutMP()` crea pedido + preferencia; webhook IPN en `/api/mp/webhook` (lee body JSON v2 + fallback query params v1, verifica HMAC-SHA256 con `MP_WEBHOOK_SECRET`); rollback si MP falla.
-- **Newsletter** — suscripción pública, panel admin con exportar CSV
-- **Catálogos** — PDFs privados, signed URL 1h, solo roles habilitados
-- **Corporativos** — formulario público con logo upload, panel admin con detalle expandible
-- **Comunidad / Instagram** — `comunidad_fotos`, slider en homepage, oculto si vacío
-- **Ofertas / Hot Sale** — tabla `ofertas`, panel editable con auto-sync precio⟷% descuento
-- **Diseño** — 8 color pickers, `ThemeProvider` inyecta CSS vars, guardado en `configuracion`
-- **Banco de imágenes** — gate server-side (sin sesión / pendiente / aprobado), URL Drive desde `configuracion`
-- **Sidebar admin** — 5 grupos colapsables con acordeón y auto-expand por ruta activa
-- **Roles** — `consumidor_final|distribuidor|local|mercha` no tienen `/dashboard`; rutas públicas `/cuenta` y `/pedidos`
-- **Navbar** — sesión server-side, dropdown según rol, categorías desde DB
-- **Páginas provisorias** — 12 rutas cubiertas: `/eventos`, `/franquicias`, `/faq`, `/terminos`, etc.
-- **Loading skeletons** — 8 rutas con `loading.tsx`: `/tienda`, `/tienda/[slug]`, `/tienda/p/[id]`, `/catalogo`, `/favoritos`, `/dashboard`, `/dashboard/admin/productos`, `/dashboard/admin/multimedia`
-- **Detalle de pedido** — muestra desglose Subtotal + Envío cuando hay costo de envío; `PagoInstrucciones` también lo desglosa en instrucciones de transferencia
-- **Botón "Ver tienda"** — hero redirige correctamente a `/tienda` (se removió el Hero duplicado que tenía esa página)
-- **Admin pedidos — detalle y gestión** — `/dashboard/admin/pedidos/[id]`: ítems, cliente (registrado o "No registrado"), medio de pago, notas, comprobantes con signed URL 1h. `EstadoActions` permite avanzar estado según máquina de estados (pendiente→confirmado→preparación→enviado→entregado / cancelar). `actualizarEstadoPedido` escribe `fecha_pago` al confirmar. Lista con botón "Ver / Gestionar" por fila.
-- **Webhook MP corregido** — `MP_WEBHOOK_SECRET` tenía `\n` en Vercel; re-cargado sin newline. Webhooks de MP ahora verifican HMAC correctamente y actualizan pedidos automáticamente.
-<!-- END:features -->
-
-<!-- BEGIN:pending -->
-## Pendiente
-
-### Variables de entorno para producción
-- `MP_ACCESS_TOKEN` — ✅ configurado con token de producción
-- `NEXT_PUBLIC_APP_URL` — ✅ `https://reunata.vercel.app` (actualizar cuando haya dominio propio)
-- `MP_WEBHOOK_SECRET` — ✅ configurado y verificado (sin `\n` al final)
-
-### Pre-lanzamiento obligatorio (ver `docs/auditorias/auditoria.md` y `docs/roadmap/checklist-lanzamiento.md`)
-- **Email confirmación Supabase** — verificar que el template apunte al dominio de producción, no localhost
-- **Dominio propio** — completar verificación Google Search Console (`docs/integraciones/google-oauth-dominio.md`)
-- **#35 Filtros en tienda** — auditar atributos en tabla `productos`; posiblemente requiere tabla `atributos`
-
-### Backlog — primera semana post-lanzamiento
-
-| # | Archivo | Fix |
-|---|---------|-----|
-| **#8** | ✅ resuelto | `formatPrecio()` ya aplicado en OfferDrawer |
-| **#7** | ✅ resuelto | `expira_en` en DB + cron `/api/pedidos/limpiar` a las 3am en `vercel.json` |
-| **#11** | `lib/tienda.ts:75` | `resolverCanalTienda`: el write de auto-reparación de `consumidor_final` ocurre en cada request; mover a middleware o cachear en cookie |
-| **#13** | ✅ resuelto | `auth/callback` ya usa `.upsert()` — race condition con `handle_new_user()` cubierta |
-| **H** | ✅ resuelto | `precioSelect` ya incluye las 5 listas; `extraerPrecio()` usa `listaPrecio` del canal del usuario |
-| **F5/B6** | ✅ resuelto | `/api/carrito/precios` existe y CartClient lo llama al montar; muestra banner si los precios cambiaron |
-
-### Mejoras (cuando haya bandwidth)
-
-| # | Fix |
-|---|-----|
-| **#12** | RLS `producto_fotos`: agregar filtro `activo=true` en join con `productos` |
-| **#17** | `HeroCarousel.tsx`: agregar `sandbox="allow-scripts allow-same-origin"` a iframes de YouTube/Vimeo |
-| **#18** | PromoTicker: validar velocidad mínima de 20s en slider de admin |
-| **#19** | `CategoryGallery`: paginación o lazy load para 50+ categorías |
-| **#20** | `FloatingActions`: filtrar ofertas por canal en la query, no en el cliente |
-| **F9** | `carrito/CartClient.tsx` | Cross-sell: sección "También te puede interesar" al pie del carrito con productos de la misma categoría |
-<!-- END:pending -->
+- **Google OAuth con Supabase SSR en Next.js 16** (`/home/nch/Escritorio/brain-data/skills/supabase-oauth-nextjs/SKILL.md`)
+  Guía completa para instalar Google OAuth en Next.js 16 (App Router) con `@supabase/ssr`. Incluye los bugs conocidos que rompen el login silenciosamente.  ## 1. Google Cloud Console 1. Crear proyecto en https://console.cl…
+- **Enviopack en Next.js — integración completa de cotización de envíos** (`/home/nch/Escritorio/brain-data/skills/enviopack-nextjs/SKILL.md`)
+  Cuando un proyecto argentino necesite cotización de envíos a domicilio. Enviopack agrega múltiples transportistas (OCA, Andreani, etc.) bajo una sola API.
+- **Next.js 16 — App Router patterns y convenciones** (`/home/nch/Escritorio/brain-data/skills/nextjs-app-router-patterns/SKILL.md`)
+  Al iniciar o trabajar en cualquier proyecto Next.js: estructura de rutas, data fetching, Server Actions, proxy (middleware), metadata, layouts.
+- **Supabase + Postgres — esquemas, RLS y queries eficientes** (`/home/nch/Escritorio/brain-data/skills/supabase-postgres-best-practices/SKILL.md`)
+  Al diseñar tablas, escribir políticas RLS, optimizar queries, o integrar Supabase con Next.js 16.
+- **TypeScript strict — tipos útiles en el stack Next.js + Supabase** (`/home/nch/Escritorio/brain-data/skills/typescript-advanced-types/SKILL.md`)
+  Al definir tipos para API responses, props de componentes, Server Actions, datos de Supabase, o cuando TS emite un error de tipos que no se entiende.
+- **Supabase Storage — egress, límites y buenas prácticas** (`/home/nch/Escritorio/brain-data/skills/supabase-storage-egress/SKILL.md`)
+  Al subir archivos a Supabase Storage, especialmente videos o imágenes pesadas que se sirven públicamente. También al diseñar el hero de un sitio o cualquier sección con media grande.
+- **Tailwind CSS v4 — configuración y patrones mobile-first** (`/home/nch/Escritorio/brain-data/skills/tailwindcss-mobile-first/SKILL.md`)
+  Al configurar Tailwind v4 en un proyecto nuevo, definir tokens de diseño, o implementar layouts responsivos.
+- **Vercel + React — performance y patrones críticos** (`/home/nch/Escritorio/brain-data/skills/vercel-react-best-practices/SKILL.md`)
+  Al optimizar una página lenta, reducir el bundle, revisar re-renders, o hacer deploy en Vercel.
+- **React Email + Resend — setup, migración v6 y patrones de envío** (`/home/nch/Escritorio/brain-data/skills/react-email-resend/SKILL.md`)
+  Al conectar envío de emails transaccionales o campañas de mailing en un proyecto Next.js + Supabase. Aplica tanto a la primera integración como a mantenimiento de templates existentes.
+- **Comprimir imágenes client-side antes de subir al storage** (`/home/nch/Escritorio/brain-data/skills/client-side-image-compress/SKILL.md`)
+  Siempre que se implemente un uploader de imágenes (flyers, avatares, fondos, productos, etc.). Sin compresión, los usuarios pueden subir archivos de 10–25 MB que se sirven a cada visitante, generando egress masivo en Sup…
+- **Contenido dual público/comunidad con columna visibilidad** (`/home/nch/Escritorio/brain-data/skills/contenido-dual-visibilidad/SKILL.md`)
+  Cuando un sitio tiene usuarios con diferentes niveles de acceso (público, registrado, miembro) y querés extender las páginas existentes con contenido exclusivo **sin crear rutas nuevas**. El sitio es el mismo en esencia…
+- **Conectar Supabase CLI con PAT** (`/home/nch/Escritorio/brain-data/skills/supabase-conexion-cli/SKILL.md`)
+  El PAT de Supabase es **por cuenta**, no por proyecto. Un solo token sirve para todos los proyectos de la organización. ### Generar token 1. Ir a https://supabase.com/dashboard/account/tokens 2. Crear nuevo token 3. Copi…
+- **Supabase MCP Multiproyecto** (`/home/nch/Escritorio/brain-data/skills/supabase-mcp-multiproyecto/SKILL.md`)
+  Siempre. Esta skill es un guard automático: cada vez que se use cualquier herramienta MCP de Supabase, se debe verificar que el proyecto destino coincide con el proyecto activo del directorio de trabajo. No se debe deleg…
+- **Zustand persist — partialize obligatorio para no persistir estado de UI** (`/home/nch/Escritorio/brain-data/skills/zustand-persist-partialize/SKILL.md`)
+  Siempre que un store de Zustand use el middleware `persist` y mezcle datos (items del carrito, preferencias) con estado efímero de UI (drawer abierto, loading, tab activa).
+- **Escapar input de usuario en .or() de Supabase (PostgREST)** (`/home/nch/Escritorio/brain-data/skills/supabase-or-filter-escaping/SKILL.md`)
+  Siempre que se interpole texto de búsqueda del usuario dentro de `.or()` de supabase-js (ej. `query.or(\`nombre.ilike.%${search}%\`)`).
+- **Lenis smooth scroll — bugs silenciosos con drawers y overlays** (`/home/nch/Escritorio/brain-data/skills/lenis-smooth-scroll/SKILL.md`)
+  Cuando un proyecto usa Lenis para smooth scroll y hay drawers, modales o cualquier contenedor con `overflow-y-auto` que no responde al trackpad.

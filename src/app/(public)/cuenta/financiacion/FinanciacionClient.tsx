@@ -16,13 +16,6 @@ interface Solicitud {
   created_at: string
 }
 
-const PLAZOS = [
-  { value: '30',  label: '30 días' },
-  { value: '60',  label: '60 días' },
-  { value: '90',  label: '90 días' },
-  { value: '120', label: '120 días' },
-]
-
 const ESTADO_CONFIG: Record<string, { label: string; icon: React.ReactNode; bg: string; text: string }> = {
   pendiente:  { label: 'En revisión',  icon: <Clock size={13} />,        bg: '#fef9c322', text: '#854d0e' },
   aprobado:   { label: 'Aprobado',     icon: <CheckCircle size={13} />,  bg: '#10b98122', text: '#10b981' },
@@ -35,7 +28,6 @@ const DRAFT_KEY = 'financiacion_draft'
 interface RefForm { cuit: string; telefono: string; email: string; direccion: string }
 interface DraftForm {
   monto: string
-  plazo_dias: string
   garantias: string
   notas: string
   refs: [RefForm, RefForm, RefForm]
@@ -43,7 +35,7 @@ interface DraftForm {
 
 const REF_VACIA: RefForm = { cuit: '', telefono: '', email: '', direccion: '' }
 const DRAFT_INICIAL: DraftForm = {
-  monto: '', plazo_dias: '', garantias: '', notas: '',
+  monto: '', garantias: '', notas: '',
   refs: [{ ...REF_VACIA }, { ...REF_VACIA }, { ...REF_VACIA }],
 }
 
@@ -117,7 +109,6 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
     setError(null)
     const fd = new FormData()
     fd.set('monto', draft.monto)
-    fd.set('plazo_dias', draft.plazo_dias)
     fd.set('garantias', draft.garantias)
     fd.set('notas', draft.notas)
     draft.refs.forEach((ref, i) => {
@@ -190,31 +181,17 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
             Nueva solicitud
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Monto solicitado ($) <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="number" min="1" step="1000" required
-                placeholder="Ej: 500000"
-                value={draft.monto}
-                onChange={e => setField('monto', e.target.value)}
-                className={inputClass} style={inputStyle}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Plazo <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <select required
-                value={draft.plazo_dias}
-                onChange={e => setField('plazo_dias', e.target.value)}
-                className={inputClass} style={inputStyle}>
-                <option value="">Seleccioná un plazo</option>
-                {PLAZOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Monto solicitado ($) <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="number" min="1" step="1000" required
+              placeholder="Ej: 500000"
+              value={draft.monto}
+              onChange={e => setField('monto', e.target.value)}
+              className={inputClass} style={inputStyle}
+            />
           </div>
 
           <div>

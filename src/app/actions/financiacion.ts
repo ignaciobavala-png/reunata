@@ -22,12 +22,10 @@ export async function crearSolicitudCredito(formData: FormData) {
   const supabase = await createClient()
 
   const monto      = parseFloat(formData.get('monto') as string ?? '')
-  const plazo_dias = parseInt(formData.get('plazo_dias') as string ?? '')
   const garantias  = (formData.get('garantias') as string ?? '').trim() || null
   const notas      = (formData.get('notas')     as string ?? '').trim() || null
 
   if (isNaN(monto) || monto <= 0) return { error: 'Ingresá un monto válido.' }
-  if (isNaN(plazo_dias))          return { error: 'Seleccioná un plazo.' }
 
   // Parsear referencias comerciales
   const refs: { cuit: string; telefono: string | null; email: string | null; direccion: string | null }[] = []
@@ -55,7 +53,6 @@ export async function crearSolicitudCredito(formData: FormData) {
   const { error } = await supabase.from('solicitudes_credito').insert({
     cliente_id: clienteId,
     monto,
-    plazo_dias,
     garantias,
     notas,
     referencias_comerciales: refs,

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaNav } from '@/components/cuenta/CuentaNav'
@@ -8,7 +9,12 @@ export const metadata: Metadata = { title: 'Mis direcciones', robots: { index: f
 
 const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
-export default async function DireccionesPage() {
+export default async function DireccionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>
+}) {
+  const { from } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/cuenta/direcciones')
@@ -39,6 +45,16 @@ export default async function DireccionesPage() {
       </p>
 
       <CuentaNav esMayorista />
+
+      {from === 'carrito' && (
+        <Link
+          href="/carrito"
+          className="inline-block text-sm underline mb-6"
+          style={{ color: 'var(--color-acero-oscuro)' }}
+        >
+          ← Volver al carrito
+        </Link>
+      )}
 
       <DireccionesClient direcciones={direcciones ?? []} />
     </main>
