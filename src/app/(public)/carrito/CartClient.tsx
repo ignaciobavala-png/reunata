@@ -926,7 +926,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       <span>Total Bruto</span>
                       <span>{formatPrecio(totalBrutoMayorista)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
+                    <div className="flex justify-between font-semibold" style={{ color: 'var(--foreground)' }}>
                       <span>Total IVA incluido</span>
                       <span>{formatPrecio(totalIvaIncluidoMayorista)}</span>
                     </div>
