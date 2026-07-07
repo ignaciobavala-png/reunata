@@ -181,9 +181,10 @@ export async function crearPedidoBorrador(
 
   const totalFinal = basePostAutogestion + ajusteMetodoPago
 
-  // Validar mínimo de compra — sobre el total final, con todos los descuentos ya aplicados
+  // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
+  // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
   const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
-  if (minimoCompra && totalFinal < minimoCompra) {
+  if (minimoCompra && basePostAutogestion < minimoCompra) {
     return { ok: false, error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.` }
   }
 

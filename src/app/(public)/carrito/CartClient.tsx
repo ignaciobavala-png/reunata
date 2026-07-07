@@ -20,8 +20,8 @@ const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
 const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
 const METODO_LABEL: Record<string, string> = {
   efectivo:             'Efectivo',
-  transferencia_negro:  'Transferencia',
-  transferencia_blanco: 'Transferencia al banco (Factura A)',
+  transferencia_negro:  'Transf. Directa',
+  transferencia_blanco: 'Transf. (Factura A)',
   echeq_propio:         'E-cheq propio',
   echeq_al_dia:         'E-cheq al día',
   mercado_pago:         'Mercado Pago',
@@ -525,12 +525,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const transferenciaActiva = esConsumidorFinal ? (reglas?.pagos_habilitados?.['transferencia']?.activo ?? false) : false
   const ambosPagosMinorista = mpActivo && transferenciaActiva
 
-  // Descuento de transferencia para consumidor_final — sobre el precio ya descontado por volumen
-  const descTransfPct = esConsumidorFinal && metodoPagoMinorista === 'transferencia'
-    ? (reglas?.desc_transferencia_pct ?? 0)
-    : 0
-  const ajusteTransfMinorista = descTransfPct > 0 ? -Math.round(basePostVolumenCanal * descTransfPct / 100) : 0
-
   // Métodos de pago mayorista agrupados por IVA
   const canalHabilitaFinanciado = esMayorista && reglas
     ? (reglas.pagos_habilitados ?? {})['cheque_fisico_financiado']?.activo
@@ -571,20 +565,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           : 0
     : 0
 
-  // ── Presentación mayorista "IVA incluido" ─────────────────────────────
-  // El precio arranca mostrado con IVA; al elegir "Sin IVA" se resta como "Desc IVA".
-  // Los montos cobrados no cambian (misma cascada de siempre) — solo la presentación.
+  // ── Presentación mayorista en bruto (sin IVA) ─────────────────────────
+  // El resumen se muestra en valores netos; el IVA solo aparece en "Total IVA
+  // incluido". Los montos cobrados no cambian (misma cascada de siempre).
   const totalConIvaMayorista = esMayorista
     ? items.reduce((acc, i) => acc + Math.round(i.precio * (1 + (ivaRates[i.productoId] ?? 0.21))) * i.cantidad, 0)
     : 0
-  const descIvaMayorista = totalConIvaMayorista - totalGeneral
-  const recargoIvaPct = reglas?.recargo_transf_blanco_pct ?? 21
-  const enConIva = esMayorista && facturaIva === 'con'
-  // Con "Con IVA" el resumen se muestra en valores IVA incluido: los descuentos se
-  // escalan por el recargo para que las líneas cierren contra el Total (± redondeo).
-  const factorDisplay = enConIva ? 1 + recargoIvaPct / 100 : 1
-  const dispVolumenCanal = -Math.round(Math.abs(ajusteVolumenCanal) * factorDisplay)
-  const dispAutogestion  = -Math.round(Math.abs(ajusteAutogestion) * factorDisplay)
+  const totalBrutoMayorista = basePostAutogestion
+  // IVA proporcional a la mezcla real de alícuotas del carrito (×1.21 si todo es 21%)
+  const totalIvaIncluidoMayorista = totalGeneral > 0
+    ? Math.round(basePostAutogestion * (totalConIvaMayorista / totalGeneral))
+    : 0
 
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMayoristaConMetodo(k: string): number {
@@ -596,6 +587,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   }
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')
 
+  // % de descuento a mostrar junto al nombre de cada método mayorista
+  const pctMetodoMayorista: Record<string, number> = {
+    efectivo:            reglas?.desc_efectivo_pct ?? 0,
+    transferencia_negro: reglas?.desc_transferencia_pct ?? 0,
+  }
+
   // Ajuste a reflejar en el Total: si todavía no eligió forma de pago, usar el ajuste
   // representativo del tipo de facturación (Con IVA / Sin IVA) ya seleccionado, para
   // que el Total cambie sin necesidad de marcar una forma de pago primero.
@@ -605,10 +602,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       ? totalBtnConIva - basePostAutogestion
       : 0
 
-  // Base para evaluar mínimo de compra / envío gratis: post-descuentos, pre-envío
+  // Base para evaluar mínimo de compra / envío gratis: subtotal − desc web/volumen,
+  // SIN el ajuste por forma de pago (pedido del tester 2026-07, alineado con el server).
+  // Mayorista: Total Bruto. Minorista: total con IVA post web/volumen.
   const totalPostDescuentoPreEnvio = esMayorista
-    ? basePostAutogestion + ajusteEfectivo
-    : basePostVolumenCanal + ajusteTransfMinorista
+    ? basePostAutogestion
+    : basePostVolumenCanal
 
   // Envío gratis — mismo criterio que el server, evaluado sobre el total vigente
   const esAmbaEnvio = envioSeleccionado ? ['B', 'C'].includes(envioSeleccionado.provincia) : false
@@ -620,15 +619,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   )
   const costoEnvio = envioSeleccionado ? (envioEsGratis ? 0 : envioSeleccionado.costo) : 0
 
-  const totalConEnvio = basePostVolumenCanal + ajusteTransfMinorista + costoEnvio
+  // Total minorista mostrado en el resumen — sin el descuento por forma de pago:
+  // ese descuento se ve solo en la opción de pago (confirmado por el tester 2026-07-07)
+  const totalConEnvio = basePostVolumenCanal + costoEnvio
   const totalFinal = basePostAutogestion + ajusteEfectivo + costoEnvio
 
-  // "Precio sin impuestos nacionales" a mostrar chico bajo el Total
-  const netTotalDisplay = esMayorista
-    ? (enConIva ? Math.round(totalFinal / (1 + recargoIvaPct / 100)) : totalFinal)
-    : (totalGeneral > 0
-        ? Math.round((totalConEnvio - costoEnvio) * (totalSinIVA / totalGeneral)) + costoEnvio
-        : totalConEnvio)
+  // "Precio sin impuestos nacionales" a mostrar chico bajo el Total — solo minorista,
+  // sin incluir el envío (pedido del tester)
+  const netTotalDisplay = totalGeneral > 0
+    ? Math.round((totalConEnvio - costoEnvio) * (totalSinIVA / totalGeneral))
+    : 0
 
   // Cuánto falta para alcanzar el envío gratis (umbral aplicable más cercano)
   const umbralEnvioAplicable = esAmbaEnvio && umbralAmba !== null
@@ -649,9 +649,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   function totalMinoristaConMetodo(metodo: string): number {
     const pct = metodo === 'transferencia' ? (reglas?.desc_transferencia_pct ?? 0) : 0
     const base = basePostVolumenCanal - Math.round(basePostVolumenCanal * pct / 100)
+    // El envío gratis se evalúa sobre la base SIN el descuento por forma de pago,
+    // igual que el server — así el umbral no cambia según el método elegido
     const gratis = envioSeleccionado !== null && (
-      (umbralAmba !== null && esAmbaEnvio && base >= umbralAmba) ||
-      (umbralGeneral !== null && base >= umbralGeneral)
+      (umbralAmba !== null && esAmbaEnvio && basePostVolumenCanal >= umbralAmba) ||
+      (umbralGeneral !== null && basePostVolumenCanal >= umbralGeneral)
     )
     return base + (envioSeleccionado ? (gratis ? 0 : envioSeleccionado.costo) : 0)
   }
@@ -869,28 +871,27 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
             {mostrarPrecios && totalGeneral > 0 && (
               <>
-                {/* Subtotal — minoristas y guests: precio final que pagan.
-                    Mayoristas: precio con IVA incluido, con el descuento de IVA
-                    debajo cuando facturan sin IVA. */}
-                {!esMayorista ? (
-                  <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    <span>Subtotal</span>
-                    <span>{formatPrecio(totalGeneral)}</span>
+                {/* Línea que separa productos de subtotales/descuentos */}
+                <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
+                {/* Subtotal — minoristas y guests: precio con IVA.
+                    Mayoristas: precio bruto (sin IVA). */}
+                <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <span>{esMayorista ? 'Subtotal Bruto' : 'Subtotal'}</span>
+                  <span>{formatPrecio(totalGeneral)}</span>
+                </div>
+                {/* Solo descuentos previos al pago (web, volumen) — los descuentos por
+                    forma de pago se ven en el precio de cada opción, no acá */}
+                {ajusteAutogestion !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
+                    <span>Desc. web ({descAutogestPct}%)</span>
+                    <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      <span>Subtotal</span>
-                      <span>{formatPrecio(totalConIvaMayorista)}</span>
-                    </div>
-                    {/* Al facturar sin IVA, el IVA se resta del precio de arranque como descuento */}
-                    {!enConIva && descIvaMayorista > 0 && (
-                      <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                        <span>Desc IVA</span>
-                        <span>-{formatPrecio(descIvaMayorista)}</span>
-                      </div>
-                    )}
-                  </>
+                )}
+                {ajusteVolumenCanal !== 0 && (
+                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
+                    <span>Desc. por volumen ({descVolCanalPct}%)</span>
+                    <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
+                  </div>
                 )}
                 {envioSeleccionado && (
                   <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -900,44 +901,36 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       : <span>{formatPrecio(costoEnvio)}</span>}
                   </div>
                 )}
-                {/* Con "Con IVA" el total ya incluye el IVA — no se muestra recargo en rojo */}
-                {ajuste < 0 && (
-                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. ({METODO_LABEL[metodoPago!] ?? metodoPago}) ({ajustePct}%)</span>
-                    <span>-{formatPrecio(Math.abs(ajuste))}</span>
-                  </div>
-                )}
-                {ajusteVolumenCanal !== 0 && (
-                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. por volumen ({descVolCanalPct}%)</span>
-                    <span>-{formatPrecio(Math.abs(dispVolumenCanal))}</span>
-                  </div>
-                )}
-                {ajusteAutogestion !== 0 && (
-                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. web ({descAutogestPct}%)</span>
-                    <span>-{formatPrecio(Math.abs(dispAutogestion))}</span>
-                  </div>
-                )}
-                {ajusteTransfMinorista !== 0 && (
-                  <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. transferencia ({descTransfPct}%)</span>
-                    <span>-{formatPrecio(Math.abs(ajusteTransfMinorista))}</span>
-                  </div>
-                )}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
-                <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
-                  <span>Total</span>
-                  <span>{formatPrecio(esMayorista ? totalFinal : totalConEnvio)}</span>
-                </div>
-                <div className="flex justify-between text-xs -mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  <span>Precio sin impuestos nacionales:</span>
-                  <span>{formatPrecio(netTotalDisplay)}</span>
-                </div>
-                {!esMayorista && metodoPagoMinorista !== 'transferencia' && (
-                  <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    Precio de contado. Si pagás en cuotas con tarjeta, Mercado Pago aplica el interés de tu banco.
-                  </p>
+                {!esMayorista ? (
+                  <>
+                    <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
+                      <span>Total</span>
+                      <span>{formatPrecio(totalConEnvio)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs -mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      <span>Precio sin impuestos nacionales:</span>
+                      <span>{formatPrecio(netTotalDisplay)}</span>
+                    </div>
+                    {metodoPagoMinorista !== 'transferencia' && (
+                      <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Precio de contado. Si pagás en cuotas con tarjeta, Mercado Pago aplica el interés de tu banco.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Los totales mayoristas no cambian con la forma de pago elegida —
+                        el precio final de cada método se ve en su botón */}
+                    <div className="flex justify-between font-semibold" style={{ color: 'var(--foreground)' }}>
+                      <span>Total Bruto</span>
+                      <span>{formatPrecio(totalBrutoMayorista)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
+                      <span>Total IVA incluido</span>
+                      <span>{formatPrecio(totalIvaIncluidoMayorista)}</span>
+                    </div>
+                  </>
                 )}
               </>
             )}
@@ -1015,7 +1008,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           onChange={() => setMetodoPagoMinorista(m.key)}
                           className="flex-shrink-0"
                         />
-                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}</span>
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (${m.descPct}%)` : ''}</span>
                         {/* Total final en $ con el descuento del método aplicado — más claro que el % */}
                         {mostrarPrecios && totalGeneral > 0 && (
                           <span className="text-xs font-medium" style={{ color: m.descPct > 0 ? '#16a34a' : 'var(--color-acero-oscuro)' }}>
@@ -1097,7 +1090,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Botón WhatsApp — igual que en mayoristas */}
               <a
-                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPagoMinorista, mostrarPrecios && totalConEnvio > 0 ? totalConEnvio : undefined, null, reglas?.whatsapp_tipo ?? 'bot')}`}
+                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPagoMinorista, mostrarPrecios && totalConEnvio > 0 ? (metodoPagoMinorista ? totalMinoristaConMetodo(metodoPagoMinorista) : totalConEnvio) : undefined, null, reglas?.whatsapp_tipo ?? 'bot')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 transition-opacity border"
@@ -1123,7 +1116,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   <div className={metodosConIva.length > 0 && metodosSinIva.length > 0 ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}>
                     {metodosConIva.length > 0 && (
                     <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con IVA</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Con Factura (+IVA)</p>
                       {metodosConIva.map(k => (
                         <label
                           key={k}
@@ -1136,7 +1129,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('con'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {METODO_LABEL[k] ?? k}
+                            {METODO_LABEL[k] ?? k}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
@@ -1152,7 +1145,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     )}
                     {metodosSinIva.length > 0 && (
                     <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin IVA</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sin Factura (Sin IVA)</p>
                       {metodosSinIva.map(k => (
                         <label
                           key={k}
@@ -1165,7 +1158,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('sin'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {METODO_LABEL[k] ?? k}
+                            {METODO_LABEL[k] ?? k}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
@@ -1372,7 +1365,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           onChange={() => setMetodoPagoMinorista(m.key)}
                           className="flex-shrink-0"
                         />
-                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}</span>
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (${m.descPct}%)` : ''}</span>
                         {mostrarPrecios && totalGeneral > 0 && (
                           <span className="text-xs font-medium" style={{ color: m.descPct > 0 ? '#16a34a' : 'var(--color-acero-oscuro)' }}>
                             {formatPrecio(totalMinoristaConMetodo(m.key))}

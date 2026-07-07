@@ -529,9 +529,10 @@ export async function iniciarCheckoutTransferencia(
   const descuento = descPct > 0 ? Math.round(basePostVolumenCanal * descPct / 100) : 0
   const subtotalPostDescuento = basePostVolumenCanal - descuento
 
-  // Validar mínimo de compra — sobre el subtotal ya con descuentos aplicados
+  // Validar mínimo de compra — sobre el subtotal post desc. por volumen, SIN el
+  // descuento por transferencia (pedido del tester, mismo criterio que el carrito)
   const minimoCompra = (canalCfg?.minimo_compra as number | null) ?? null
-  if (minimoCompra && subtotalPostDescuento < minimoCompra) {
+  if (minimoCompra && basePostVolumenCanal < minimoCompra) {
     return {
       ok: false,
       error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.`,
@@ -542,9 +543,11 @@ export async function iniciarCheckoutTransferencia(
     const esAmba = ['B', 'C'].includes(envioParams!.provincia)
     const umbralAmba = canalCfg.envio_amba_gratis_desde as number | null
     const umbralGeneral = canalCfg.envio_gratis_desde as number | null
+    // Envío gratis evaluado sin el descuento por transferencia — el umbral no
+    // depende de la forma de pago (mismo criterio que el carrito)
     if (
-      (umbralAmba && esAmba && subtotalPostDescuento >= umbralAmba) ||
-      (umbralGeneral && subtotalPostDescuento >= umbralGeneral)
+      (umbralAmba && esAmba && basePostVolumenCanal >= umbralAmba) ||
+      (umbralGeneral && basePostVolumenCanal >= umbralGeneral)
     ) {
       envio = { descripcion: envio.descripcion, costo: 0 }
     }

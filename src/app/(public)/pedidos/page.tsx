@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { VolverAPedirButton } from './VolverAPedirButton'
-import { ESTADOS_PEDIDO, estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
+import { estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
@@ -63,29 +63,6 @@ function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRow[]; 
   )
 }
 
-// Agrupa por estado siguiendo el orden del pipeline (ESTADOS_PEDIDO) — dentro de
-// cada grupo se conserva el orden por fecha ya traído del server (más reciente primero).
-function agruparPorEstado(pedidos: PedidoRow[]): { estado: string; pedidos: PedidoRow[] }[] {
-  return Object.keys(ESTADOS_PEDIDO)
-    .map(estado => ({ estado, pedidos: pedidos.filter(p => p.estado === estado) }))
-    .filter(g => g.pedidos.length > 0)
-}
-
-function SeccionPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRow[]; mostrarVolverAPedir: boolean }) {
-  return (
-    <div className="flex flex-col gap-6">
-      {agruparPorEstado(pedidos).map(({ estado, pedidos: grupo }) => (
-        <div key={estado}>
-          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {estadoLabel(estado)} <span style={{ color: 'var(--color-acero)' }}>({grupo.length})</span>
-          </h3>
-          <ListaPedidos pedidos={grupo} mostrarVolverAPedir={mostrarVolverAPedir} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default async function MisPedidosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -117,7 +94,7 @@ export default async function MisPedidosPage() {
               En proceso {enProceso.length > 0 && <span style={{ color: 'var(--color-acero-oscuro)' }}>({enProceso.length})</span>}
             </h2>
             {enProceso.length > 0 ? (
-              <SeccionPedidos pedidos={enProceso} mostrarVolverAPedir={false} />
+              <ListaPedidos pedidos={enProceso} mostrarVolverAPedir={false} />
             ) : (
               <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                 No tenés pedidos en proceso.
@@ -130,7 +107,7 @@ export default async function MisPedidosPage() {
               Finalizados {finalizados.length > 0 && <span style={{ color: 'var(--color-acero-oscuro)' }}>({finalizados.length})</span>}
             </h2>
             {finalizados.length > 0 ? (
-              <SeccionPedidos pedidos={finalizados} mostrarVolverAPedir />
+              <ListaPedidos pedidos={finalizados} mostrarVolverAPedir />
             ) : (
               <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Todavía no tenés pedidos finalizados.
