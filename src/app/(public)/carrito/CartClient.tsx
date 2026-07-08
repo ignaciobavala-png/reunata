@@ -867,9 +867,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           </button>
         </div>
 
-        {/* Resumen */}
+        {/* Resumen — sticky y con scroll propio: si es más alto que la pantalla,
+            no debe depender de scrollear toda la lista de productos para ver el final. */}
         <div
-          className="w-full lg:w-72 rounded-xl border p-5 flex flex-col gap-4 lg:sticky lg:top-28"
+          className="w-full lg:w-72 rounded-xl border p-5 flex flex-col gap-4 lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto"
+          data-lenis-prevent
           style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
         >
           <p className="text-base font-medium" style={{ color: 'var(--foreground)' }}>Resumen del pedido</p>
