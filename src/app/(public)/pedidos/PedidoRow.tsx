@@ -77,11 +77,7 @@ export function PedidoRow({ pedido: p, mostrarVolverAPedir, background, borderBo
       <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
         {contenido}
       </Link>
-      {mostrarVolverAPedir && (
-        <div onClick={(e) => e.stopPropagation()}>
-          <VolverAPedirButton pedidoId={p.id} compact />
-        </div>
-      )}
+      {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
       <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
         <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
       </Link>
