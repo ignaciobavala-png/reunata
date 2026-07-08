@@ -51,13 +51,29 @@ const ESTADOS_EDITABLES = ['borrador', 'pendiente_pago', 'comprobante_subido']
 
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
-  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string },
+  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string; pedidoIdToEdit?: string },
 ): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'No autenticado' }
 
   const service = createServiceClient()
+
+  // Edición in-place de un borrador propio: solo mientras siga en "borrador"
+  // (una vez subido el comprobante, el pedido queda en revisión y no se toca más).
+  if (opciones?.pedidoIdToEdit) {
+    const { data: pedidoAEditar } = await service
+      .from('pedidos')
+      .select('cliente_id, estado')
+      .eq('id', opciones.pedidoIdToEdit)
+      .single()
+    if (!pedidoAEditar || pedidoAEditar.cliente_id !== user.id) {
+      return { ok: false, error: 'Pedido no encontrado.' }
+    }
+    if (pedidoAEditar.estado !== 'borrador') {
+      return { ok: false, error: 'Este pedido ya no se puede editar.' }
+    }
+  }
 
   const { data: perfil } = await supabase
     .from('profiles')
@@ -205,26 +221,35 @@ export async function crearPedidoBorrador(
   const tieneComprobante = Boolean(opciones?.comprobantePath)
   const expiraEn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: pedido, error } = await service
-    .from('pedidos')
-    .insert({
-      cliente_id: user.id,
-      estado: tieneComprobante ? 'comprobante_subido' : 'borrador',
-      total_usd: totalFinal,
-      descuento_sugerido,
-      descuento_nota,
-      expira_en: expiraEn,
-      ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
-      ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
-    })
-    .select('id')
-    .single()
+  const camposPedido = {
+    estado: tieneComprobante ? 'comprobante_subido' : 'borrador',
+    total_usd: totalFinal,
+    descuento_sugerido,
+    descuento_nota,
+    expira_en: expiraEn,
+    ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
+    ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
+  }
 
-  if (error || !pedido) return { ok: false, error: error?.message ?? 'Error creando pedido' }
+  let pedidoId: string
+  if (opciones?.pedidoIdToEdit) {
+    pedidoId = opciones.pedidoIdToEdit
+    const { error } = await service.from('pedidos').update(camposPedido).eq('id', pedidoId)
+    if (error) return { ok: false, error: error.message }
+    await service.from('pedido_items').delete().eq('pedido_id', pedidoId)
+  } else {
+    const { data: pedido, error } = await service
+      .from('pedidos')
+      .insert({ cliente_id: user.id, ...camposPedido })
+      .select('id')
+      .single()
+    if (error || !pedido) return { ok: false, error: error?.message ?? 'Error creando pedido' }
+    pedidoId = pedido.id
+  }
 
   const { error: itemsError } = await service.from('pedido_items').insert(
     lineasResueltas.map(l => ({
-      pedido_id: pedido.id,
+      pedido_id: pedidoId,
       producto_id: l.productoId,
       cantidad: l.cantidad,
       precio_unit: l.precioUnit,
@@ -232,16 +257,17 @@ export async function crearPedidoBorrador(
     }))
   )
   if (itemsError) {
-    await service.from('pedidos').delete().eq('id', pedido.id)
+    if (!opciones?.pedidoIdToEdit) await service.from('pedidos').delete().eq('id', pedidoId)
     return { ok: false, error: 'Error al registrar los ítems del pedido. Intentá de nuevo.' }
   }
 
   if (tieneComprobante) {
-    await service.from('comprobantes').insert({ pedido_id: pedido.id, url: opciones!.comprobantePath })
+    await service.from('comprobantes').insert({ pedido_id: pedidoId, url: opciones!.comprobantePath })
   }
 
   revalidatePath('/pedidos')
-  return { ok: true, pedidoId: pedido.id }
+  revalidatePath(`/pedidos/${pedidoId}`)
+  return { ok: true, pedidoId }
 }
 
 export async function subirComprobante(pedidoId: string, path: string) {

@@ -22,6 +22,8 @@ interface CartStore {
   ownerId: string | null
   cartOpen: boolean
   guestItemsMerged: boolean
+  editingPedidoId: string | null
+  editingPedidoNumero: number | null
   setCartOpen: (open: boolean) => void
   add: (item: Omit<CartItem, 'cantidad'>) => void
   remove: (itemKey: string) => void
@@ -32,6 +34,8 @@ interface CartStore {
   setOwner: (userId: string | null) => void
   clearIfOwnerChanged: (userId: string | null) => void
   clearGuestMergedFlag: () => void
+  startEditingPedido: (pedidoId: string, numero: number) => void
+  stopEditingPedido: () => void
   total: () => number
   totalItems: () => number
 }
@@ -43,6 +47,8 @@ export const useCartStore = create<CartStore>()(
       ownerId: null,
       cartOpen: false,
       guestItemsMerged: false,
+      editingPedidoId: null,
+      editingPedidoNumero: null,
       setCartOpen: (open) => set({ cartOpen: open }),
 
       add: (item) => set(state => {
@@ -101,14 +107,14 @@ export const useCartStore = create<CartStore>()(
         }),
       })),
 
-      clear: () => set({ items: [], ownerId: null }),
+      clear: () => set({ items: [], ownerId: null, editingPedidoId: null, editingPedidoNumero: null }),
 
       setOwner: (userId) => set({ ownerId: userId }),
 
       clearIfOwnerChanged: (userId) => {
         const current = get().ownerId
         if (current !== null && current !== userId) {
-          set({ items: [], ownerId: userId })
+          set({ items: [], ownerId: userId, editingPedidoId: null, editingPedidoNumero: null })
         } else if (current === null && get().items.length > 0) {
           set({ ownerId: userId, guestItemsMerged: true })
         } else {
@@ -117,6 +123,11 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearGuestMergedFlag: () => set({ guestItemsMerged: false }),
+
+      // Reemplaza el carrito por el de un pedido borrador existente — confirmar
+      // actualiza ese mismo pedido en vez de crear uno nuevo (edición in-place).
+      startEditingPedido: (pedidoId, numero) => set({ items: [], editingPedidoId: pedidoId, editingPedidoNumero: numero }),
+      stopEditingPedido: () => set({ editingPedidoId: null, editingPedidoNumero: null }),
 
       total: () => get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),
       totalItems: () => get().items.reduce((acc, i) => acc + i.cantidad, 0),
@@ -127,6 +138,8 @@ export const useCartStore = create<CartStore>()(
         items: state.items,
         ownerId: state.ownerId,
         guestItemsMerged: state.guestItemsMerged,
+        editingPedidoId: state.editingPedidoId,
+        editingPedidoNumero: state.editingPedidoNumero,
       }),
     }
   )

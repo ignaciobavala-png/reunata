@@ -169,7 +169,7 @@ function UploaderComprobante({
 }
 
 export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva }: Props) {
-  const { items, remove, updateCantidad, updatePrecios, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag } = useCartStore()
+  const { items, remove, updateCantidad, updatePrecios, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag, editingPedidoId, editingPedidoNumero } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
@@ -443,7 +443,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setErrorPago(null)
     const result = await crearPedidoBorrador(
       items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
-      { medioPago: metodoPago, facturaIva: facturaIva === 'con', comprobantePath: comprobantePath ?? undefined },
+      { medioPago: metodoPago, facturaIva: facturaIva === 'con', comprobantePath: comprobantePath ?? undefined, pedidoIdToEdit: editingPedidoId ?? undefined },
     )
     if (result.ok && result.pedidoId) {
       clear()
@@ -697,6 +697,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       {refreshFallo && !preciosCambiaron && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
           No pudimos verificar los precios actuales. Los montos podrían no estar al día.
+        </div>
+      )}
+      {editingPedidoId && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3" style={{ background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
+          <span>Estás editando el pedido #{editingPedidoNumero}. Al confirmar, se actualiza ese mismo pedido.</span>
+          <button
+            onClick={() => clear()}
+            className="underline shrink-0"
+          >
+            Cancelar edición
+          </button>
         </div>
       )}
       <div className="flex items-start justify-between mb-2">

@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
 import { VolverAPedirButton } from '../VolverAPedirButton'
+import { EditarBorradorButton } from '../EditarBorradorButton'
 import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
@@ -164,9 +165,11 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
         </table>
       </div>
 
-      {/* Volver a pedir — recarga estos productos al carrito con precios y stock de hoy */}
+      {/* Borrador: editar in-place. Otros estados: recargar estos productos como pedido nuevo. */}
       <div className="mb-6">
-        <VolverAPedirButton pedidoId={pedido.id} />
+        {esBorrador
+          ? <EditarBorradorButton pedidoId={pedido.id} numero={pedido.numero} />
+          : <VolverAPedirButton pedidoId={pedido.id} />}
       </div>
 
       {esBorrador && (

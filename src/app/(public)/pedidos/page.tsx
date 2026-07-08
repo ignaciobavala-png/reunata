@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ShoppingCart, ChevronRight } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { VolverAPedirButton } from './VolverAPedirButton'
+import { EditarBorradorButton } from './EditarBorradorButton'
 import { estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
@@ -53,6 +54,7 @@ function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRow[]; 
               </div>
             </Link>
             {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
+            {p.estado === 'borrador' && <EditarBorradorButton pedidoId={p.id} numero={p.numero} compact />}
             <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
               <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
             </Link>
