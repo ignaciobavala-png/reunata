@@ -2,15 +2,13 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ShoppingCart, ChevronRight } from 'lucide-react'
-import { formatPrecio } from '@/lib/utils'
-import { VolverAPedirButton } from './VolverAPedirButton'
-import { EditarBorradorButton } from './EditarBorradorButton'
-import { estadoLabel, estadoColor, ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
+import { ShoppingCart } from 'lucide-react'
+import { PedidoRow } from './PedidoRow'
+import { ESTADOS_FINALIZADOS } from '@/lib/estadosPedido'
 
 export const metadata: Metadata = { title: 'Mis pedidos', robots: { index: false, follow: false } }
 
-interface PedidoRow {
+interface PedidoRowData {
   id: string
   numero: number
   estado: string
@@ -19,48 +17,18 @@ interface PedidoRow {
   created_at: string
 }
 
-function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRow[]; mostrarVolverAPedir: boolean }) {
+function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRowData[]; mostrarVolverAPedir: boolean }) {
   return (
     <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
-      {pedidos.map((p, i) => {
-        const col = estadoColor(p.estado)
-        return (
-          <div
-            key={p.id}
-            className="flex items-center px-5 py-4 gap-3 transition-colors duration-100"
-            style={{
-              background: i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)',
-              borderBottom: i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none',
-            }}
-          >
-            <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  #{p.numero}
-                </span>
-                <span className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  {new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm px-2.5 py-1 rounded-full" style={{ background: col.bg, color: col.text }}>
-                  {estadoLabel(p.estado)}
-                </span>
-                {p.total_usd != null && (
-                  <span className="text-base font-medium" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(Number(p.total_usd))}
-                  </span>
-                )}
-              </div>
-            </Link>
-            {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
-            {p.estado === 'borrador' && <EditarBorradorButton pedidoId={p.id} numero={p.numero} compact />}
-            <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
-              <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
-            </Link>
-          </div>
-        )
-      })}
+      {pedidos.map((p, i) => (
+        <PedidoRow
+          key={p.id}
+          pedido={p}
+          mostrarVolverAPedir={mostrarVolverAPedir}
+          background={i % 2 === 0 ? 'white' : 'var(--color-acero-brillo)'}
+          borderBottom={i < pedidos.length - 1 ? '1px solid var(--color-acero-claro)' : 'none'}
+        />
+      ))}
     </div>
   )
 }
