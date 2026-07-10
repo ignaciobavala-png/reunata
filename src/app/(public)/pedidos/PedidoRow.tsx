@@ -73,14 +73,15 @@ export function PedidoRow({ pedido: p, mostrarVolverAPedir, background, borderBo
   }
 
   return (
-    <div className="flex items-center px-5 py-4 gap-3 transition-colors duration-100" style={{ background, borderBottom }}>
-      <Link href={`/pedidos/${p.id}`} className="flex items-center justify-between flex-1 min-w-0">
+    <div className="flex items-center px-5 py-4 gap-3" style={{ background, borderBottom }}>
+      <Link
+        href={`/pedidos/${p.id}`}
+        className="flex items-center justify-between flex-1 min-w-0 gap-3 hover:opacity-80 transition-opacity duration-100"
+      >
         {contenido}
-      </Link>
-      {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
-      <Link href={`/pedidos/${p.id}`} aria-label={`Ver pedido #${p.numero}`}>
         <ChevronRight size={14} style={{ color: 'var(--color-acero)' }} />
       </Link>
+      {mostrarVolverAPedir && <VolverAPedirButton pedidoId={p.id} compact />}
     </div>
   )
 }
