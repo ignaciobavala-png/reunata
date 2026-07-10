@@ -22,10 +22,11 @@ const BENEFICIOS_MINORISTA = [
 export default async function RegistroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirmar?: string; tab?: string; next?: string }>
+  searchParams: Promise<{ confirmar?: string; tab?: string; tipo?: string; next?: string }>
 }) {
-  const { confirmar, tab, next } = await searchParams
+  const { confirmar, tab, tipo, next } = await searchParams
   const defaultTab = tab === 'mayorista' ? 'mayorista' : 'minorista'
+  const defaultTipo = ['distribuidor', 'local', 'mercha'].includes(tipo ?? '') ? tipo : undefined
   const esMayorista = defaultTab === 'mayorista'
   const beneficios = esMayorista ? BENEFICIOS_MAYORISTA : BENEFICIOS_MINORISTA
 
@@ -121,7 +122,7 @@ export default async function RegistroPage({
               border: '1px solid rgba(143,170,156,0.12)',
             }}
           >
-            <RegistroForm defaultTab={defaultTab} next={next} />
+            <RegistroForm defaultTab={defaultTab} defaultTipo={defaultTipo} next={next} />
           </div>
         </div>
 

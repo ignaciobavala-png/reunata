@@ -13,7 +13,7 @@ const TIPOS_MAYORISTA = [
   { value: 'mercha', label: 'Merchandising' },
 ]
 
-export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: Tab; next?: string }) {
+export function RegistroForm({ defaultTab = 'minorista', defaultTipo, next }: { defaultTab?: Tab; defaultTipo?: string; next?: string }) {
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -128,7 +128,7 @@ export function RegistroForm({ defaultTab = 'minorista', next }: { defaultTab?: 
         <>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Tipo de cliente</label>
-            <select name="tipo" required className={inputClass} style={inputStyle}>
+            <select name="tipo" required defaultValue={defaultTipo ?? ''} className={inputClass} style={inputStyle}>
               <option value="" disabled className="text-sm" style={{ background: '#1a1a1a', color: '#ccc' }}>Seleccioná un tipo</option>
               {TIPOS_MAYORISTA.map(t => (
                 <option key={t.value} value={t.value} className="text-sm" style={{ background: '#1a1a1a', color: '#ccc' }}>{t.label}</option>
