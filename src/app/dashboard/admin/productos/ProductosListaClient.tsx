@@ -35,6 +35,11 @@ const TAGS = [
   { key: 'novedad' as const,   label: 'Novedad',       color: '#0ea5e9' },
 ]
 
+// Oferta y Hot Sale ocultos junto con los botones flotantes del sitio (pedido del tester 2026-07):
+// asignarlos no tenía ningún efecto visible para el cliente. Vaciar esta lista si vuelven.
+const TAGS_OCULTOS: ReadonlyArray<(typeof TAGS)[number]['key']> = ['ofertas', 'hotsale']
+const TAGS_VISIBLES = TAGS.filter(t => !TAGS_OCULTOS.includes(t.key))
+
 const COLORES_CANAL: Record<string, string> = {
   consumidor_final: '#6366f1',
   distribuidor: '#0ea5e9',
@@ -396,7 +401,7 @@ export function ProductosListaClient({
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Fotos</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Envío</th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Desc.</th>
-                {TAGS.map(t => (
+                {TAGS_VISIBLES.map(t => (
                   <th key={t.key} className="px-3 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: t.color + '33', color: t.color }}>
                       {t.label}
@@ -638,7 +643,7 @@ export function ProductosListaClient({
                           </button>
                         </td>
 
-                        {TAGS.map(t => {
+                        {TAGS_VISIBLES.map(t => {
                           if (t.key === 'elegidos') {
                             const activo = destacadas.has(p.id)
                             const cargando = guardandoDestacada === p.id
@@ -716,7 +721,7 @@ export function ProductosListaClient({
 
               {categoriasList.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  <td colSpan={10 + TAGS_VISIBLES.length} className="px-4 py-12 text-center text-base" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos. Ejecutá una sincronización desde el panel de Sync.'}
                   </td>
                 </tr>

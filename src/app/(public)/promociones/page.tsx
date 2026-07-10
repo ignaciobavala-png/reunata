@@ -15,7 +15,7 @@ export default function PromocionesPage() {
             Próximamente vas a encontrar aquí todas las promociones, descuentos por volumen y ofertas de temporada de Reunata.
           </p>
           <p className="text-base max-w-xl leading-relaxed mb-10" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Mientras tanto, podés ver las ofertas activas usando el botón de ofertas en la esquina de la pantalla, o explorar el catálogo completo.
+            Mientras tanto, podés explorar el catálogo completo o escribirnos por WhatsApp para conocer las promociones vigentes.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
