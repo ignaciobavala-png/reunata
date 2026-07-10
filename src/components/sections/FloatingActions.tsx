@@ -1,152 +1,40 @@
 'use client'
 
-import { Clock, Flame, MessageCircle, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { getOfertasPublic, type OfertaPublicItem } from '@/app/actions/ofertas'
-import { formatPrecio } from '@/lib/utils'
 
-type DrawerType = 'ofertas' | 'hotsale' | null
-
-function OfferDrawer({
-  type,
-  open,
-  items,
-  onClose,
-}: {
-  type: Exclude<DrawerType, null>
-  open: boolean
-  items: OfertaPublicItem[]
-  onClose: () => void
-}) {
-  const filtered = items.filter(i => i.canal === type)
-  const title = type === 'ofertas' ? 'Ofertas' : 'Hot Sale'
-  const badgeColor = type === 'ofertas' ? 'bg-amber-500' : 'bg-red-500'
-
+// Glifo oficial de WhatsApp (no existe en lucide)
+function WhatsAppIcon({ size = 24 }: { size?: number }) {
   return (
-    <>
-      <div
-        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-      />
-      <div
-        className="fixed top-0 right-0 h-full z-50 flex flex-col transition-transform duration-300"
-        style={{
-          width: 'min(100vw, 36rem)',
-          background: 'white',
-          transform: open ? 'translateX(0)' : 'translateX(100%)',
-          boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
-        }}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} aria-label="Cerrar" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6" data-lenis-prevent>
-          {filtered.length === 0 ? (
-            <p className="text-center text-sm py-12" style={{ color: 'var(--color-acero-oscuro)' }}>
-              No hay productos en {title.toLowerCase()} por el momento.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filtered.map(item => (
-                <div
-                  key={item.id}
-                  className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="aspect-[3/4] bg-gray-100 relative">
-                    {item.img ? (
-                      <Image
-                        src={item.img}
-                        alt={item.titulo}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: 'var(--color-acero)' }}>
-                        ?
-                      </div>
-                    )}
-                    <span
-                      className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}
-                    >
-                      -{item.descuento}%
-                    </span>
-                  </div>
-                  <div className="p-3">
-                    <h3 className="text-sm font-medium mb-1">{item.titulo}</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-bold">{formatPrecio(item.precio)}</span>
-                      <span className="text-xs text-gray-400 line-through">{formatPrecio(item.antes)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
   )
 }
 
+// Los botones de Ofertas y Hot Sale se quitaron a pedido del tester (2026-07)
+// para evitar conflictos — recuperar de git si se vuelven a necesitar.
 export function FloatingActions() {
   const pathname = usePathname()
-  const [drawer, setDrawer] = useState<DrawerType>(null)
-  const [items, setItems] = useState<OfertaPublicItem[]>([])
-
-  useEffect(() => {
-    getOfertasPublic().then(setItems).catch(console.error)
-  }, [])
 
   if (pathname.startsWith('/dashboard')) return null
 
   return (
-    <>
-      <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
-        <a
-          href="https://wa.me/5491132720974"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Escribinos por WhatsApp"
-          className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#5D8F72' }}
-        >
-          <MessageCircle size={24} className="text-white" aria-hidden="true" />
-        </a>
-
-        <button
-          onClick={() => setDrawer('ofertas')}
-          aria-label="Ver ofertas"
-          className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#B38C44' }}
-        >
-          <Clock size={22} className="text-white" aria-hidden="true" />
-        </button>
-
-        <button
-          onClick={() => setDrawer('hotsale')}
-          aria-label="Ver Hot Sale"
-          className="w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          style={{ background: '#AD5F5F' }}
-        >
-          <Flame size={22} className="text-white" aria-hidden="true" />
-        </button>
-      </div>
-
-      {drawer && (
-        <OfferDrawer
-          type={drawer}
-          open={!!drawer}
-          items={items}
-          onClose={() => setDrawer(null)}
-        />
-      )}
-    </>
+    <div className="fixed bottom-6 right-6 z-30">
+      <a
+        href="https://wa.me/5491132720974"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Escribinos por WhatsApp"
+        className="group flex items-center gap-0 rounded-full text-white transition-all duration-300 hover:pl-4"
+        style={{ background: '#5D8F72' }}
+      >
+        <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 group-hover:max-w-32">
+          Escribinos
+        </span>
+        <span className="w-12 h-12 flex items-center justify-center flex-shrink-0">
+          <WhatsAppIcon size={24} />
+        </span>
+      </a>
+    </div>
   )
 }

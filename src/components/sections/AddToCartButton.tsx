@@ -75,7 +75,6 @@ export function AddToCartButton({ producto, esMayorista = false, aplicaIva }: Pr
         updateCantidad(itemKey, cantidadReal)
       }
     }
-    setCartOpen(true)
   }
 
   // Sin stock: con variantes recién se sabe al elegir color; sin variantes, directo del producto

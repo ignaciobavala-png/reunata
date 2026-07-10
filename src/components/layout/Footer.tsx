@@ -28,8 +28,8 @@ const infoLinks = [
 
 const redes = [
   { label: 'Instagram', href: 'https://www.instagram.com/reunata.ar/', imageSrc: '/icons/social/instagram.png' },
-  { label: 'Facebook',  href: 'https://www.facebook.com/reunata.ar/',  imageSrc: '/icons/social/facebook.png' },
-  { label: 'YouTube',   href: 'https://www.youtube.com/@reunata.ar',   imageSrc: '/icons/social/youtube.png' },
+  { label: 'Facebook',  href: 'https://www.facebook.com/reunata/',  imageSrc: '/icons/social/facebook.png' },
+  { label: 'YouTube',   href: 'https://www.youtube.com/@reunata',   imageSrc: '/icons/social/youtube.png' },
 ]
 
 const linkClass = 'text-sm text-[var(--color-acero)] hover:text-[var(--color-acero-brillo)] transition-colors duration-200'

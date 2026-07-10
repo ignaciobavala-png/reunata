@@ -21,7 +21,7 @@ const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
 const METODO_LABEL: Record<string, string> = {
   efectivo:             'Efectivo',
   transferencia_negro:  'Transf. Directa',
-  transferencia_blanco: 'Transf. (Factura A)',
+  transferencia_blanco: 'Transf. (Fac A)',
   echeq_propio:         'E-cheq propio',
   echeq_al_dia:         'E-cheq al día',
   mercado_pago:         'Mercado Pago',
@@ -902,7 +902,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 )}
                 {ajusteVolumenCanal !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. por volumen ({descVolCanalPct}%)</span>
+                    <span>Desc. por vol({descVolCanalPct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
                   </div>
                 )}
@@ -1201,14 +1201,18 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </div>
               )}
 
-              {/* Aviso línea de crédito */}
-              {canalHabilitaFinanciado && reglas && !reglas.credito_aprobado && (
+              {/* Aviso línea de crédito — visible para todo mayorista sin crédito aprobado */}
+              {reglas && !reglas.credito_aprobado && (
                 <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium" style={{ color: '#854d0e' }}>Cheque financiado disponible con línea de crédito</p>
+                    <p className="font-medium" style={{ color: '#854d0e' }}>
+                      {canalHabilitaFinanciado ? 'Cheque financiado disponible con línea de crédito' : '¿Necesitás pago diferido?'}
+                    </p>
                     <p style={{ color: '#92400e' }}>
-                      Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.
-                      Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
+                      {canalHabilitaFinanciado
+                        ? 'Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.'
+                        : 'Podés solicitar una línea de crédito para operar en cuenta corriente o con cheques a plazo.'}
+                      {' '}Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
                     </p>
                   </div>
                   <a

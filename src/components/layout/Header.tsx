@@ -25,7 +25,8 @@ const tiendaLinks = [
   { label: 'Todos los productos', href: '/tienda/todos' },
   { label: 'Novedades',           href: '/tienda/novedades' },
   { label: 'Más elegidos',        href: '/tienda/mas-vendidos' },
-  { label: 'Vistos recientemente', href: '/historial' },
+  // 'Vistos recientemente' oculto a pedido del tester (2026-07) hasta que la feature funcione
+  // { label: 'Vistos recientemente', href: '/historial' },
 ]
 
 export function Header({ user, categorias = [], variant = 'light' }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark' }) {

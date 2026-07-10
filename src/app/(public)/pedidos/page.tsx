@@ -17,9 +17,17 @@ interface PedidoRowData {
   created_at: string
 }
 
+// A partir de ~10 filas la lista scrollea internamente para que las dos
+// columnas (en proceso / finalizados) mantengan sus límites (pedido del tester 2026-07)
+const MAX_ALTO_LISTA = '46rem'
+
 function ListaPedidos({ pedidos, mostrarVolverAPedir }: { pedidos: PedidoRowData[]; mostrarVolverAPedir: boolean }) {
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
+    <div
+      className={`rounded-xl border ${pedidos.length > 10 ? 'overflow-y-auto' : 'overflow-hidden'}`}
+      style={{ borderColor: 'var(--color-acero-claro)', ...(pedidos.length > 10 ? { maxHeight: MAX_ALTO_LISTA } : {}) }}
+      {...(pedidos.length > 10 ? { 'data-lenis-prevent': true } : {})}
+    >
       {pedidos.map((p, i) => (
         <PedidoRow
           key={p.id}

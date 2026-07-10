@@ -24,8 +24,8 @@ const PAGOS_CONSUMIDOR = [
 ]
 const PAGOS_MAYORISTA_CONTADO = [
   { key: 'efectivo',               label: 'Efectivo' },
-  { key: 'transferencia_blanco',   label: 'Transferencia Blanco (+IVA)' },
-  { key: 'transferencia_negro',    label: 'Transferencia Negro (IVA 0%)' },
+  { key: 'transferencia_blanco',   label: 'Transferencia (Factura A)' },
+  { key: 'transferencia_negro',    label: 'Transferencia Directa' },
   { key: 'echeq_al_dia',           label: 'E-cheq al día' },
   { key: 'cheque_fisico_al_dia',   label: 'Cheque físico al día' },
 ]
