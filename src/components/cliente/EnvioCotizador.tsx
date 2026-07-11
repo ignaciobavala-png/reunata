@@ -137,7 +137,10 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
+    // shrink-0: dentro del resumen (flex-col con max-h + overflow-y-auto) este div es el
+    // único hijo con overflow-hidden, que anula su min-height:auto — sin esto el flexbox
+    // lo aplasta a ~2px cuando el panel supera el alto máximo y el cotizador "desaparece".
+    <div className="rounded-lg border overflow-hidden shrink-0" style={{ borderColor: 'var(--color-acero-claro)' }}>
       {/* Header toggle */}
       <button
         onClick={() => setAbierto(v => !v)}
