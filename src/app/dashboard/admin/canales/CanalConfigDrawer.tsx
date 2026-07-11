@@ -210,6 +210,30 @@ export function CanalConfigDrawer({
     })
   }
 
+  // Los premios no tienen columna on/off: activo = algún campo cargado.
+  // El toggle apagado vacía los 6 campos para que el guardado los desactive de verdad.
+  const [premiosActivos, setPremiosActivos] = useState(() =>
+    form.premio_diversidad_items_min != null || form.premio_diversidad_pct != null ||
+    form.premio_monto_trimestral_min != null || form.premio_monto_trimestral_pct != null ||
+    form.premio_periodicidad_dias_max != null || form.premio_periodicidad_pct != null
+  )
+
+  function togglePremios(activos: boolean) {
+    setPremiosActivos(activos)
+    if (!activos) {
+      setForm(prev => ({
+        ...prev,
+        premio_diversidad_items_min: null,
+        premio_diversidad_pct: null,
+        premio_monto_trimestral_min: null,
+        premio_monto_trimestral_pct: null,
+        premio_periodicidad_dias_max: null,
+        premio_periodicidad_pct: null,
+      }))
+    }
+    setGuardado(false)
+  }
+
   const pagos = form.pagos_habilitados
 
   return (
@@ -536,6 +560,12 @@ export function CanalConfigDrawer({
 
           {/* ── Premios por fidelidad ── */}
           <Section title="Premios por fidelidad">
+            <PagoToggle
+              label={premiosActivos ? 'Activados' : 'Desactivados'}
+              activo={premiosActivos}
+              onChange={togglePremios}
+            />
+            {premiosActivos && (<>
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Diversidad de artículos
@@ -589,6 +619,7 @@ export function CanalConfigDrawer({
                 suffix="%"
               />
             </div>
+            </>)}
           </Section>
 
           {/* ── Marketing / recontacto ── */}
