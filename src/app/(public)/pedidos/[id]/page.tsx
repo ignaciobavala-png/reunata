@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { ExternalLink } from 'lucide-react'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PagoInstrucciones } from './PagoInstrucciones'
 import { ComprobanteUploader } from './ComprobanteUploader'
@@ -51,6 +52,22 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
   const diasRestantes = esBorrador && expiraEn
     ? Math.ceil((new Date(expiraEn).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null
+
+  // Comprobantes del pedido — el service client evita depender de RLS de storage;
+  // es seguro porque el select de arriba ya verificó que el pedido es del usuario.
+  const service = createServiceClient()
+  const { data: comprobantes } = await service
+    .from('comprobantes')
+    .select('id, url, subido_at')
+    .eq('pedido_id', id)
+    .order('subido_at', { ascending: false })
+
+  const comprobantesConUrl = await Promise.all(
+    (comprobantes ?? []).map(async c => {
+      const { data } = await service.storage.from('comprobantes').createSignedUrl(c.url, 3600)
+      return { ...c, signedUrl: data?.signedUrl ?? null }
+    })
+  )
 
   const waNumber = cfg['whatsapp_numero'] || '5491132720974'
   const waTexto = encodeURIComponent(
@@ -227,8 +244,43 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
         />
       )}
 
+      {comprobantesConUrl.length > 0 && (
+        <div className="rounded-xl border p-5 mb-6" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
+          <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            Comprobantes enviados
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {comprobantesConUrl.length === 1
+              ? 'Recibimos tu comprobante. Lo revisaremos y confirmaremos tu pago en breve.'
+              : 'Recibimos tus comprobantes. Los revisaremos y confirmaremos tu pago en breve.'}
+          </p>
+          <div className="flex flex-col gap-2">
+            {comprobantesConUrl.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between text-sm">
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Comprobante {comprobantesConUrl.length - i} · {new Date(c.subido_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+                {c.signedUrl ? (
+                  <a
+                    href={c.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border text-xs transition-opacity hover:opacity-70"
+                    style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                  >
+                    Ver <ExternalLink size={11} />
+                  </a>
+                ) : (
+                  <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>No disponible</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {['pendiente_pago', 'borrador'].includes(pedido.estado) && (
-        <ComprobanteUploader pedidoId={pedido.id} />
+        <ComprobanteUploader pedidoId={pedido.id} yaHayComprobante={comprobantesConUrl.length > 0} />
       )}
     </main>
   )

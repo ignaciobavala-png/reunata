@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { subirComprobante } from '@/app/actions/pedidos'
 import { Upload, Loader2, Check } from 'lucide-react'
 
-export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
+export function ComprobanteUploader({ pedidoId, yaHayComprobante = false }: { pedidoId: string; yaHayComprobante?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [subiendo, setSubiendo] = useState(false)
   const [subido, setSubido] = useState(false)
@@ -53,10 +53,12 @@ export function ComprobanteUploader({ pedidoId }: { pedidoId: string }) {
   return (
     <div className="rounded-xl border p-5" style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}>
       <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
-        Subir comprobante de pago
+        {yaHayComprobante ? 'Subir otro comprobante' : 'Subir comprobante de pago'}
       </h2>
       <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Opcional pero recomendado. Acelerá la confirmación de tu pedido.
+        {yaHayComprobante
+          ? 'Si hiciste otro pago o necesitás reemplazar el anterior, subilo acá.'
+          : 'Opcional pero recomendado. Acelerá la confirmación de tu pedido.'}
       </p>
 
       <button
