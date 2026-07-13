@@ -16,7 +16,7 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 
 const WA_NUMBER = '5491132720974'
 
-const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia']
+const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia', 'cheque_fisico_al_dia']
 const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
 const METODO_LABEL: Record<string, string> = {
   efectivo:             'Efectivo',
@@ -24,6 +24,7 @@ const METODO_LABEL: Record<string, string> = {
   transferencia_blanco: 'Transf. (Fac A)',
   echeq_propio:         'E-cheq propio',
   echeq_al_dia:         'E-cheq al día',
+  cheque_fisico_al_dia: 'Cheque al día',
   mercado_pago:         'Mercado Pago',
   transferencia:        'Transferencia',
 }
@@ -70,6 +71,9 @@ interface ReglaCanal {
   minimo_compra:                   number | null
   desc_efectivo_pct:               number
   recargo_transf_blanco_pct:       number
+  recargo_echeq_al_dia_pct:        number
+  recargo_cheque_al_dia_pct:       number
+  recargo_echeq_propio_pct:        number
   desc_transferencia_pct:          number
   desc_autogestion_primera_pct:    number
   desc_autogestion_siguientes_pct: number
@@ -574,24 +578,30 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(basePostVolumenCanal * descAutogestPct / 100) : 0
   const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
 
+  // Recargo IVA (Factura A) por método — los pagos "con IVA" suman este % al total.
+  // transferencia_blanco default 21 por retrocompat; el resto arranca en 0 hasta
+  // que el canal lo configure.
+  const recargoConIvaPct: Record<string, number> = {
+    transferencia_blanco: reglas?.recargo_transf_blanco_pct ?? 21,
+    echeq_al_dia:         reglas?.recargo_echeq_al_dia_pct ?? 0,
+    cheque_fisico_al_dia: reglas?.recargo_cheque_al_dia_pct ?? 0,
+    echeq_propio:         reglas?.recargo_echeq_propio_pct ?? 0,
+  }
+
   // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
   const ajustePct = metodoPago && reglas
     ? metodoPago === 'efectivo'
       ? (reglas.desc_efectivo_pct ?? 0)
       : metodoPago === 'transferencia_negro'
         ? (reglas.desc_transferencia_pct ?? 0)
-        : metodoPago === 'transferencia_blanco'
-          ? (reglas.recargo_transf_blanco_pct ?? 21)
-          : 0
+        : (recargoConIvaPct[metodoPago] ?? 0)
     : 0
   const ajuste = metodoPago && reglas
-    ? metodoPago === 'efectivo'
+    ? (metodoPago === 'efectivo' || metodoPago === 'transferencia_negro')
       ? -Math.round(basePostAutogestion * ajustePct / 100)
-      : metodoPago === 'transferencia_negro'
-        ? -Math.round(basePostAutogestion * ajustePct / 100)
-        : metodoPago === 'transferencia_blanco'
-          ? Math.round(basePostAutogestion * ajustePct / 100)
-          : 0
+      : metodoPago in recargoConIvaPct
+        ? Math.round(basePostAutogestion * ajustePct / 100)
+        : 0
     : 0
 
   // ── Presentación mayorista en bruto (sin IVA) ─────────────────────────
@@ -609,9 +619,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMayoristaConMetodo(k: string): number {
     if (!reglas) return basePostAutogestion
-    if (k === 'efectivo')             return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
-    if (k === 'transferencia_negro')  return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
-    if (k === 'transferencia_blanco') return basePostAutogestion + Math.round(basePostAutogestion * (reglas.recargo_transf_blanco_pct ?? 21) / 100)
+    if (k === 'efectivo')            return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
+    if (k === 'transferencia_negro') return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
+    if (k in recargoConIvaPct)       return basePostAutogestion + Math.round(basePostAutogestion * recargoConIvaPct[k] / 100)
     return basePostAutogestion
   }
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')

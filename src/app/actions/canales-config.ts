@@ -11,6 +11,9 @@ export type CanalConfigPayload = {
   desc_transferencia_pct: number
   desc_efectivo_pct: number
   recargo_transf_blanco_pct: number
+  recargo_echeq_al_dia_pct: number
+  recargo_cheque_al_dia_pct: number
+  recargo_echeq_propio_pct: number
   desc_autogestion_primera_pct: number
   desc_autogestion_siguientes_pct: number
   desc_volumen_monto_min: number | null

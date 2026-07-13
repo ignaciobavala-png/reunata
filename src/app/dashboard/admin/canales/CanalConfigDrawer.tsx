@@ -50,6 +50,9 @@ function buildDefaultConfig(canal: Canal): CanalConfigPayload {
     desc_transferencia_pct: 0,
     desc_efectivo_pct: 0,
     recargo_transf_blanco_pct: 21,
+    recargo_echeq_al_dia_pct: 0,
+    recargo_cheque_al_dia_pct: 0,
+    recargo_echeq_propio_pct: 0,
     desc_autogestion_primera_pct: 0,
     desc_autogestion_siguientes_pct: 0,
     desc_volumen_monto_min: null,
@@ -354,6 +357,26 @@ export function CanalConfigDrawer({
                         />
                       </div>
                     )}
+                    {m.key === 'echeq_al_dia' && pagos['echeq_al_dia']?.activo && (
+                      <div className="ml-12 mt-1">
+                        <NumField
+                          label="Recargo IVA (Factura A)"
+                          value={form.recargo_echeq_al_dia_pct}
+                          onChange={v => set('recargo_echeq_al_dia_pct', v ?? 0)}
+                          suffix="%"
+                        />
+                      </div>
+                    )}
+                    {m.key === 'cheque_fisico_al_dia' && pagos['cheque_fisico_al_dia']?.activo && (
+                      <div className="ml-12 mt-1">
+                        <NumField
+                          label="Recargo IVA (Factura A)"
+                          value={form.recargo_cheque_al_dia_pct}
+                          onChange={v => set('recargo_cheque_al_dia_pct', v ?? 0)}
+                          suffix="%"
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -361,12 +384,23 @@ export function CanalConfigDrawer({
                   Financiado — requiere formulario de crédito aprobado
                 </p>
                 {PAGOS_MAYORISTA_FINANCIADO.map(m => (
-                  <PagoToggle
-                    key={m.key}
-                    label={m.label}
-                    activo={pagos[m.key]?.activo ?? false}
-                    onChange={v => togglePago(m.key, v)}
-                  />
+                  <div key={m.key}>
+                    <PagoToggle
+                      label={m.label}
+                      activo={pagos[m.key]?.activo ?? false}
+                      onChange={v => togglePago(m.key, v)}
+                    />
+                    {m.key === 'echeq_propio' && pagos['echeq_propio']?.activo && (
+                      <div className="ml-12 mt-1">
+                        <NumField
+                          label="Recargo IVA (Factura A)"
+                          value={form.recargo_echeq_propio_pct}
+                          onChange={v => set('recargo_echeq_propio_pct', v ?? 0)}
+                          suffix="%"
+                        />
+                      </div>
+                    )}
+                  </div>
                 ))}
 
                 <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
