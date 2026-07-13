@@ -266,6 +266,7 @@ export async function iniciarCheckoutMP(
     envio_calle: envioParams?.calle ?? null,
     envio_numero: envioParams?.numero ?? null,
     envio_piso: envioParams?.piso ?? null,
+    envio_servicio: envioParams?.servicioId ?? null,
   }
 
   if (user) {
@@ -596,6 +597,7 @@ export async function iniciarCheckoutTransferencia(
       envio_calle: envioParams?.calle ?? null,
       envio_numero: envioParams?.numero ?? null,
       envio_piso: envioParams?.piso ?? null,
+      envio_servicio: envioParams?.servicioId ?? null,
     })
     .select('id, numero')
     .single()

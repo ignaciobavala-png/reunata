@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { supabaseImg } from '@/lib/images'
+import { crearEnvioEnviopack, consultarEnvioEnviopack } from '@/lib/enviopack'
 
 interface LineaPedido {
   productoId: number
@@ -321,6 +322,53 @@ export async function confirmarPago(pedidoId: string, medioPago: string, referen
   }).eq('id', pedidoId)
   revalidatePath(`/dashboard/admin/pedidos`)
   revalidatePath(`/pedidos/${pedidoId}`)
+}
+
+// Genera el envío en Enviopack para un pedido y guarda el id/estado. Lo dispara
+// Elena manualmente desde el detalle del pedido. No confirma el pago ni cambia el
+// estado del pedido; solo crea el envío en Enviopack.
+export async function generarEnvio(pedidoId: string): Promise<{ ok: boolean; error?: string }> {
+  if (!await verificarRolAdmin()) return { ok: false, error: 'Sin permisos.' }
+
+  const res = await crearEnvioEnviopack(pedidoId)
+  if (!res.ok) return { ok: false, error: res.error }
+
+  const service = createServiceClient()
+  const { error } = await service.from('pedidos').update({
+    enviopack_envio_id: res.envioId,
+    enviopack_estado: res.estado,
+  }).eq('id', pedidoId)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
+  return { ok: true }
+}
+
+// Refresco manual del estado del envío en Enviopack — respaldo del webhook.
+// Si el webhook falla o tarda, Elena puede actualizar a mano desde el pedido.
+export async function actualizarEstadoEnvio(pedidoId: string): Promise<{ ok: boolean; estado?: string; error?: string }> {
+  if (!await verificarRolAdmin()) return { ok: false, error: 'Sin permisos.' }
+
+  const service = createServiceClient()
+  const { data: pedido } = await service
+    .from('pedidos')
+    .select('enviopack_envio_id')
+    .eq('id', pedidoId)
+    .single()
+  if (!pedido?.enviopack_envio_id) return { ok: false, error: 'El pedido no tiene envío generado.' }
+
+  const envio = await consultarEnvioEnviopack(pedido.enviopack_envio_id)
+  if (!envio.ok) return { ok: false, error: envio.error }
+
+  const nuevoEstado = envio.procesado ? 'procesado' : envio.confirmado ? 'en_proceso' : 'sin_confirmar'
+  const { error } = await service.from('pedidos').update({
+    enviopack_estado: nuevoEstado,
+    ...(envio.trackingNumber ? { tracking: envio.trackingNumber } : {}),
+  }).eq('id', pedidoId)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
+  return { ok: true, estado: nuevoEstado }
 }
 
 export async function actualizarEstadoPedido(pedidoId: string, estado: string) {

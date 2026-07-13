@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { EstadoActions } from './EstadoActions'
 import { PrintButton } from './PrintButton'
+import { GenerarEnvioButton } from './GenerarEnvioButton'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 
 export default async function AdminDetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +20,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       descuento_sugerido, descuento_nota,
       envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia,
+      envio_servicio, enviopack_envio_id, enviopack_estado, tracking,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       cliente_id, guest_nombre, guest_email, guest_telefono,
       pedido_items (
@@ -295,6 +297,17 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
               </p>
             )}
           </div>
+          {/* Enviopack: generar envío (solo con dirección a domicilio cargada) */}
+          {(pedido as any).envio_calle && (
+            <div className="print:hidden mt-4 pt-4" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+              <GenerarEnvioButton
+                pedidoId={pedido.id}
+                envioId={(pedido as any).enviopack_envio_id ?? null}
+                estado={(pedido as any).enviopack_estado ?? null}
+                tracking={(pedido as any).tracking ?? null}
+              />
+            </div>
+          )}
         </div>
       )}
 
