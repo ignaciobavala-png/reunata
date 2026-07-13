@@ -63,7 +63,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, variantes, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, descripcion_tecnica, atributos, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, variantes, producto_fotos(url, orden)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -231,10 +231,37 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             )}
 
             {producto.descripcion && (
-              <p className="text-sm leading-relaxed mt-6 pt-6" style={{ color: 'var(--color-acero-oscuro)', borderTop: '1px solid var(--color-acero-claro)' }}>
+              <p
+                className="text-sm leading-relaxed mt-6 pt-6"
+                style={{ color: 'var(--color-acero-oscuro)', borderTop: '1px solid var(--color-acero-claro)', whiteSpace: 'pre-line' }}
+              >
                 {producto.descripcion}
               </p>
             )}
+
+            {(() => {
+              const atributos = (producto.atributos as { clave: string; valor: string }[] | null) ?? []
+              if (atributos.length === 0) return null
+              return (
+                <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+                  <p className="text-[10px] tracking-[0.25em] uppercase mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Ficha técnica
+                  </p>
+                  <dl className="text-sm">
+                    {atributos.map((a, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between gap-4 py-1.5"
+                        style={{ borderTop: i > 0 ? '1px solid var(--color-acero-brillo)' : undefined }}
+                      >
+                        <dt style={{ color: 'var(--color-acero-oscuro)' }}>{a.clave}</dt>
+                        <dd className="text-right font-medium" style={{ color: 'var(--foreground)' }}>{a.valor}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>

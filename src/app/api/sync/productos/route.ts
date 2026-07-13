@@ -201,7 +201,10 @@ async function syncProductos(desactivarNoReunata = false) {
       precio_lista4:   num(item.precioFinalLista4),
       precio_lista5:   num(item.precioFinalLista5),
       iva:             num(item.iva) ?? 0,
-      descripcion:     item.descripcion || null,
+      // La descripción NO se sincroniza desde Gesu: la página es la única fuente
+      // de verdad y se carga a mano desde el panel. Traerla acá la pisaría en cada
+      // sync. (upsert solo escribe las columnas presentes, así que omitirla deja
+      // intacto lo cargado a mano.)
       palabras_clave:  item.palabrasClave || null,
       variantes:       parseStockVariante(item.StockVariante),
       ultima_sync:     new Date().toISOString(),

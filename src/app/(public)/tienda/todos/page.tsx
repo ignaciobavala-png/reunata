@@ -29,7 +29,7 @@ export default async function TodosProductosPage() {
 
   const { data: rawProductos } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, moneda, iva, variantes, stock, stock_visible, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, atributos, moneda, iva, variantes, stock, stock_visible, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
     .eq('activo', true)
     .in('id', filterCanal)
     .order('titulo')
@@ -47,6 +47,7 @@ export default async function TodosProductosPage() {
       titulo: p.titulo,
       codigo_interno: p.codigo_interno,
       categoria: p.categoria ?? '',
+      atributos: (p.atributos as { clave: string; valor: string }[] | null) ?? null,
       foto_url: fotos[0]?.url ?? null,
       precio,
       moneda,

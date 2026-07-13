@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { parseAtributos } from '@/lib/atributos'
 
 const ROLES_ADMIN = ['master', 'empleado']
 
@@ -16,12 +17,22 @@ async function verificarRolAdmin() {
   return ROLES_ADMIN.includes(perfil?.rol ?? '')
 }
 
-export async function guardarDescripcion(productoId: number, descripcion: string | null) {
+export async function guardarDescripcion(
+  productoId: number,
+  descripcion: string | null,
+  descripcionTecnica?: string | null,
+) {
   if (!await verificarRolAdmin()) return { ok: false, error: 'Sin permisos.' }
   const supabase = createServiceClient()
+  const tecnica = descripcionTecnica?.trim() || null
+  const atributos = parseAtributos(tecnica)
   const { error } = await supabase
     .from('productos')
-    .update({ descripcion: descripcion?.trim() || null })
+    .update({
+      descripcion: descripcion?.trim() || null,
+      descripcion_tecnica: tecnica,
+      atributos: atributos.length > 0 ? atributos : null,
+    })
     .eq('id', productoId)
   if (error) return { ok: false }
   return { ok: true }

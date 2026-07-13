@@ -7,6 +7,7 @@ import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft, Camera, 
 import Image from 'next/image'
 import { toggleProductoCanal, actualizarMultiplo } from '@/app/actions/canales'
 import { guardarDescripcion, guardarDimensionesEnvio } from '@/app/actions/productos'
+import { parseAtributos } from '@/lib/atributos'
 
 export interface FotoItem {
   id: number
@@ -53,6 +54,7 @@ interface Props {
   asignacionesIniciales: Set<number>
   multiplosIniciales: Record<number, number>
   descripcionInicial?: string | null
+  descripcionTecnicaInicial?: string | null
   dimensionesIniciales?: DimensionesEnvio
   onClose: () => void
   onFotosChange?: (productoId: number, fotos: FotoItem[]) => void
@@ -63,6 +65,7 @@ interface Props {
 export function ProductoFichaDrawer({
   producto, fotosIniciales, supabaseUrl, isMaster, initialTab = 'fotos',
   canales, asignacionesIniciales, multiplosIniciales, descripcionInicial = null,
+  descripcionTecnicaInicial = null,
   dimensionesIniciales,
   onClose, onFotosChange, onCanalesChange, onDimensionesChange,
 }: Props) {
@@ -79,6 +82,8 @@ export function ProductoFichaDrawer({
 
   // ── Descripción ───────────────────────────────────────────────────────────
   const [descripcion, setDescripcion] = useState(descripcionInicial ?? '')
+  const [descripcionTecnica, setDescripcionTecnica] = useState(descripcionTecnicaInicial ?? '')
+  const atributosPreview = parseAtributos(descripcionTecnica)
 
   // ── Dimensiones de envío ──────────────────────────────────────────────────
   const [dims, setDims] = useState<DimensionesEnvio>({
@@ -306,7 +311,7 @@ export function ProductoFichaDrawer({
 
   async function handleGuardarDescripcion() {
     setGuardandoDesc(true)
-    const res = await guardarDescripcion(producto.id, descripcion || null)
+    const res = await guardarDescripcion(producto.id, descripcion || null, descripcionTecnica || null)
     setGuardandoDesc(false)
     if (res.ok) mostrarToast('Descripción guardada')
     else mostrarToast('Error al guardar')
@@ -558,23 +563,61 @@ export function ProductoFichaDrawer({
             </div>
           )}
           {tab === 'descripcion' && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Descripción técnica visible en la página del producto. Si se carga desde Gesu, se sobrescribirá en el próximo sync.
+                Lo cargado acá es la única fuente de verdad: el sync de Gesu ya no pisa las descripciones.
               </p>
-              <textarea
-                value={descripcion}
-                onChange={e => setDescripcion(e.target.value)}
-                rows={8}
-                placeholder="Ej: Mate de acero inoxidable 18/8, capacidad 350ml, con tapa a presión…"
-                className="w-full rounded-lg border p-3 text-sm resize-y outline-none"
-                style={{
-                  borderColor: 'var(--color-acero-claro)',
-                  color: 'var(--foreground)',
-                  background: 'white',
-                  lineHeight: 1.6,
-                }}
-              />
+
+              {/* Caja 1 — descripción de marketing */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                  Descripción
+                  <span className="font-normal ml-1" style={{ color: 'var(--color-acero-oscuro)' }}>· venta, tono emocional</span>
+                </label>
+                <textarea
+                  value={descripcion}
+                  onChange={e => setDescripcion(e.target.value)}
+                  rows={6}
+                  placeholder="Ej: El compañero perfecto para tus mañanas. Un mate que abriga cada ronda…"
+                  className="w-full rounded-lg border p-3 text-sm resize-y outline-none"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)', background: 'white', lineHeight: 1.6 }}
+                />
+              </div>
+
+              {/* Caja 2 — ficha técnica (alimenta filtros) */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                  Ficha técnica
+                  <span className="font-normal ml-1" style={{ color: 'var(--color-acero-oscuro)' }}>· un dato por línea, formato <code>Clave: Valor</code></span>
+                </label>
+                <textarea
+                  value={descripcionTecnica}
+                  onChange={e => setDescripcionTecnica(e.target.value)}
+                  rows={6}
+                  placeholder={'Material: Acero inoxidable\nCapacidad: 350 ml\nColor: Negro\nMedidas: 10 x 8 x 8 cm'}
+                  className="w-full rounded-lg border p-3 text-sm resize-y outline-none font-mono"
+                  style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)', background: 'white', lineHeight: 1.6 }}
+                />
+                {/* Preview en vivo — así se ve cómo alimenta los filtros de la tienda */}
+                {atributosPreview.length > 0 ? (
+                  <div className="rounded-lg border p-3 flex flex-col gap-1.5" style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                    <p className="text-[10px] tracking-widest uppercase mb-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
+                      Atributos detectados ({atributosPreview.length}) — así se usan para filtrar
+                    </p>
+                    {atributosPreview.map((a, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span className="px-1.5 py-0.5 rounded font-medium" style={{ background: 'white', color: 'var(--foreground)' }}>{a.clave}</span>
+                        <span style={{ color: 'var(--color-acero-oscuro)' }}>{a.valor}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : descripcionTecnica.trim() ? (
+                  <p className="text-xs" style={{ color: '#d97706' }}>
+                    Ninguna línea tiene el formato <code>Clave: Valor</code>. Se guarda igual, pero no genera filtros.
+                  </p>
+                ) : null}
+              </div>
+
               <button
                 onClick={handleGuardarDescripcion}
                 disabled={guardandoDesc}

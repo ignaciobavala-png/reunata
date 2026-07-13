@@ -16,6 +16,7 @@ interface Producto {
   titulo: string
   categoria: string | null
   descripcion: string | null
+  descripcion_tecnica: string | null
   stock: number | null
   moneda: string | null
   precio_lista3: number | null
@@ -745,6 +746,7 @@ export function ProductosListaClient({
           asignacionesIniciales={drawerAsignaciones}
           multiplosIniciales={drawerMultiplos}
           descripcionInicial={drawerState.producto.descripcion ?? null}
+          descripcionTecnicaInicial={drawerState.producto.descripcion_tecnica ?? null}
           dimensionesIniciales={drawerDimensiones}
           onClose={() => setDrawerState(null)}
           onFotosChange={(productoId, fotos) =>

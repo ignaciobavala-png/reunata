@@ -54,7 +54,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const filterCanal = idsCanal.length > 0 ? idsCanal : [-1]
 
-  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, iva, stock, stock_visible, categoria, created_at'
+  const precioSelect = 'precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, iva, stock, stock_visible, categoria, created_at, atributos'
 
   function extraerPrecio(p: Record<string, unknown>): number | null {
     if (!mostrarPrecios || !listaPrecio) return null
@@ -82,6 +82,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
       iva: p.iva ?? 21,
       multiplo: multiplos[p.id] ?? 1,
       categoria: (p.categoria as string | null) ?? '',
+      atributos: (p.atributos as { clave: string; valor: string }[] | null) ?? null,
       created_at: (p.created_at as string | null) ?? '',
       supabaseUrl,
       variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
