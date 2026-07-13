@@ -30,6 +30,7 @@ const BLOQUE_LABEL: Record<Bloque, string> = {
 }
 
 export interface CuentaSinIva {
+  nombre?: string | null
   tipo: string
   cbu: string
   alias?: string | null
@@ -143,6 +144,7 @@ export function PagoInstrucciones({
       {bloque === 'cuenta_sin_iva' && (
         cuentaSinIva?.cbu ? (
           <div>
+            {cuentaSinIva.nombre && <Copiable label="Titular" value={cuentaSinIva.nombre} />}
             {cuentaSinIva.tipo === 'deposito' ? (
               <>
                 {cuentaSinIva.banco && <Copiable label="Banco" value={cuentaSinIva.banco} />}
