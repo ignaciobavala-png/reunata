@@ -20,7 +20,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       descuento_sugerido, descuento_nota,
       envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia,
-      envio_servicio, enviopack_envio_id, enviopack_estado, tracking,
+      envio_servicio, enviopack_envio_id, enviopack_estado, tracking, metodo_envio,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       cliente_id, guest_nombre, guest_email, guest_telefono,
       pedido_items (
@@ -305,6 +305,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                 envioId={(pedido as any).enviopack_envio_id ?? null}
                 estado={(pedido as any).enviopack_estado ?? null}
                 tracking={(pedido as any).tracking ?? null}
+                metodoEnvio={(pedido as any).metodo_envio ?? null}
               />
             </div>
           )}

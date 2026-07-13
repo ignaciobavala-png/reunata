@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Truck, RefreshCw, Printer } from 'lucide-react'
-import { generarEnvio, actualizarEstadoEnvio } from '@/app/actions/pedidos'
+import { Loader2, Truck, RefreshCw, Printer, Store, Undo2 } from 'lucide-react'
+import { generarEnvio, actualizarEstadoEnvio, marcarMetodoEnvio } from '@/app/actions/pedidos'
 
 const ESTADO_LABEL: Record<string, string> = {
   sin_confirmar: 'Envío creado (sin confirmar)',
@@ -16,11 +16,13 @@ export function GenerarEnvioButton({
   envioId,
   estado,
   tracking,
+  metodoEnvio,
 }: {
   pedidoId: string
   envioId: string | null
   estado: string | null
   tracking?: string | null
+  metodoEnvio?: string | null
 }) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -44,10 +46,42 @@ export function GenerarEnvioButton({
     })
   }
 
-  // Sin envío todavía: botón de generar
-  if (!envioId) {
+  function handleMetodo(metodo: 'interno' | null) {
+    setError(null)
+    startTransition(async () => {
+      const res = await marcarMetodoEnvio(pedidoId, metodo)
+      if (res.ok) router.refresh()
+      else setError(res.error ?? 'No se pudo actualizar el método de envío.')
+    })
+  }
+
+  // Ya marcado como envío interno: cartel + deshacer (no se generó en Enviopack)
+  if (!envioId && metodoEnvio === 'interno') {
     return (
       <div className="flex flex-col gap-1.5 items-start">
+        <p className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+          <Store size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+          Envío interno (moto / remís / local / otro correo)
+        </p>
+        <button
+          type="button"
+          onClick={() => handleMetodo(null)}
+          disabled={pending}
+          className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70 disabled:opacity-50"
+          style={{ color: 'var(--color-acero-oscuro)' }}
+        >
+          {pending ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />}
+          Deshacer / cambiar a Enviopack
+        </button>
+        {error && <p className="text-xs" style={{ color: '#dc2626' }}>{error}</p>}
+      </div>
+    )
+  }
+
+  // Sin envío todavía: generar en Enviopack — o — marcar como envío interno
+  if (!envioId) {
+    return (
+      <div className="flex flex-col gap-2 items-start">
         <button
           type="button"
           onClick={handleGenerar}
@@ -57,6 +91,16 @@ export function GenerarEnvioButton({
         >
           {pending ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
           Generar envío en Enviopack
+        </button>
+        <button
+          type="button"
+          onClick={() => handleMetodo('interno')}
+          disabled={pending}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs border transition-colors duration-150 disabled:opacity-50"
+          style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)', background: 'white' }}
+        >
+          {pending ? <Loader2 size={12} className="animate-spin" /> : <Store size={12} />}
+          Marcar como envío interno
         </button>
         {error && <p className="text-xs" style={{ color: '#dc2626' }}>{error}</p>}
       </div>

@@ -337,9 +337,41 @@ export async function generarEnvio(pedidoId: string): Promise<{ ok: boolean; err
   const { error } = await service.from('pedidos').update({
     enviopack_envio_id: res.envioId,
     enviopack_estado: res.estado,
+    metodo_envio: 'enviopack',
   }).eq('id', pedidoId)
   if (error) return { ok: false, error: error.message }
 
+  revalidatePath('/dashboard/admin/pedidos')
+  revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
+  return { ok: true }
+}
+
+// Marca con qué método se despacha el pedido, para el registro/conteo por canal.
+// 'interno' lo elige Elena (moto, remís, retiro en local, otro correo); pasar null
+// para deshacer. No se permite tocar el método si ya se generó un envío en Enviopack.
+export async function marcarMetodoEnvio(
+  pedidoId: string,
+  metodo: 'interno' | null,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!await verificarRolAdmin()) return { ok: false, error: 'Sin permisos.' }
+
+  const service = createServiceClient()
+  const { data: pedido } = await service
+    .from('pedidos')
+    .select('enviopack_envio_id')
+    .eq('id', pedidoId)
+    .single()
+  if (pedido?.enviopack_envio_id) {
+    return { ok: false, error: 'El pedido ya tiene un envío generado en Enviopack.' }
+  }
+
+  const { error } = await service
+    .from('pedidos')
+    .update({ metodo_envio: metodo })
+    .eq('id', pedidoId)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath('/dashboard/admin/pedidos')
   revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)
   return { ok: true }
 }

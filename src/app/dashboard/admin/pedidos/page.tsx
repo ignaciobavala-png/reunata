@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { ShoppingCart, Search, Download } from 'lucide-react'
+import { ShoppingCart, Search, Download, Truck, Store } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
 import { ExportButton } from './ExportButton'
@@ -73,7 +73,7 @@ export default async function PedidosPage({
   let query = supabase
     .from('pedidos')
     .select(`
-      id, numero, estado, medio_pago, total_usd, created_at, cliente_id,
+      id, numero, estado, medio_pago, total_usd, created_at, cliente_id, metodo_envio,
       guest_nombre, guest_email,
       cliente:cliente_id ( nombre, email )
     `, { count: 'exact' })
@@ -100,6 +100,23 @@ export default async function PedidosPage({
 
   const { data: pedidos, count } = await query
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
+
+  // Conteo de envíos por método en el período elegido (independiente de la
+  // bandeja/estado/búsqueda) — para el registro de cuántos van por cada canal.
+  function contarMetodo(metodo: string) {
+    let c = supabase
+      .from('pedidos')
+      .select('id', { count: 'exact', head: true })
+      .eq('metodo_envio', metodo)
+    if (desde) c = c.gte('created_at', desde)
+    if (hasta) c = c.lte('created_at', hasta)
+    return c
+  }
+  const [{ count: countEnviopack }, { count: countInterno }] = await Promise.all([
+    contarMetodo('enviopack'),
+    contarMetodo('interno'),
+  ])
+  const periodoLabel = PERIODOS.find(p => p.value === periodo)?.label.toLowerCase() ?? 'en total'
 
   function url(overrides: Record<string, string | undefined>) {
     const merged: Record<string, string | undefined> = {
@@ -189,6 +206,26 @@ export default async function PedidosPage({
           </a>
         ))}
       </div>
+
+      {/* Conteo de envíos por método (según el período) */}
+      {((countEnviopack ?? 0) > 0 || (countInterno ?? 0) > 0) && (
+        <div
+          className="flex items-center gap-4 flex-wrap mb-5 px-4 py-3 rounded-lg border text-sm"
+          style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}
+        >
+          <span style={{ color: 'var(--color-acero-oscuro)' }}>
+            Envíos {periodoLabel}:
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: 'var(--foreground)' }}>
+            <Truck size={14} style={{ color: 'var(--color-granito)' }} />
+            {countEnviopack ?? 0} Enviopack
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: 'var(--foreground)' }}>
+            <Store size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
+            {countInterno ?? 0} internos
+          </span>
+        </div>
+      )}
 
       {/* Búsqueda */}
       <form method="GET" action="/dashboard/admin/pedidos" className="mb-5">
@@ -307,9 +344,18 @@ export default async function PedidosPage({
                       {emailMostrado && <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>{emailMostrado}</p>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: col.bg, color: col.text }}>
-                        {estadoLabel(p.estado)}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: col.bg, color: col.text }}>
+                          {estadoLabel(p.estado)}
+                        </span>
+                        {(p as any).metodo_envio && (
+                          <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                            {(p as any).metodo_envio === 'enviopack'
+                              ? <><Truck size={11} /> Enviopack</>
+                              : <><Store size={11} /> Interno</>}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
                       {p.medio_pago?.replace(/_/g, ' ') ?? '—'}
