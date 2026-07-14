@@ -62,6 +62,17 @@ interface Props {
   onDimensionesChange?: (productoId: number, dims: DimensionesEnvio) => void
 }
 
+// Dimensiones: se muestran y escriben con coma decimal (es-AR); se acepta también
+// el punto y se normaliza a coma al tipear.
+function dimToText(v: number | null | undefined): string {
+  return v == null ? '' : String(v).replace('.', ',')
+}
+
+function textToDim(raw: string): number | null {
+  const n = parseFloat(raw.replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 export function ProductoFichaDrawer({
   producto, fotosIniciales, supabaseUrl, isMaster, initialTab = 'fotos',
   canales, asignacionesIniciales, multiplosIniciales, descripcionInicial = null,
@@ -92,6 +103,15 @@ export function ProductoFichaDrawer({
     largo: dimensionesIniciales?.largo ?? null,
     peso: dimensionesIniciales?.peso ?? null,
     enviar_solo: dimensionesIniciales?.enviar_solo ?? false,
+  })
+  // Texto crudo de los inputs de dimensiones: se edita como string (coma decimal,
+  // estilo es-AR) y se parsea aparte — un input numérico controlado que parsea en
+  // cada tecla borra el separador antes de que el usuario termine de escribir.
+  const [dimsText, setDimsText] = useState<Record<'alto' | 'ancho' | 'largo' | 'peso', string>>({
+    alto: dimToText(dimensionesIniciales?.alto),
+    ancho: dimToText(dimensionesIniciales?.ancho),
+    largo: dimToText(dimensionesIniciales?.largo),
+    peso: dimToText(dimensionesIniciales?.peso),
   })
   const [guardandoDims, setGuardandoDims] = useState(false)
 
@@ -648,17 +668,18 @@ export function ProductoFichaDrawer({
                       {label} <span style={{ color: 'var(--color-acero)' }}>({unit})</span>
                     </label>
                     <input
-                      type="number"
-                      min={0}
-                      step={key === 'peso' ? 0.01 : 1}
-                      value={dims[key] ?? ''}
+                      type="text"
+                      inputMode="decimal"
+                      value={dimsText[key]}
                       onChange={e => {
-                        const raw = e.target.value
-                        const val = raw === '' ? null : (key === 'peso' ? parseFloat(raw) : parseInt(raw))
-                        setDims(prev => ({ ...prev, [key]: val }))
+                        // Solo dígitos y una coma; el punto se convierte a coma
+                        const partes = e.target.value.replace(/\./g, ',').replace(/[^\d,]/g, '').split(',')
+                        const texto = partes.length > 1 ? `${partes[0]},${partes.slice(1).join('')}` : partes[0]
+                        setDimsText(prev => ({ ...prev, [key]: texto }))
+                        setDims(prev => ({ ...prev, [key]: textToDim(texto) }))
                       }}
                       placeholder="—"
-                      className="w-full px-3 py-2 text-sm rounded-lg border outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                       style={{
                         borderColor: 'var(--color-acero-claro)',
                         color: 'var(--foreground)',
