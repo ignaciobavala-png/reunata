@@ -38,14 +38,12 @@ export function ProductGridPublic({
   mostrarPrecios = false,
   estaLogueado = false,
   esMayorista = false,
-  aplicaIva,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
   mostrarPrecios?: boolean
   estaLogueado?: boolean
   esMayorista?: boolean
-  aplicaIva?: boolean
 }) {
   const { add, items } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
@@ -105,11 +103,9 @@ export function ProductGridPublic({
       router.push(`/tienda/p/${p.id}`)
       return
     }
-    const precioBase = p.precio ?? 0
-    const debeAplicarIva = aplicaIva ?? !esMayorista
-    const precioCarrito = debeAplicarIva
-      ? Math.round(precioBase * (1 + ((p.iva ?? 21) / 100)))
-      : precioBase
+    // El precio de la lista se guarda tal cual: precio_lista5 (minorista) ya incluye IVA
+    // y precio_lista3 (mayorista) es neto. No se recarga IVA acá.
+    const precioCarrito = p.precio ?? 0
     add({
       productoId: p.id,
       itemKey: `${p.id}:`,
@@ -226,23 +222,25 @@ export function ProductGridPublic({
                   {p.codigo_interno}
                 </p>
                 {p.precio != null && (() => {
-                  const precioConIva = Math.round(p.precio * (1 + (p.iva ?? 21) / 100))
+                  // Mayorista: precio_lista3 es neto → IVA incluido = precio × (1+iva).
+                  // Minorista: precio_lista5 ya incluye IVA → neto = precio / (1+iva).
+                  const ivaFactor = 1 + (p.iva ?? 21) / 100
                   return esMayorista ? (
                     <>
                       <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
                         {formatPrecio(p.precio, p.moneda)}
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        IVA incluido: {formatPrecio(precioConIva, p.moneda)}
+                        IVA incluido: {formatPrecio(Math.round(p.precio * ivaFactor), p.moneda)}
                       </p>
                     </>
                   ) : (
                     <>
                       <p className="text-base font-bold mt-0.5" style={{ color: 'var(--foreground)' }}>
-                        {formatPrecio(precioConIva, p.moneda)}
+                        {formatPrecio(p.precio, p.moneda)}
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Precio sin impuestos nacionales: {formatPrecio(p.precio, p.moneda)}
+                        Precio sin impuestos nacionales: {formatPrecio(Math.round(p.precio / ivaFactor), p.moneda)}
                       </p>
                     </>
                   )

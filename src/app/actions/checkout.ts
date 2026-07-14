@@ -156,10 +156,10 @@ export async function iniciarCheckoutMP(
     if (!prod || prod.precio_lista5 == null) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    // El checkout MP es solo para consumidor_final → aplicar IVA al precio neto
+    // precio_lista5 (lista_Locales WEB de Gesú) ya viene con IVA incluido → se cobra tal cual.
+    // ivaRate se conserva solo para desglosar el neto ("sin impuestos") en el resumen.
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
-    const precioConIva = Math.round(precioArs * (1 + ivaRate))
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, ivaRate, variante: item.variante ?? null }]
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioArs, ivaRate, variante: item.variante ?? null }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -492,9 +492,9 @@ export async function iniciarCheckoutTransferencia(
     if (!prod || prod.precio_lista5 == null) return []
     const { precio: precioArs } = aplicarTipoCambio(prod.precio_lista5, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
+    // precio_lista5 ya incluye IVA → se cobra tal cual; ivaRate solo desglosa el neto en el resumen.
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
-    const precioConIva = Math.round(precioArs * (1 + ivaRate))
-    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioConIva, ivaRate, variante: item.variante ?? null }]
+    return [{ productoId: item.productoId, titulo: prod.titulo, cantidad: item.cantidad, precioUnit: precioArs, ivaRate, variante: item.variante ?? null }]
   })
 
   if (lineas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }

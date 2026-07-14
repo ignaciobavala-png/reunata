@@ -86,23 +86,25 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                     {foto.codigo_interno}
                   </p>
                   {foto.precio != null && (() => {
-                    const precioConIva = Math.round(foto.precio * (1 + (foto.iva ?? 21) / 100))
+                    // Mayorista: precio_lista3 es neto → IVA incluido = precio × (1+iva).
+                    // Minorista: precio_lista5 ya incluye IVA → neto = precio / (1+iva).
+                    const ivaFactor = 1 + (foto.iva ?? 21) / 100
                     return esMayorista ? (
                       <>
                         <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
                           {formatPrecio(foto.precio, foto.moneda)}
                         </p>
                         <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          IVA incluido: {formatPrecio(precioConIva, foto.moneda)}
+                          IVA incluido: {formatPrecio(Math.round(foto.precio * ivaFactor), foto.moneda)}
                         </p>
                       </>
                     ) : (
                       <>
                         <p className="text-sm font-bold mt-1" style={{ color: 'var(--foreground)' }}>
-                          {formatPrecio(precioConIva, foto.moneda)}
+                          {formatPrecio(foto.precio, foto.moneda)}
                         </p>
                         <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          Precio sin impuestos nacionales: {formatPrecio(foto.precio, foto.moneda)}
+                          Precio sin impuestos nacionales: {formatPrecio(Math.round(foto.precio / ivaFactor), foto.moneda)}
                         </p>
                       </>
                     )

@@ -124,22 +124,24 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             </h1>
 
             {precio != null && (() => {
-              const precioConIva = Math.round(precio * (1 + ((producto.iva as number | null) ?? 21) / 100))
+              // Mayorista: precio_lista3 es neto → IVA incluido = precio × (1+iva).
+              // Minorista: precio_lista5 ya incluye IVA → precio es el final y el neto = precio / (1+iva).
+              const ivaFactor = 1 + ((producto.iva as number | null) ?? 21) / 100
               return (
                 <div className="mb-2">
                   <p
                     className={esMayorista ? 'text-2xl font-medium' : 'text-3xl font-bold'}
                     style={{ color: 'var(--foreground)' }}
                   >
-                    {formatPrecio(esMayorista ? precio : precioConIva, monedaFinal)}
+                    {formatPrecio(precio, monedaFinal)}
                   </p>
                   {esMayorista ? (
                     <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      IVA incluido: {formatPrecio(precioConIva, monedaFinal)}
+                      IVA incluido: {formatPrecio(Math.round(precio * ivaFactor), monedaFinal)}
                     </p>
                   ) : (
                     <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Precio sin impuestos nacionales: {formatPrecio(precio, monedaFinal)}
+                      Precio sin impuestos nacionales: {formatPrecio(Math.round(precio / ivaFactor), monedaFinal)}
                     </p>
                   )}
                 </div>
@@ -175,8 +177,6 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             {mostrarPrecios ? (
               <>
                 <AddToCartButton
-                  esMayorista={esMayorista}
-                  aplicaIva={listaPrecio === 'precio_lista5'}
                   producto={{
                     id: producto.id,
                     codigo_interno: producto.codigo_interno,

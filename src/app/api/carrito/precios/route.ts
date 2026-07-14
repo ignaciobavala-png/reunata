@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
 
   const tc = parseFloat(tcRow?.valor ?? '1') || 1
 
-  const esConsumidor = listaPrecio === 'precio_lista5'
   const precios: Record<number, number> = {}
   const stocks: Record<string, number | null> = {}
   const ivaRates: Record<number, number> = {}
@@ -55,8 +54,9 @@ export async function POST(req: NextRequest) {
     const { precio } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tc)
     const ivaRate = ((prod.iva as number | null) ?? 21) / 100
     if (precio !== null) {
-      // Consumidor final ve precios con IVA incluido — coherencia con la tienda
-      precios[prod.id] = esConsumidor ? Math.round(precio * (1 + ivaRate)) : precio
+      // El precio de la lista se devuelve tal cual: precio_lista5 (consumidor) ya incluye
+      // IVA y precio_lista3 (mayorista) es neto. ivaRate viaja aparte para el desglose.
+      precios[prod.id] = precio
     }
     ivaRates[prod.id] = ivaRate
   }

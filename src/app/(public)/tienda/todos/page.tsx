@@ -79,7 +79,6 @@ export default async function TodosProductosPage() {
           mostrarPrecios={mostrarPrecios}
           esMayorista={esMayorista}
           estaLogueado={!!user}
-          aplicaIva={listaPrecio === 'precio_lista5'}
         />
       </div>
     </main>

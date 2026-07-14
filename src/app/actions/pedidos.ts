@@ -513,8 +513,6 @@ export async function getItemsParaRecomprar(
     .maybeSingle()
 
   const listaPrecio = canal?.lista_precios ?? 'precio_lista5'
-  // Convención del carrito: consumidor final guarda precios con IVA, mayoristas neto
-  const aplicaIva = listaPrecio === 'precio_lista5'
 
   const ids = [...new Set(lineasPedido.map(l => l.producto_id))]
   const [{ data: productos }, { data: pcRows }, { data: tcRow }] = await Promise.all([
@@ -547,9 +545,9 @@ export async function getItemsParaRecomprar(
     if (precioRaw == null) { omitidos++; continue }
     const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) { omitidos++; continue }
-    const precio = aplicaIva
-      ? Math.round(precioArs * (1 + ((prod.iva as number | null) ?? 21) / 100))
-      : precioArs
+    // precio_lista5 (minorista) ya viene con IVA incluido y precio_lista3 (mayorista) es neto:
+    // en ambos casos el precio de la lista se guarda tal cual, sin recargar IVA.
+    const precio = precioArs
 
     const disponible = stockDisponible(prod, linea.variante)
     const multiplo = multiplos[linea.producto_id] ?? 1

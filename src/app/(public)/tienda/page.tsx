@@ -92,7 +92,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
               : 'Sin resultados para esta búsqueda.'}
           </p>
           {productosGrid.length > 0 && (
-            <ProductGridPublic productos={productosGrid} nombreCategoria="búsqueda" mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayoristaSearch} aplicaIva={listaPrecio === 'precio_lista5'} />
+            <ProductGridPublic productos={productosGrid} nombreCategoria="búsqueda" mostrarPrecios={mostrarPrecios} estaLogueado={!!user} esMayorista={esMayoristaSearch} />
           )}
         </div>
       </main>
