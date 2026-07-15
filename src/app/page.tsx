@@ -9,7 +9,7 @@ import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { CartDrawer } from '@/components/cliente/CartDrawer'
@@ -63,7 +63,7 @@ export default async function Home() {
   })
 
   const headerUser = user ? { nombre: user.nombre, rol: user.rol } : null
-  const tipoCliente = user?.canal?.categoriaComercial === 'mayorista' || user?.canal?.categoriaComercial === 'especial' ? 'mayorista' : 'minorista'
+  const tipoCliente = esMayoristaPorCanal(user) ? 'mayorista' : 'minorista'
 
   return (
     <>

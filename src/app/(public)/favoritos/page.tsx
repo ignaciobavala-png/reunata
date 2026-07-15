@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
@@ -134,7 +134,7 @@ export default async function FavoritosPage() {
             nombreCategoria="Favoritos"
             mostrarPrecios={mostrarPrecios}
             estaLogueado={!!user}
-            esMayorista={['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')}
+            esMayorista={esMayoristaPorCanal(user)}
           />
         )}
       </div>

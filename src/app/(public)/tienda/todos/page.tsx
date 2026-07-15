@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { PendingApproval } from '@/components/sections/PendingApproval'
@@ -34,7 +34,7 @@ export default async function TodosProductosPage() {
     .in('id', filterCanal)
     .order('titulo')
 
-  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')
+  const esMayorista = esMayoristaPorCanal(user)
 
   const productos = (rawProductos ?? []).map(p => {
     const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)

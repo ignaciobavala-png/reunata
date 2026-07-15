@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
@@ -56,7 +56,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
-  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')
+  const esMayorista = esMayoristaPorCanal(user)
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)

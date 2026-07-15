@@ -21,6 +21,17 @@ export interface UserSession {
  */
 const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha', 'fabricantes']
 
+/**
+ * El precio a cobrar y el desglose de IVA salen del canal asignado, no del rol:
+ * un usuario puede tener rol mayorista pero canal minorista (o viceversa) si un
+ * admin reasigna el canal sin cambiar el rol. Usar el rol acá desincroniza el
+ * cartel "IVA incluido"/"Precio sin impuestos" del precio real que se cobra.
+ */
+export function esMayoristaPorCanal(user: UserSession | null): boolean {
+  const categoria = user?.canal?.categoriaComercial
+  return categoria === 'mayorista' || categoria === 'especial'
+}
+
 export async function resolverCanalTienda(): Promise<{
   user: UserSession | null
   canalId: number

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { TodosClient } from '@/app/(public)/tienda/todos/TodosClient'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
@@ -48,7 +48,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
-  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(user?.rol ?? '')
+  const esMayorista = esMayoristaPorCanal(user)
 
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)

@@ -15,7 +15,7 @@ import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
+import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
@@ -49,7 +49,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
       .order('titulo')
       .limit(60)
 
-    const esMayoristaSearch = user?.rol ? ['distribuidor', 'local', 'mercha'].includes(user.rol) : false
+    const esMayoristaSearch = esMayoristaPorCanal(user)
 
     const productosGrid = (resultados ?? []).map(p => {
       const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
