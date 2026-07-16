@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { X, ChevronDown, Loader2, Check } from 'lucide-react'
 import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canales-config'
+import { METODO_LABEL, METODOS_CON_IVA, METODOS_SIN_IVA } from '@/lib/metodos-pago'
 
 type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial' }
 type Config = Record<string, unknown>
@@ -14,29 +15,22 @@ const COLORES_CANAL: Record<string, string> = {
   local:            '#10b981',
   mercha:           '#f59e0b',
   fabricantes:      '#64748b',
+  emprendedores:    '#ec4899',
+  pool_de_compras:  '#14b8a6',
 }
 
-// Métodos de pago por tipo de canal
-const PAGOS_CONSUMIDOR = [
-  { key: 'mercado_pago',  label: 'Mercado Pago' },
-  { key: 'transferencia', label: 'Transferencia' },
-  { key: 'efectivo',      label: 'Efectivo' },
-]
-const PAGOS_MAYORISTA_CONTADO = [
-  { key: 'efectivo',               label: 'Efectivo' },
-  { key: 'transferencia_blanco',   label: 'Transferencia (Factura A)' },
-  { key: 'transferencia_negro',    label: 'Transferencia Directa' },
-  { key: 'echeq_al_dia',           label: 'E-cheq al día' },
-  { key: 'cheque_fisico_al_dia',   label: 'Cheque físico al día' },
-]
-const PAGOS_MAYORISTA_FINANCIADO = [
-  { key: 'echeq_propio',           label: 'E-cheq propio' },
-  { key: 'echeq_tercero',          label: 'E-cheq de tercero' },
-  { key: 'cheque_fisico_financiado', label: 'Cheque físico' },
-]
+// Métodos de pago por tipo de canal — labels canónicos compartidos con el carrito
+const item = (key: string) => ({ key, label: METODO_LABEL[key] ?? key })
+const PAGOS_CONSUMIDOR = ['mercado_pago', 'transferencia', 'efectivo'].map(item)
+// Contado agrupado por facturación, espejando el carrito (pedido del tester 16/07)
+const PAGOS_MAYORISTA_CONTADO_CON_IVA = METODOS_CON_IVA.filter(k => k !== 'echeq_propio').map(item)
+const PAGOS_MAYORISTA_CONTADO_SIN_IVA = METODOS_SIN_IVA.map(item)
+const PAGOS_MAYORISTA_CONTADO = [...PAGOS_MAYORISTA_CONTADO_CON_IVA, ...PAGOS_MAYORISTA_CONTADO_SIN_IVA]
+const PAGOS_MAYORISTA_FINANCIADO = ['echeq_propio', 'echeq_tercero', 'cheque_fisico_financiado'].map(item)
 
 function buildDefaultConfig(canal: Canal): CanalConfigPayload {
-  const isMayorista = canal.categoria_comercial === 'mayorista'
+  // 'especial' (Fabricantes) opera como mayorista en todo el sitio — mismo criterio que layout/carrito
+const isMayorista = canal.categoria_comercial !== 'minorista'
   const pagos: Record<string, { activo: boolean }> = {}
   const methods = isMayorista
     ? [...PAGOS_MAYORISTA_CONTADO, ...PAGOS_MAYORISTA_FINANCIADO]
@@ -173,7 +167,8 @@ export function CanalConfigDrawer({
   onClose: () => void
   onSaved: (canalId: number, config: CanalConfigPayload) => void
 }) {
-  const isMayorista = canal.categoria_comercial === 'mayorista'
+  // 'especial' (Fabricantes) opera como mayorista en todo el sitio — mismo criterio que layout/carrito
+const isMayorista = canal.categoria_comercial !== 'minorista'
   const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
 
   const [form, setForm] = useState<CanalConfigPayload>(() => ({
@@ -238,6 +233,59 @@ export function CanalConfigDrawer({
   }
 
   const pagos = form.pagos_habilitados
+
+  // Render de un método de contado mayorista con sus campos anidados
+  function renderPagoContado(m: { key: string; label: string }) {
+    return (
+      <div key={m.key}>
+        <PagoToggle
+          label={m.label}
+          activo={pagos[m.key]?.activo ?? false}
+          onChange={v => togglePago(m.key, v)}
+        />
+        {m.key === 'efectivo' && pagos['efectivo']?.activo && (
+          <div className="ml-12 mt-1">
+            <NumField
+              label="Descuento por efectivo"
+              value={form.desc_efectivo_pct}
+              onChange={v => set('desc_efectivo_pct', v ?? 0)}
+              suffix="%"
+            />
+          </div>
+        )}
+        {m.key === 'transferencia_blanco' && pagos['transferencia_blanco']?.activo && (
+          <div className="ml-12 mt-1">
+            <NumField
+              label="IVA incluido"
+              value={form.recargo_transf_blanco_pct}
+              onChange={v => set('recargo_transf_blanco_pct', v ?? 21)}
+              suffix="%"
+            />
+          </div>
+        )}
+        {m.key === 'echeq_al_dia' && pagos['echeq_al_dia']?.activo && (
+          <div className="ml-12 mt-1">
+            <NumField
+              label="IVA incluido"
+              value={form.recargo_echeq_al_dia_pct}
+              onChange={v => set('recargo_echeq_al_dia_pct', v ?? 0)}
+              suffix="%"
+            />
+          </div>
+        )}
+        {m.key === 'cheque_fisico_al_dia' && pagos['cheque_fisico_al_dia']?.activo && (
+          <div className="ml-12 mt-1">
+            <NumField
+              label="IVA incluido"
+              value={form.recargo_cheque_al_dia_pct}
+              onChange={v => set('recargo_cheque_al_dia_pct', v ?? 0)}
+              suffix="%"
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -330,55 +378,14 @@ export function CanalConfigDrawer({
                 <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Contado — pago previo a entrega
                 </p>
-                {PAGOS_MAYORISTA_CONTADO.map(m => (
-                  <div key={m.key}>
-                    <PagoToggle
-                      label={m.label}
-                      activo={pagos[m.key]?.activo ?? false}
-                      onChange={v => togglePago(m.key, v)}
-                    />
-                    {m.key === 'efectivo' && pagos['efectivo']?.activo && (
-                      <div className="ml-12 mt-1">
-                        <NumField
-                          label="Descuento por efectivo"
-                          value={form.desc_efectivo_pct}
-                          onChange={v => set('desc_efectivo_pct', v ?? 0)}
-                          suffix="%"
-                        />
-                      </div>
-                    )}
-                    {m.key === 'transferencia_blanco' && pagos['transferencia_blanco']?.activo && (
-                      <div className="ml-12 mt-1">
-                        <NumField
-                          label="Recargo IVA blanco"
-                          value={form.recargo_transf_blanco_pct}
-                          onChange={v => set('recargo_transf_blanco_pct', v ?? 21)}
-                          suffix="%"
-                        />
-                      </div>
-                    )}
-                    {m.key === 'echeq_al_dia' && pagos['echeq_al_dia']?.activo && (
-                      <div className="ml-12 mt-1">
-                        <NumField
-                          label="Recargo IVA (Factura A)"
-                          value={form.recargo_echeq_al_dia_pct}
-                          onChange={v => set('recargo_echeq_al_dia_pct', v ?? 0)}
-                          suffix="%"
-                        />
-                      </div>
-                    )}
-                    {m.key === 'cheque_fisico_al_dia' && pagos['cheque_fisico_al_dia']?.activo && (
-                      <div className="ml-12 mt-1">
-                        <NumField
-                          label="Recargo IVA (Factura A)"
-                          value={form.recargo_cheque_al_dia_pct}
-                          onChange={v => set('recargo_cheque_al_dia_pct', v ?? 0)}
-                          suffix="%"
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Formas de pago con IVA (Factura A)
+                </p>
+                {PAGOS_MAYORISTA_CONTADO_CON_IVA.map(renderPagoContado)}
+                <p className="text-xs font-medium mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Formas de pago sin IVA
+                </p>
+                {PAGOS_MAYORISTA_CONTADO_SIN_IVA.map(renderPagoContado)}
 
                 <p className="text-xs font-semibold uppercase tracking-wide mt-4 mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Financiado — requiere formulario de crédito aprobado
@@ -393,7 +400,7 @@ export function CanalConfigDrawer({
                     {m.key === 'echeq_propio' && pagos['echeq_propio']?.activo && (
                       <div className="ml-12 mt-1">
                         <NumField
-                          label="Recargo IVA (Factura A)"
+                          label="IVA incluido"
                           value={form.recargo_echeq_propio_pct}
                           onChange={v => set('recargo_echeq_propio_pct', v ?? 0)}
                           suffix="%"
@@ -416,7 +423,7 @@ export function CanalConfigDrawer({
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
                     <div className="flex items-center gap-3">
                       <label className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        Cuenta sin IVA (transferencia negro)
+                        Cuenta para Transferencia Directa
                       </label>
                       <select
                         value={form.cuenta_sin_iva_id ?? ''}

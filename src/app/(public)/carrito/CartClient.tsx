@@ -13,21 +13,9 @@ import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
+import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
 
 const WA_NUMBER = '5491132720974'
-
-const METODOS_CON_IVA = ['transferencia_blanco', 'echeq_propio', 'echeq_al_dia', 'cheque_fisico_al_dia']
-const METODOS_SIN_IVA = ['efectivo', 'transferencia_negro']
-const METODO_LABEL: Record<string, string> = {
-  efectivo:             'Efectivo',
-  transferencia_negro:  'Transf. Directa',
-  transferencia_blanco: 'Transf. (Fac A)',
-  echeq_propio:         'E-cheq propio',
-  echeq_al_dia:         'E-cheq al día',
-  cheque_fisico_al_dia: 'Cheque al día',
-  mercado_pago:         'Mercado Pago',
-  transferencia:        'Transferencia',
-}
 
 function WhatsAppIcon() {
   return (
@@ -1181,7 +1169,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('con'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {METODO_LABEL[k] ?? k}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
+                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
@@ -1210,7 +1198,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('sin'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {METODO_LABEL[k] ?? k}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
+                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
