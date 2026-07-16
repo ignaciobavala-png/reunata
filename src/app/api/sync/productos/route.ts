@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { CATEGORIAS_INTERNAS } from '@/lib/gesu'
 
 function slugify(str: string): string {
   return str
@@ -171,7 +172,6 @@ async function syncProductos(desactivarNoReunata = false) {
     })
 
     // Filtrar solo productos de Reunata, excluyendo categorías internas de gestión
-    const CATEGORIAS_INTERNAS = /^[MO]\)|preventa|productos en desarrollo|productos importados|bienes de uso/i
     const soloReunata = sinDuplicados.filter(item =>
       item.marca?.toLowerCase().includes('reunata') &&
       item.categoria &&
