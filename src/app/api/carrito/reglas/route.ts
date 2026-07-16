@@ -18,7 +18,7 @@ export async function GET() {
         'pagos_habilitados, minimo_compra, desc_efectivo_pct, desc_transferencia_pct, ' +
         'recargo_transf_blanco_pct, recargo_echeq_al_dia_pct, recargo_cheque_al_dia_pct, recargo_echeq_propio_pct, ' +
         'desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, ' +
-        'desc_volumen_monto_min, desc_volumen_pct, ' +
+        'desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3, ' +
         'envio_gratis_desde, envio_amba_gratis_desde, cuotas_mp_sin_interes, dias_vencimiento_pedido, ' +
         'envio_flex_activo, mostrar_direccion_en_web, whatsapp_tipo, direccion_negocio'
       )

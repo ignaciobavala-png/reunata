@@ -6,6 +6,7 @@ import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { supabaseImg } from '@/lib/images'
 import { crearEnvioEnviopack, consultarEnvioEnviopack } from '@/lib/enviopack'
+import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 
 interface LineaPedido {
   productoId: number
@@ -106,7 +107,7 @@ export async function crearPedidoBorrador(
       .maybeSingle(),
     service
       .from('canales_config')
-      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra, desc_volumen_monto_min, desc_volumen_pct')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra, desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3')
       .eq('canal_id', perfil.canal_id)
       .maybeSingle(),
     service
@@ -166,11 +167,8 @@ export async function crearPedidoBorrador(
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
   // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
-  const volMin = (canalConfig?.desc_volumen_monto_min as number | null) ?? null
-  const volPct = (canalConfig?.desc_volumen_pct as number | null) ?? null
-  const ajusteVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
-    ? -Math.round(subtotal * volPct / 100)
-    : 0
+  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
+  const ajusteVolumenCanal = tramoVol ? -Math.round(subtotal * tramoVol.pct / 100) : 0
   const basePostVolumenCanal = subtotal + ajusteVolumenCanal
 
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
@@ -206,7 +204,7 @@ export async function crearPedidoBorrador(
   }
 
   const notaPartes: string[] = []
-  if (ajusteVolumenCanal !== 0) notaPartes.push(`${volPct}% desc. por volumen de compra`)
+  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
   if (ajusteMetodoPago !== 0) {
     notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)

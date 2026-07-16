@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
+import { validarTramosVolumen } from '@/lib/descuento-volumen'
 
 export type CanalConfigPayload = {
   canal_id: number
@@ -18,6 +19,10 @@ export type CanalConfigPayload = {
   desc_autogestion_siguientes_pct: number
   desc_volumen_monto_min: number | null
   desc_volumen_pct: number | null
+  desc_volumen_monto_min_2: number | null
+  desc_volumen_pct_2: number | null
+  desc_volumen_monto_min_3: number | null
+  desc_volumen_pct_3: number | null
   envio_gratis_desde: number | null
   envio_flex_activo: boolean
   envio_amba_gratis_desde: number | null
@@ -39,10 +44,10 @@ export type CanalConfigPayload = {
 }
 
 export async function guardarCanalConfig(payload: CanalConfigPayload) {
-  // La DB exige ambos campos o ninguno (CHECK); validar acá para dar un error legible
-  if ((payload.desc_volumen_monto_min != null) !== (payload.desc_volumen_pct != null)) {
-    return { ok: false, error: 'Descuento por volumen: completá el monto mínimo y el porcentaje, o dejá ambos vacíos.' }
-  }
+  // La DB exige pares completos y umbrales crecientes (CHECKs); validar acá
+  // para dar un error legible
+  const errorVolumen = validarTramosVolumen(payload)
+  if (errorVolumen) return { ok: false, error: errorVolumen }
 
   const supabase = createServiceClient()
 

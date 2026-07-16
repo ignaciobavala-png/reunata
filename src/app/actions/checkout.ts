@@ -7,6 +7,7 @@ import { aplicarTipoCambio } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 import { cotizarEnvio } from '@/lib/enviopack'
 import { stockDisponible } from '@/lib/stock'
+import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -131,7 +132,7 @@ export async function iniciarCheckoutMP(
     canalId
       ? service
           .from('canales_config')
-          .select('cuotas_mp_sin_interes, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, desc_volumen_monto_min, desc_volumen_pct')
+          .select('cuotas_mp_sin_interes, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3')
           .eq('canal_id', canalId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -188,13 +189,11 @@ export async function iniciarCheckoutMP(
 
   // Descuento por volumen del canal — umbral y monto sobre el precio con IVA incluido;
   // se pliega por línea porque MP no admite unit_price negativo.
-  const volMinMP = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
-  const volPctMP = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const aplicaVolumenCanalMP = volMinMP !== null && volPctMP != null && volPctMP > 0 && subtotal >= volMinMP
+  const tramoMP = resolverTramoVolumen(canalCfg as ConfigVolumen | null, subtotal)
   const lineasFinales = lineas.map(l => {
     const totalLinea = l.precioUnit * l.cantidad
-    const monto = aplicaVolumenCanalMP
-      ? totalLinea - Math.round(totalLinea * volPctMP / 100)
+    const monto = tramoMP
+      ? totalLinea - Math.round(totalLinea * tramoMP.pct / 100)
       : totalLinea
     return { ...l, monto }
   })
@@ -461,7 +460,7 @@ export async function iniciarCheckoutTransferencia(
     canalId
       ? service
           .from('canales_config')
-          .select('desc_transferencia_pct, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, pagos_habilitados, desc_volumen_monto_min, desc_volumen_pct')
+          .select('desc_transferencia_pct, minimo_compra, dias_vencimiento_pedido, envio_gratis_desde, envio_amba_gratis_desde, pagos_habilitados, desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3')
           .eq('canal_id', canalId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -519,11 +518,8 @@ export async function iniciarCheckoutTransferencia(
   const subtotal = lineas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
   // Descuento por volumen del canal — umbral y monto sobre el precio con IVA incluido
-  const volMin = (canalCfg?.desc_volumen_monto_min as number | null) ?? null
-  const volPct = (canalCfg?.desc_volumen_pct as number | null) ?? null
-  const descuentoVolumenCanal = volMin !== null && volPct != null && volPct > 0 && subtotal >= volMin
-    ? Math.round(subtotal * volPct / 100)
-    : 0
+  const tramoVol = resolverTramoVolumen(canalCfg as ConfigVolumen | null, subtotal)
+  const descuentoVolumenCanal = tramoVol ? Math.round(subtotal * tramoVol.pct / 100) : 0
   const basePostVolumenCanal = subtotal - descuentoVolumenCanal
 
   const descPct = (canalCfg?.desc_transferencia_pct as number | null) ?? 0

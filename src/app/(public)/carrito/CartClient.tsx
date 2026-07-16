@@ -14,6 +14,7 @@ import { formatPrecio } from '@/lib/utils'
 import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/EnvioCotizador'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
+import { resolverTramoVolumen, tramosPendientes } from '@/lib/descuento-volumen'
 
 const WA_NUMBER = '5491132720974'
 
@@ -67,6 +68,10 @@ interface ReglaCanal {
   desc_autogestion_siguientes_pct: number
   desc_volumen_monto_min:          number | null
   desc_volumen_pct:                number | null
+  desc_volumen_monto_min_2:        number | null
+  desc_volumen_pct_2:              number | null
+  desc_volumen_monto_min_3:        number | null
+  desc_volumen_pct_3:              number | null
   envio_gratis_desde:              number | null
   envio_amba_gratis_desde:         number | null
   cuotas_mp_sin_interes:           number
@@ -523,20 +528,28 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       }, 0)
     : totalGeneral
 
-  // Descuento por volumen del canal — toma como referencia el precio con IVA incluido
-  // (totalGeneral), tanto para el umbral como para el monto. Mismo criterio que el
-  // server (checkout.ts).
-  const descVolCanalMin = reglas?.desc_volumen_monto_min ?? null
-  const descVolCanalPct = reglas?.desc_volumen_pct ?? 0
-  const ajusteVolumenCanal = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral >= descVolCanalMin
-    ? -Math.round(totalGeneral * descVolCanalPct / 100)
+  // Descuento por volumen del canal (hasta 3 tramos) — toma como referencia el
+  // precio con IVA incluido (totalGeneral), tanto para el umbral como para el
+  // monto. Mismo criterio que el server (checkout.ts) vía resolverTramoVolumen.
+  const tramoVolumen = resolverTramoVolumen(reglas, totalGeneral)
+  const descVolCanalPct = tramoVolumen?.pct ?? 0
+  const ajusteVolumenCanal = tramoVolumen
+    ? -Math.round(totalGeneral * tramoVolumen.pct / 100)
     : 0
   const basePostVolumenCanal = totalGeneral + ajusteVolumenCanal
 
-  // Cuánto falta para alcanzar el descuento por volumen del canal
-  const faltaParaDescVolumen = descVolCanalMin !== null && descVolCanalPct > 0 && totalGeneral < descVolCanalMin
-    ? descVolCanalMin - totalGeneral
-    : null
+  // Tramos que todavía no se alcanzaron, para el aviso progresivo: sin superar
+  // ninguno se muestran los 3; superado el 1º se muestran el 2º y 3º, etc.
+  const tramosVolPendientes = tramosPendientes(reglas, totalGeneral)
+  const avisoDescVolumen = tramosVolPendientes.length > 0 && (
+    <div className="px-3 py-2 rounded-lg text-xs space-y-0.5" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+      {tramosVolPendientes.map(t => (
+        <p key={t.montoMin}>
+          Te faltan {formatPrecio(t.montoMin - totalGeneral)} para el {t.pct}% de descuento por volumen.
+        </p>
+      ))}
+    </div>
+  )
 
   // Métodos disponibles para consumidor_final (leídos de reglas del canal).
   // Aplica tanto a minoristas logueados como a invitados (ambos resuelven a
@@ -1077,11 +1090,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               )}
 
               {/* Aviso descuento por volumen cercano */}
-              {faltaParaDescVolumen !== null && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
-                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
-                </div>
-              )}
+              {avisoDescVolumen}
 
               {/* Botón Mercado Pago */}
               {metodoPagoMinorista === 'mercado_pago' && (
@@ -1265,11 +1274,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               )}
 
               {/* Aviso descuento por volumen cercano */}
-              {faltaParaDescVolumen !== null && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
-                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
-                </div>
-              )}
+              {avisoDescVolumen}
 
               {/* Dirección de retiro */}
               {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
@@ -1382,11 +1387,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
                 </div>
               )}
-              {faltaParaDescVolumen !== null && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
-                  Te faltan {formatPrecio(faltaParaDescVolumen)} para el {descVolCanalPct}% de descuento por volumen.
-                </div>
-              )}
+              {avisoDescVolumen}
 
               {/* Selector de método si ambos están activos */}
               {ambosPagosMinorista && (

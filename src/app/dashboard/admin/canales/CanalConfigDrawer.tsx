@@ -51,6 +51,10 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
     desc_autogestion_siguientes_pct: 0,
     desc_volumen_monto_min: null,
     desc_volumen_pct: null,
+    desc_volumen_monto_min_2: null,
+    desc_volumen_pct_2: null,
+    desc_volumen_monto_min_3: null,
+    desc_volumen_pct_3: null,
     envio_gratis_desde: null,
     envio_flex_activo: false,
     envio_amba_gratis_desde: null,
@@ -466,20 +470,31 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
               <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Descuento por volumen de compra
               </p>
-              <NumField
-                label="Superando un total de"
-                value={form.desc_volumen_monto_min}
-                onChange={v => set('desc_volumen_monto_min', v)}
-                prefix="AR$"
-              />
-              <NumField
-                label="Descuento a otorgar"
-                value={form.desc_volumen_pct}
-                onChange={v => set('desc_volumen_pct', v)}
-                suffix="%"
-              />
+              {([
+                { n: 1, min: 'desc_volumen_monto_min', pct: 'desc_volumen_pct' },
+                { n: 2, min: 'desc_volumen_monto_min_2', pct: 'desc_volumen_pct_2' },
+                { n: 3, min: 'desc_volumen_monto_min_3', pct: 'desc_volumen_pct_3' },
+              ] as const).map(t => (
+                <div key={t.n} className="space-y-2">
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+                    Instancia {t.n}{t.n > 1 ? ' (opcional)' : ''}
+                  </p>
+                  <NumField
+                    label="Superando un total de"
+                    value={form[t.min]}
+                    onChange={v => set(t.min, v)}
+                    prefix="AR$"
+                  />
+                  <NumField
+                    label="Descuento a otorgar"
+                    value={form[t.pct]}
+                    onChange={v => set(t.pct, v)}
+                    suffix="%"
+                  />
+                </div>
+              ))}
               <p className="text-xs leading-snug" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Se aplica sobre el total de la compra cuando supera el monto. Completá ambos campos o dejá ambos vacíos para desactivarlo.
+                Se aplica el descuento de la instancia más alta que el total de la compra supere. Cada instancia necesita monto y porcentaje (o ambos vacíos), y los montos deben ir de menor a mayor.
               </p>
             </div>
 
