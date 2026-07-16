@@ -1,4 +1,5 @@
 import { createClient as createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { esCategoriaInterna } from '@/lib/gesu'
 import { ProductosListaClient } from './ProductosListaClient'
 
 export default async function ProductosPage() {
@@ -64,6 +65,11 @@ async function ListaContent() {
       .order('id'),
   ])
 
+  // Ocultar filas viejas de categorías internas de Gesu (M), O), Preventa...)
+  // que se sincronizaron antes del filtro del sync. Siguen en la base, solo
+  // no se muestran en el admin.
+  const productosVisibles = (productos ?? []).filter(p => !esCategoriaInterna(p.categoria))
+
   const ofertasSet = new Set(
     (ofertasActivas ?? []).map(o => `${o.canal}-${o.producto_id}`)
   )
@@ -87,20 +93,29 @@ async function ListaContent() {
     configMap[c.canal_id] = c
   }
 
+  // Orden de columnas de canales pedido por el tester (16/07); los que no
+  // figuren en la lista van al final en su orden original
+  const ORDEN_CANALES = ['consumidor_final', 'emprendedores', 'local', 'pool_de_compras', 'distribuidor', 'mercha', 'fabricantes']
+  const posCanal = (slug: string) => {
+    const i = ORDEN_CANALES.indexOf(slug)
+    return i === -1 ? ORDEN_CANALES.length : i
+  }
+  const canalesOrdenados = [...(canales ?? [])].sort((a, b) => posCanal(a.slug) - posCanal(b.slug))
+
   return (
     <div>
       <p className="text-base mb-6" style={{ color: 'var(--color-acero-oscuro)' }}>
-        {productos?.length ?? 0} productos sincronizados desde Gesu
+        {productosVisibles.length} productos sincronizados desde Gesu
       </p>
       <ProductosListaClient
-        productos={productos ?? []}
+        productos={productosVisibles}
         ofertasIniciales={ofertasSet}
         destacadasIniciales={destacadasSet}
         novedadesIniciales={novedadesSet}
         fotosIniciales={todasLasFotos ?? []}
         supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
         isMaster={isMaster}
-        canalesIniciales={canales ?? []}
+        canalesIniciales={canalesOrdenados}
         asignacionesIniciales={asignacionesSet}
         multiplosIniciales={multiplosMap}
         todosLosCanalesIniciales={todosLosCanales ?? []}

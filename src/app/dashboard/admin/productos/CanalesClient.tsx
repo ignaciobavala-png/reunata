@@ -15,7 +15,13 @@ const COLORES_CANAL: Record<string, string> = {
   mercha:           '#f59e0b',
   fabricantes:      '#f97316',
   publico:          '#8b5cf6',
+  emprendedores:    '#ec4899',
+  pool_de_compras:  '#14b8a6',
 }
+
+// Fallback para canales creados después sin color asignado — nunca dejar
+// el checkbox invisible (tilde blanco sin fondo)
+const COLOR_CANAL_DEFAULT = '#6b7280'
 
 type EstadoCat = 'all' | 'some' | 'none'
 
@@ -184,18 +190,20 @@ export function CanalesClient({
 
       {/* Tabla */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-acero-claro)' }}>
-        <div className="overflow-x-auto">
+        {/* max-h + overflow-auto: el scroll vive acá para que el thead sticky
+            quede visible al recorrer los últimos productos (pedido del tester) */}
+        <div className="overflow-auto max-h-[75vh]">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ background: 'var(--color-granito-oscuro)' }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)', width: '45%' }}>
+              <tr>
+                <th className="sticky top-0 z-10 text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)', width: '45%', background: 'var(--color-granito-oscuro)' }}>
                   Categoría / Producto
                 </th>
                 {canales.map(canal => (
-                  <th key={canal.id} className="px-4 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)' }}>
+                  <th key={canal.id} className="sticky top-0 z-10 px-4 py-3 text-center font-medium" style={{ color: 'var(--color-acero-claro)', background: 'var(--color-granito-oscuro)' }}>
                     <span
                       className="px-2 py-0.5 rounded-full text-xs"
-                      style={{ background: COLORES_CANAL[canal.slug] + '33', color: COLORES_CANAL[canal.slug] }}
+                      style={{ background: (COLORES_CANAL[canal.slug] ?? COLOR_CANAL_DEFAULT) + '33', color: COLORES_CANAL[canal.slug] ?? COLOR_CANAL_DEFAULT }}
                     >
                       {canal.nombre}
                     </span>
@@ -239,7 +247,7 @@ export function CanalesClient({
                         const estado: EstadoCat = estadoCategoria(prods, canal.id, asignaciones)
                         const cargando = guardandoCat === catKey
                         const confirmando = confirmandoCat === catKey
-                        const color = COLORES_CANAL[canal.slug]
+                        const color = COLORES_CANAL[canal.slug] ?? COLOR_CANAL_DEFAULT
                         const accion = estado === 'all' ? 'Quitar' : 'Asignar'
                         return (
                           <td key={canal.id} className="px-4 py-3 text-center">
@@ -325,7 +333,7 @@ export function CanalesClient({
                           const key = `${p.id}-${canal.id}`
                           const activo = asignaciones.has(key)
                           const cargando = guardando === key
-                          const color = COLORES_CANAL[canal.slug]
+                          const color = COLORES_CANAL[canal.slug] ?? COLOR_CANAL_DEFAULT
                           const multiplo = multiplos[key] ?? 1
                           const editando = editandoMultiplo === key
                           const guardandoM = guardandoMultiplo === key
