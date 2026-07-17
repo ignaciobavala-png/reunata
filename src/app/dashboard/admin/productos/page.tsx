@@ -1,5 +1,6 @@
 import { createClient as createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { esCategoriaInterna } from '@/lib/gesu'
+import { ordenarCanales } from '@/lib/canales-orden'
 import { ProductosListaClient } from './ProductosListaClient'
 
 export default async function ProductosPage() {
@@ -93,14 +94,7 @@ async function ListaContent() {
     configMap[c.canal_id] = c
   }
 
-  // Orden de columnas de canales pedido por el tester (16/07); los que no
-  // figuren en la lista van al final en su orden original
-  const ORDEN_CANALES = ['consumidor_final', 'emprendedores', 'local', 'pool_de_compras', 'distribuidor', 'mercha', 'fabricantes']
-  const posCanal = (slug: string) => {
-    const i = ORDEN_CANALES.indexOf(slug)
-    return i === -1 ? ORDEN_CANALES.length : i
-  }
-  const canalesOrdenados = [...(canales ?? [])].sort((a, b) => posCanal(a.slug) - posCanal(b.slug))
+  const canalesOrdenados = ordenarCanales(canales ?? [])
 
   return (
     <div>

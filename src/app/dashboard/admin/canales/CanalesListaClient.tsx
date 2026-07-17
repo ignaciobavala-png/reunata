@@ -4,8 +4,10 @@ import { useState, useTransition } from 'react'
 import { Settings, Plus, Loader2, X } from 'lucide-react'
 import { CanalConfigDrawer, type CuentaSinIva } from './CanalConfigDrawer'
 import type { CanalConfigPayload } from '@/app/actions/canales-config'
-import { crearCanal } from '@/app/actions/canales'
+import { crearCanal, asignarCuentaSinIva } from '@/app/actions/canales'
 import { formatPrecio } from '@/lib/utils'
+import { tramosVolumen } from '@/lib/descuento-volumen'
+import { ordenarCanales } from '@/lib/canales-orden'
 
 type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }
 type Config = Record<string, unknown>
@@ -184,12 +186,18 @@ export function CanalesListaClient({
     setDrawerCanal(canal)
   }
 
-  function resumePagos(config: Config | undefined): string[] {
-    if (!config?.pagos_habilitados) return []
-    const pagos = config.pagos_habilitados as Record<string, { activo: boolean }>
-    return Object.entries(pagos)
-      .filter(([, v]) => v.activo)
-      .map(([k]) => k.replace(/_/g, ' '))
+  const [guardandoCuenta, setGuardandoCuenta] = useState<number | null>(null)
+
+  async function handleCuentaChange(canalId: number, cuentaId: number | null) {
+    const anterior = canales.find(c => c.id === canalId)?.cuenta_sin_iva_id ?? null
+    setCanales(prev => prev.map(c => c.id === canalId ? { ...c, cuenta_sin_iva_id: cuentaId } : c))
+    setGuardandoCuenta(canalId)
+    const res = await asignarCuentaSinIva(canalId, cuentaId)
+    setGuardandoCuenta(null)
+    if (!res.ok) {
+      setCanales(prev => prev.map(c => c.id === canalId ? { ...c, cuenta_sin_iva_id: anterior } : c))
+      alert(res.error ?? 'No se pudo cambiar la cuenta.')
+    }
   }
 
   return (
@@ -210,19 +218,24 @@ export function CanalesListaClient({
           <thead>
             <tr style={{ background: 'var(--color-granito-oscuro)' }}>
               <th className="text-left px-5 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Canal</th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Tipo</th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Formas de pago activas</th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Mínimo pedido</th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Estado</th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Compra mínima</th>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Desc. por volumen</th>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Descuento WEB</th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Envío gratis</th>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Transferencia Directa</th>
               <th className="text-center px-4 py-3 font-medium" style={{ color: 'var(--color-acero-claro)' }}>Config</th>
             </tr>
           </thead>
           <tbody>
-            {canales.map((canal, i) => {
+            {ordenarCanales(canales).map((canal, i) => {
               const color = COLORES_CANAL[canal.slug] ?? '#94a3b8'
               const config = configs[canal.id]
-              const pagos = resumePagos(config)
               const minimo = config?.minimo_compra as number | null | undefined
+              const tramos = tramosVolumen(config)
+              const descWebPrimera    = (config?.desc_autogestion_primera_pct as number | undefined) ?? 0
+              const descWebSiguientes = (config?.desc_autogestion_siguientes_pct as number | undefined) ?? 0
+              const envioGratis = config?.envio_gratis_desde as number | null | undefined
+              const sinDato = <span style={{ color: 'var(--color-acero-oscuro)' }}>—</span>
 
               return (
                 <tr
@@ -238,69 +251,66 @@ export function CanalesListaClient({
                     <div className="flex items-center gap-2.5">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                       <span className="font-medium" style={{ color: 'var(--foreground)' }}>{canal.nombre}</span>
-                      <span className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>{canal.slug}</span>
                     </div>
                   </td>
 
-                  {/* Tipo */}
-                  <td className="px-4 py-3.5">
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs capitalize"
-                      style={{
-                        background: canal.categoria_comercial === 'mayorista' ? '#e0f2fe'
-                          : canal.categoria_comercial === 'especial' ? '#f1f5f9'
-                          : '#ede9fe',
-                        color: canal.categoria_comercial === 'mayorista' ? '#0369a1'
-                          : canal.categoria_comercial === 'especial' ? '#475569'
-                          : '#6d28d9',
-                      }}
-                    >
-                      {canal.categoria_comercial}
-                    </span>
+                  {/* Compra mínima */}
+                  <td className="px-4 py-3.5 text-right" style={{ color: 'var(--foreground)' }}>
+                    {minimo ? formatPrecio(minimo) : sinDato}
                   </td>
 
-                  {/* Formas de pago */}
+                  {/* Descuento por volumen (hasta 3 instancias) */}
                   <td className="px-4 py-3.5">
-                    {canal.categoria_comercial === 'minorista' ? (
-                      <span
-                        className="px-1.5 py-0.5 rounded text-xs"
-                        style={{ background: '#e0f2fe', color: '#0369a1' }}
-                      >
-                        Mercado Pago
-                      </span>
-                    ) : pagos.length === 0 ? (
-                      <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>Sin configurar</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {pagos.map(p => (
-                          <span
-                            key={p}
-                            className="px-1.5 py-0.5 rounded text-xs capitalize"
-                            style={{ background: color + '1a', color }}
-                          >
-                            {p}
+                    {tramos.length === 0 ? sinDato : (
+                      <div className="flex flex-col gap-0.5">
+                        {tramos.map(t => (
+                          <span key={t.montoMin} className="text-xs whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                            <span className="font-medium">{t.pct}%</span>
+                            <span style={{ color: 'var(--color-acero-oscuro)' }}> superando </span>
+                            {formatPrecio(t.montoMin)}
                           </span>
                         ))}
                       </div>
                     )}
                   </td>
 
-                  {/* Mínimo */}
-                  <td className="px-4 py-3.5 text-right" style={{ color: 'var(--foreground)' }}>
-                    {minimo ? formatPrecio(minimo) : <span style={{ color: 'var(--color-acero-oscuro)' }}>—</span>}
+                  {/* Descuento WEB (autogestión) */}
+                  <td className="px-4 py-3.5">
+                    {descWebPrimera === 0 && descWebSiguientes === 0 ? sinDato : (
+                      <span className="text-xs whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                        1ª compra <span className="font-medium">{descWebPrimera}%</span>
+                        <span style={{ color: 'var(--color-acero-oscuro)' }}> · luego </span>
+                        <span className="font-medium">{descWebSiguientes}%</span>
+                      </span>
+                    )}
                   </td>
 
-                  {/* Estado */}
-                  <td className="px-4 py-3.5 text-center">
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs"
-                      style={{
-                        background: canal.activo ? '#dcfce7' : '#fee2e2',
-                        color: canal.activo ? '#16a34a' : '#dc2626',
-                      }}
-                    >
-                      {canal.activo ? 'Activo' : 'Inactivo'}
-                    </span>
+                  {/* Envío gratis */}
+                  <td className="px-4 py-3.5 text-right" style={{ color: 'var(--foreground)' }}>
+                    {envioGratis ? (
+                      <span className="whitespace-nowrap">
+                        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>desde </span>
+                        {formatPrecio(envioGratis)}
+                      </span>
+                    ) : sinDato}
+                  </td>
+
+                  {/* Cuenta de Transferencia Directa */}
+                  <td className="px-4 py-3.5">
+                    {canal.categoria_comercial === 'minorista' ? sinDato : (
+                      <select
+                        value={canal.cuenta_sin_iva_id ?? ''}
+                        disabled={guardandoCuenta === canal.id}
+                        onChange={e => handleCuentaChange(canal.id, e.target.value ? Number(e.target.value) : null)}
+                        className="max-w-44 px-2 py-1 text-xs rounded-lg border outline-none disabled:opacity-50"
+                        style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)', background: 'white' }}
+                      >
+                        <option value="">Sin cuenta</option>
+                        {cuentasSinIva.map(c => (
+                          <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                      </select>
+                    )}
                   </td>
 
                   {/* Botón configurar */}

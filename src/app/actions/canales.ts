@@ -64,6 +64,20 @@ export async function crearCanal(payload: {
   return { ok: true, id: canal.id }
 }
 
+// Cambio inline desde la tabla de canales — solo toca canales.cuenta_sin_iva_id,
+// sin pasar por el payload completo de canales_config del drawer.
+export async function asignarCuentaSinIva(canalId: number, cuentaSinIvaId: number | null) {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('canales')
+    .update({ cuenta_sin_iva_id: cuentaSinIvaId })
+    .eq('id', canalId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/dashboard/admin/productos')
+  revalidatePath('/dashboard/admin/canales')
+  return { ok: true }
+}
+
 export async function toggleProductoCanal(productoId: number, canalId: number, activo: boolean) {
   const supabase = createServiceClient()
 
