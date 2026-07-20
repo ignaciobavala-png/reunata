@@ -322,10 +322,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const esMinorista = user?.categoriaComercial === 'minorista'
   const esMayorista = user?.categoriaComercial === 'mayorista' || user?.categoriaComercial === 'especial'
   const esGuest     = !user
-  // Emprendedores: canal mayorista (precios netos, pagos mayoristas, sin MP) pero con
-  // cotizador de envío obligatorio como minorista. Gastón cobra siempre el envío con el
-  // generador — para este canal NO hay envío gratis (pedido del tester 2026-07-20).
+  // Emprendedores: canal mayorista (pagos mayoristas, sin MP) pero cobra sobre lista5
+  // (precio minorista, con IVA incluido) y con cotizador de envío obligatorio como
+  // minorista. Gastón cobra siempre el envío — para este canal NO hay envío gratis
+  // (pedido del tester 2026-07-20).
   const esEmprendedor = esMayorista && user?.canalSlug === 'emprendedores'
+  // ¿El precio del carrito ya incluye IVA? lista5 (minorista, guest, Emprendedores) sí;
+  // lista3 (mayoristas reales) es neto. Emprendedores es el único mayorista con IVA
+  // incluido: sin este flag el desglose y el recargo Factura A cuentan el IVA dos veces.
+  const precioIncluyeIva = !esMayorista || esEmprendedor
 
   // Cargar direcciones — solo mayoristas
   useEffect(() => {
@@ -629,12 +634,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Recargo IVA (Factura A) por método — los pagos "con IVA" suman este % al total.
   // transferencia_blanco default 21 por retrocompat; el resto arranca en 0 hasta
   // que el canal lo configure.
-  const recargoConIvaPct: Record<string, number> = {
-    transferencia_blanco: reglas?.recargo_transf_blanco_pct ?? 21,
-    echeq_al_dia:         reglas?.recargo_echeq_al_dia_pct ?? 0,
-    cheque_fisico_al_dia: reglas?.recargo_cheque_al_dia_pct ?? 0,
-    echeq_propio:         reglas?.recargo_echeq_propio_pct ?? 0,
-  }
+  // Si el precio de la lista ya incluye IVA (Emprendedores/lista5), el recargo "en
+  // blanco" no suma nada: el IVA ya está en el precio. Solo lista3 (neto) lo aplica.
+  const recargoConIvaPct: Record<string, number> = precioIncluyeIva
+    ? { transferencia_blanco: 0, echeq_al_dia: 0, cheque_fisico_al_dia: 0, echeq_propio: 0 }
+    : {
+        transferencia_blanco: reglas?.recargo_transf_blanco_pct ?? 21,
+        echeq_al_dia:         reglas?.recargo_echeq_al_dia_pct ?? 0,
+        cheque_fisico_al_dia: reglas?.recargo_cheque_al_dia_pct ?? 0,
+        echeq_propio:         reglas?.recargo_echeq_propio_pct ?? 0,
+      }
 
   // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
   const ajustePct = metodoPago && reglas
@@ -652,18 +661,32 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
         : 0
     : 0
 
-  // ── Presentación mayorista en bruto (sin IVA) ─────────────────────────
-  // El resumen se muestra en valores netos; el IVA solo aparece en "Total IVA
-  // incluido". Los montos cobrados no cambian (misma cascada de siempre).
-  const totalConIvaMayorista = esMayorista
-    ? items.reduce((acc, i) => acc + Math.round(i.precio * (1 + (ivaRates[i.productoId] ?? 0.21))) * i.cantidad, 0)
+  // ── Presentación mayorista: "Total Bruto" (neto) + "Total IVA incluido" ───
+  // Cada ítem puede traer el precio con IVA (lista5: Emprendedores) o neto (lista3),
+  // y distinta alícuota, así que la mezcla se resuelve por ítem y el resultado se
+  // reescala sobre basePostDescuentos (que está en la misma unidad que totalGeneral).
+  // Los montos cobrados no cambian: es solo cómo se muestra el desglose.
+  const sumaNetaMayorista = esMayorista
+    ? items.reduce((acc, i) => {
+        const rate = ivaRates[i.productoId] ?? 0.21
+        const neto = precioIncluyeIva ? Math.round(i.precio / (1 + rate)) : i.precio
+        return acc + neto * i.cantidad
+      }, 0)
+    : 0
+  const sumaConIvaMayorista = esMayorista
+    ? items.reduce((acc, i) => {
+        const rate = ivaRates[i.productoId] ?? 0.21
+        const conIva = precioIncluyeIva ? i.precio : Math.round(i.precio * (1 + rate))
+        return acc + conIva * i.cantidad
+      }, 0)
     : 0
   // El envío del emprendedor se suma como monto plano sobre la mercadería (no lleva IVA).
-  const totalBrutoMayorista = basePostDescuentos + costoEnvio
-  // IVA proporcional a la mezcla real de alícuotas del carrito (×1.21 si todo es 21%)
-  const totalIvaIncluidoMayorista = totalGeneral > 0
-    ? Math.round(basePostDescuentos * (totalConIvaMayorista / totalGeneral)) + costoEnvio
-    : 0
+  const totalBrutoMayorista = (totalGeneral > 0
+    ? Math.round(basePostDescuentos * (sumaNetaMayorista / totalGeneral))
+    : 0) + costoEnvio
+  const totalIvaIncluidoMayorista = (totalGeneral > 0
+    ? Math.round(basePostDescuentos * (sumaConIvaMayorista / totalGeneral))
+    : 0) + costoEnvio
 
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón.
   // Incluye el envío del emprendedor (costoEnvio es 0 para el resto de los mayoristas).

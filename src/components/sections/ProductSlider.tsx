@@ -20,7 +20,9 @@ export interface FotoDestacada {
   supabaseUrl: string
 }
 
-export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDestacada[]; esMayorista?: boolean }) {
+export function ProductSlider({ fotos, esMayorista = false, precioIncluyeIva }: { fotos: FotoDestacada[]; esMayorista?: boolean; precioIncluyeIva?: boolean }) {
+  // Sin prop → comportamiento viejo (minorista con IVA, mayorista neto).
+  const incluyeIva = precioIncluyeIva ?? !esMayorista
   const [emblaRef] = useEmblaCarousel({
     align: 'start',
     containScroll: 'trimSnaps',
@@ -86,25 +88,27 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
                     {foto.codigo_interno}
                   </p>
                   {foto.precio != null && (() => {
-                    // Mayorista: precio_lista3 es neto → IVA incluido = precio × (1+iva).
-                    // Minorista: precio_lista5 ya incluye IVA → neto = precio / (1+iva).
-                    const ivaFactor = 1 + (foto.iva ?? 21) / 100
+                    // incluyeIva (lista): lista5 ya trae IVA → neto=precio/f, conIva=precio.
+                    // esMayorista (presentación): neto + "IVA incluido" vs. final + "sin impuestos".
+                    const f = 1 + (foto.iva ?? 21) / 100
+                    const neto = incluyeIva ? Math.round(foto.precio / f) : foto.precio
+                    const conIva = incluyeIva ? foto.precio : Math.round(foto.precio * f)
                     return esMayorista ? (
                       <>
                         <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>
-                          {formatPrecio(foto.precio, foto.moneda)}
+                          {formatPrecio(neto, foto.moneda)}
                         </p>
                         <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          IVA incluido: {formatPrecio(Math.round(foto.precio * ivaFactor), foto.moneda)}
+                          IVA incluido: {formatPrecio(conIva, foto.moneda)}
                         </p>
                       </>
                     ) : (
                       <>
                         <p className="text-sm font-bold mt-1" style={{ color: 'var(--foreground)' }}>
-                          {formatPrecio(foto.precio, foto.moneda)}
+                          {formatPrecio(conIva, foto.moneda)}
                         </p>
                         <p className="text-[10px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          Precio sin impuestos nacionales: {formatPrecio(Math.round(foto.precio / ivaFactor), foto.moneda)}
+                          Precio sin impuestos nacionales: {formatPrecio(neto, foto.moneda)}
                         </p>
                       </>
                     )

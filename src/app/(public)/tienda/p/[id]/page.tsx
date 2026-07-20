@@ -57,6 +57,8 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
   const esMayorista = esMayoristaPorCanal(user)
+  // lista5 (Emprendedores/minorista) ya incluye IVA; lista3 (mayorista) es neto.
+  const precioIncluyeIva = listaPrecio === 'precio_lista5'
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -124,24 +126,29 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             </h1>
 
             {precio != null && (() => {
-              // Mayorista: precio_lista3 es neto → IVA incluido = precio × (1+iva).
-              // Minorista: precio_lista5 ya incluye IVA → precio es el final y el neto = precio / (1+iva).
-              const ivaFactor = 1 + ((producto.iva as number | null) ?? 21) / 100
+              // Dos ejes independientes:
+              //  - precioIncluyeIva (lista): lista5 ya trae IVA → neto = precio/f, conIva = precio.
+              //    lista3 es neto → neto = precio, conIva = precio×f.
+              //  - esMayorista (presentación): mayorista ve el neto en grande + "IVA incluido";
+              //    minorista ve el precio final con IVA + "sin impuestos".
+              const f = 1 + ((producto.iva as number | null) ?? 21) / 100
+              const neto = precioIncluyeIva ? Math.round(precio / f) : precio
+              const conIva = precioIncluyeIva ? precio : Math.round(precio * f)
               return (
                 <div className="mb-2">
                   <p
                     className={esMayorista ? 'text-2xl font-medium' : 'text-3xl font-bold'}
                     style={{ color: 'var(--foreground)' }}
                   >
-                    {formatPrecio(precio, monedaFinal)}
+                    {formatPrecio(esMayorista ? neto : conIva, monedaFinal)}
                   </p>
                   {esMayorista ? (
                     <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      IVA incluido: {formatPrecio(Math.round(precio * ivaFactor), monedaFinal)}
+                      IVA incluido: {formatPrecio(conIva, monedaFinal)}
                     </p>
                   ) : (
                     <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Precio sin impuestos nacionales: {formatPrecio(Math.round(precio / ivaFactor), monedaFinal)}
+                      Precio sin impuestos nacionales: {formatPrecio(neto, monedaFinal)}
                     </p>
                   )}
                 </div>

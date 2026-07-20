@@ -104,6 +104,10 @@ export async function crearPedidoBorrador(
     .single()
 
   const listaPrecio = canal?.lista_precios ?? 'precio_lista3'
+  // precio_lista5 (Emprendedores, minorista) ya trae IVA incluido: el recargo "en
+  // blanco" (Factura A) NO aplica porque el IVA ya está en el precio; solo lista3
+  // (neto) suma ese recargo. Sin este gate, Emprendedores paga IVA dos veces.
+  const precioIncluyeIva = listaPrecio === 'precio_lista5'
   // El envío desde el carrito solo aplica al canal Emprendedores; ignorar el resto.
   const envioParams = canal?.slug === 'emprendedores' ? opciones?.envio : undefined
 
@@ -207,7 +211,7 @@ export async function crearPedidoBorrador(
   } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.desc_transferencia_pct!
     ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
-  } else if (medioPagoOriginal === 'transferencia_blanco' && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
+  } else if (medioPagoOriginal === 'transferencia_blanco' && !precioIncluyeIva && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
     ajusteMetodoPago = Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   }

@@ -135,6 +135,7 @@ export default async function FavoritosPage() {
             mostrarPrecios={mostrarPrecios}
             estaLogueado={!!user}
             esMayorista={esMayoristaPorCanal(user)}
+            precioIncluyeIva={listaPrecio === 'precio_lista5'}
           />
         )}
       </div>

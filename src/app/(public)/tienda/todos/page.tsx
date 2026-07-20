@@ -78,6 +78,7 @@ export default async function TodosProductosPage() {
           productos={productos}
           mostrarPrecios={mostrarPrecios}
           esMayorista={esMayorista}
+          precioIncluyeIva={listaPrecio === 'precio_lista5'}
           estaLogueado={!!user}
         />
       </div>

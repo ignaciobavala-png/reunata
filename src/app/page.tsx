@@ -76,7 +76,7 @@ export default async function Home() {
             <Hero />
             <PromoTicker />
             <CategoryGallery initialCategorias={(categoriasGallery ?? []) as CategoriaHome[]} />
-            <ProductSlider fotos={fotos} esMayorista={tipoCliente === 'mayorista'} />
+            <ProductSlider fotos={fotos} esMayorista={tipoCliente === 'mayorista'} precioIncluyeIva={listaPrecio === 'precio_lista5'} />
             <InstagramSlider posts={postsInstagram ?? []} />
             <PromotionalBanner banner={banner} />
           </>

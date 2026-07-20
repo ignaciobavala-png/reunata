@@ -32,6 +32,20 @@ export function esMayoristaPorCanal(user: UserSession | null): boolean {
   return categoria === 'mayorista' || categoria === 'especial'
 }
 
+/**
+ * ¿El precio guardado de la lista del canal ya incluye IVA?
+ * precio_lista5 (consumidor/minorista y Emprendedores) viene con el IVA adentro;
+ * precio_lista3 (mayoristas reales) es neto. Guest (user null) → consumidor_final → lista5.
+ *
+ * NO usar la categoría comercial como proxy de "precio neto": Emprendedores es
+ * categoría "mayorista" pero cobra sobre lista5, así que el IVA ya está incluido.
+ * Confundir ambos ejes recarga IVA dos veces (desglose y recargo Factura A).
+ */
+export function precioIncluyeIvaPorCanal(user: UserSession | null): boolean {
+  const lista = user?.canal?.listaPrecio
+  return lista ? lista === 'precio_lista5' : true
+}
+
 export async function resolverCanalTienda(): Promise<{
   user: UserSession | null
   canalId: number
