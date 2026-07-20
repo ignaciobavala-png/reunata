@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { X, ChevronDown, Loader2, Check } from 'lucide-react'
 import { guardarCanalConfig, type CanalConfigPayload } from '@/app/actions/canales-config'
 import { METODO_LABEL, METODOS_CON_IVA, METODOS_SIN_IVA } from '@/lib/metodos-pago'
@@ -112,11 +112,24 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
   )
 }
 
-// Campo numérico pequeño
+// Campo numérico pequeño.
+// Mantiene su propio estado de texto para poder vaciarse por completo mientras se
+// edita: si derivara el value directo del número del padre, los callers con
+// `?? default` (v ?? 0 / 1 / 21…) reinyectaban ese default en cada tecla y el
+// campo "no dejaba borrarse / el número volvía a aparecer" (bug del tester).
+// Solo resincroniza desde el padre cuando NO está enfocado (carga, cambio de
+// canal, guardado); el default recién se materializa al salir del campo.
 function NumField({ label, value, onChange, suffix, prefix }: {
   label: string; value: number | null; onChange: (v: number | null) => void
   suffix?: string; prefix?: string
 }) {
+  const [text, setText] = useState(value == null ? '' : String(value))
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setText(value == null ? '' : String(value))
+  }, [value, focused])
+
   return (
     <div className="flex items-center gap-3">
       <label className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>
@@ -126,8 +139,14 @@ function NumField({ label, value, onChange, suffix, prefix }: {
           type="number"
           min="0"
           step="any"
-          value={value ?? ''}
-          onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
+          value={text}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={e => {
+            const raw = e.target.value
+            setText(raw)
+            onChange(raw.trim() === '' ? null : Number(raw))
+          }}
           className="w-24 px-2 py-1.5 text-sm rounded border outline-none text-right"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         />

@@ -1359,6 +1359,20 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               {errorPago && (
                 <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
               )}
+
+              {/* Acceso al formulario de financiamiento — siempre disponible para
+                  mayoristas, igual que en el carrito desplegable. Cuando el crédito
+                  todavía no está aprobado, el aviso amarillo de arriba ya lleva al
+                  formulario, así que este link se muestra solo para no duplicarlo. */}
+              {reglas?.credito_aprobado && (
+                <a
+                  href="/cuenta/financiacion"
+                  className="w-full py-2 rounded-lg text-xs text-center transition-colors"
+                  style={{ color: 'var(--color-acero-oscuro)' }}
+                >
+                  ¿Necesitás financiamiento? <span className="underline">Solicitalo acá →</span>
+                </a>
+              )}
             </div>
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
