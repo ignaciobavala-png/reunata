@@ -528,15 +528,30 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       }, 0)
     : totalGeneral
 
-  // Descuento por volumen del canal (hasta 3 tramos) — toma como referencia el
-  // precio con IVA incluido (totalGeneral), tanto para el umbral como para el
-  // monto. Mismo criterio que el server (checkout.ts) vía resolverTramoVolumen.
+  // ── Cascada de descuentos (orden del tester): 1) WEB, 2) Volumen, 3) forma de pago ──
+  // El total final no depende del orden (dos descuentos multiplicativos dan lo mismo),
+  // pero se calcula WEB sobre el bruto para que ese descuento se muestre en su valor
+  // más alto (antes se achicaba por calcularse sobre el precio ya descontado por volumen).
+  // El path minorista no tiene desc. web (descAutogestPct = 0), así que no se ve afectado.
+
+  // 1) Descuento web (autogestión, solo mayoristas) — sobre el bruto (totalGeneral)
+  const descAutogestPct = esMayorista && reglas
+    ? (reglas.es_primera_compra
+        ? (reglas.desc_autogestion_primera_pct ?? 0)
+        : (reglas.desc_autogestion_siguientes_pct ?? 0))
+    : 0
+  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(totalGeneral * descAutogestPct / 100) : 0
+  const basePostWeb = totalGeneral + ajusteAutogestion
+
+  // 2) Descuento por volumen — umbral evaluado sobre el bruto (calificás por lo que
+  // comprás), % aplicado sobre la base ya descontada por web. Mismo criterio que el server.
   const tramoVolumen = resolverTramoVolumen(reglas, totalGeneral)
   const descVolCanalPct = tramoVolumen?.pct ?? 0
   const ajusteVolumenCanal = tramoVolumen
-    ? -Math.round(totalGeneral * tramoVolumen.pct / 100)
+    ? -Math.round(basePostWeb * tramoVolumen.pct / 100)
     : 0
-  const basePostVolumenCanal = totalGeneral + ajusteVolumenCanal
+  // Base final tras web + volumen, sobre la que se aplica la forma de pago (paso 3).
+  const basePostDescuentos = basePostWeb + ajusteVolumenCanal
 
   // Tramos que todavía no se alcanzaron, para el aviso progresivo: sin superar
   // ninguno se muestran los 3; superado el 1º se muestran el 2º y 3º, etc.
@@ -570,15 +585,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     ? METODOS_SIN_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
 
-  // Descuento de autogestión web (primera vs siguientes compras, solo mayoristas) — sobre el precio ya descontado por volumen
-  const descAutogestPct = esMayorista && reglas
-    ? (reglas.es_primera_compra
-        ? (reglas.desc_autogestion_primera_pct ?? 0)
-        : (reglas.desc_autogestion_siguientes_pct ?? 0))
-    : 0
-  const ajusteAutogestion = descAutogestPct > 0 ? -Math.round(basePostVolumenCanal * descAutogestPct / 100) : 0
-  const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
-
   // Recargo IVA (Factura A) por método — los pagos "con IVA" suman este % al total.
   // transferencia_blanco default 21 por retrocompat; el resto arranca en 0 hasta
   // que el canal lo configure.
@@ -599,9 +605,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     : 0
   const ajuste = metodoPago && reglas
     ? (metodoPago === 'efectivo' || metodoPago === 'transferencia_negro')
-      ? -Math.round(basePostAutogestion * ajustePct / 100)
+      ? -Math.round(basePostDescuentos * ajustePct / 100)
       : metodoPago in recargoConIvaPct
-        ? Math.round(basePostAutogestion * ajustePct / 100)
+        ? Math.round(basePostDescuentos * ajustePct / 100)
         : 0
     : 0
 
@@ -611,19 +617,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const totalConIvaMayorista = esMayorista
     ? items.reduce((acc, i) => acc + Math.round(i.precio * (1 + (ivaRates[i.productoId] ?? 0.21))) * i.cantidad, 0)
     : 0
-  const totalBrutoMayorista = basePostAutogestion
+  const totalBrutoMayorista = basePostDescuentos
   // IVA proporcional a la mezcla real de alícuotas del carrito (×1.21 si todo es 21%)
   const totalIvaIncluidoMayorista = totalGeneral > 0
-    ? Math.round(basePostAutogestion * (totalConIvaMayorista / totalGeneral))
+    ? Math.round(basePostDescuentos * (totalConIvaMayorista / totalGeneral))
     : 0
 
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMayoristaConMetodo(k: string): number {
-    if (!reglas) return basePostAutogestion
-    if (k === 'efectivo')            return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_efectivo_pct ?? 0) / 100)
-    if (k === 'transferencia_negro') return basePostAutogestion - Math.round(basePostAutogestion * (reglas.desc_transferencia_pct ?? 0) / 100)
-    if (k in recargoConIvaPct)       return basePostAutogestion + Math.round(basePostAutogestion * recargoConIvaPct[k] / 100)
-    return basePostAutogestion
+    if (!reglas) return basePostDescuentos
+    if (k === 'efectivo')            return basePostDescuentos - Math.round(basePostDescuentos * (reglas.desc_efectivo_pct ?? 0) / 100)
+    if (k === 'transferencia_negro') return basePostDescuentos - Math.round(basePostDescuentos * (reglas.desc_transferencia_pct ?? 0) / 100)
+    if (k in recargoConIvaPct)       return basePostDescuentos + Math.round(basePostDescuentos * recargoConIvaPct[k] / 100)
+    return basePostDescuentos
   }
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')
 
@@ -639,15 +645,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const ajusteEfectivo = metodoPago
     ? ajuste
     : facturaIva === 'con'
-      ? totalBtnConIva - basePostAutogestion
+      ? totalBtnConIva - basePostDescuentos
       : 0
 
   // Base para evaluar mínimo de compra / envío gratis: subtotal − desc web/volumen,
   // SIN el ajuste por forma de pago (pedido del tester 2026-07, alineado con el server).
-  // Mayorista: Total Bruto. Minorista: total con IVA post web/volumen.
-  const totalPostDescuentoPreEnvio = esMayorista
-    ? basePostAutogestion
-    : basePostVolumenCanal
+  // Mayorista: Total Bruto. Minorista: total con IVA post volumen (no tiene desc. web).
+  const totalPostDescuentoPreEnvio = basePostDescuentos
 
   // Envío gratis — mismo criterio que el server, evaluado sobre el total vigente
   const esAmbaEnvio = envioSeleccionado ? ['B', 'C'].includes(envioSeleccionado.provincia) : false
@@ -661,8 +665,8 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   // Total minorista mostrado en el resumen — sin el descuento por forma de pago:
   // ese descuento se ve solo en la opción de pago (confirmado por el tester 2026-07-07)
-  const totalConEnvio = basePostVolumenCanal + costoEnvio
-  const totalFinal = basePostAutogestion + ajusteEfectivo + costoEnvio
+  const totalConEnvio = basePostDescuentos + costoEnvio
+  const totalFinal = basePostDescuentos + ajusteEfectivo + costoEnvio
 
   // "Precio sin impuestos nacionales" a mostrar chico bajo el Total — solo minorista,
   // sin incluir el envío (pedido del tester)
@@ -688,12 +692,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Total final si el minorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMinoristaConMetodo(metodo: string): number {
     const pct = metodo === 'transferencia' ? (reglas?.desc_transferencia_pct ?? 0) : 0
-    const base = basePostVolumenCanal - Math.round(basePostVolumenCanal * pct / 100)
+    const base = basePostDescuentos - Math.round(basePostDescuentos * pct / 100)
     // El envío gratis se evalúa sobre la base SIN el descuento por forma de pago,
     // igual que el server — así el umbral no cambia según el método elegido
     const gratis = envioSeleccionado !== null && (
-      (umbralAmba !== null && esAmbaEnvio && basePostVolumenCanal >= umbralAmba) ||
-      (umbralGeneral !== null && basePostVolumenCanal >= umbralGeneral)
+      (umbralAmba !== null && esAmbaEnvio && basePostDescuentos >= umbralAmba) ||
+      (umbralGeneral !== null && basePostDescuentos >= umbralGeneral)
     )
     return base + (envioSeleccionado ? (gratis ? 0 : envioSeleccionado.costo) : 0)
   }

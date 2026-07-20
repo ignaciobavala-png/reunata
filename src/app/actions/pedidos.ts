@@ -166,46 +166,51 @@ export async function crearPedidoBorrador(
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
-  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
-  const ajusteVolumenCanal = tramoVol ? -Math.round(subtotal * tramoVol.pct / 100) : 0
-  const basePostVolumenCanal = subtotal + ajusteVolumenCanal
+  // Orden de descuentos (pedido del tester): 1) WEB (autogestión), 2) Volumen,
+  // 3) forma de pago. Cada paso se aplica sobre el saldo del anterior.
 
+  // 1) Descuento web (autogestión) — sobre el bruto, para que sea el más alto posible
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
   const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(basePostVolumenCanal * pctAutogestion / 100) : 0
-  // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
-  const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
+  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+  const basePostAutogestion = subtotal + ajusteAutogestion
 
-  // Descuento / recargo por método de pago (mismo criterio que el cliente)
+  // 2) Descuento por volumen — el umbral se evalúa sobre el bruto (calificás por lo
+  // que comprás), pero el % se aplica sobre la base ya descontada por web
+  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
+  const ajusteVolumenCanal = tramoVol ? -Math.round(basePostAutogestion * tramoVol.pct / 100) : 0
+  const basePostVolumenCanal = basePostAutogestion + ajusteVolumenCanal
+
+  // 3) Descuento / recargo por método de pago — sobre el precio ya descontado por
+  // web y volumen (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
   let ajusteMetodoPago = 0
   let pctMetodoPago = 0
   if (medioPagoOriginal === 'efectivo' && (canalConfig?.desc_efectivo_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.desc_efectivo_pct!
-    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.desc_transferencia_pct!
-    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_blanco' && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
-    ajusteMetodoPago = Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   }
 
-  const totalFinal = basePostAutogestion + ajusteMetodoPago
+  const totalFinal = basePostVolumenCanal + ajusteMetodoPago
 
   // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
   // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
   const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
-  if (minimoCompra && basePostAutogestion < minimoCompra) {
+  if (minimoCompra && basePostVolumenCanal < minimoCompra) {
     return { ok: false, error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.` }
   }
 
   const notaPartes: string[] = []
-  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
+  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
   if (ajusteMetodoPago !== 0) {
     notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
   }
