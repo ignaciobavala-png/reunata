@@ -190,7 +190,10 @@ export function CategoriasClient({
   }
 
   async function eliminarCategoria(cat: CategoriaHome) {
-    if (!confirm(`¿Eliminar "${cat.nombre}"? Esta acción no se puede deshacer.`)) return
+    const aviso = cat.activo
+      ? `"${cat.nombre}" está ACTIVA y se muestra en la tienda. ¿Eliminarla igual? Esta acción no se puede deshacer.`
+      : `¿Eliminar "${cat.nombre}"? Esta acción no se puede deshacer.`
+    if (!confirm(aviso)) return
     if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
     await fetch('/api/categorias-home', {
       method: 'DELETE',
@@ -447,15 +450,13 @@ export function CategoriasClient({
                   >
                     Editar
                   </button>
-                  {!cat.activo && (
-                    <button
-                      onClick={() => eliminarCategoria(cat)}
-                      className="text-sm px-2.5 py-1 rounded-lg border flex items-center gap-1 justify-center"
-                      style={{ borderColor: '#fca5a5', color: '#dc2626' }}
-                    >
-                      <Trash2 size={11} /> Eliminar
-                    </button>
-                  )}
+                  <button
+                    onClick={() => eliminarCategoria(cat)}
+                    className="text-sm px-2.5 py-1 rounded-lg border flex items-center gap-1 justify-center"
+                    style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+                  >
+                    <Trash2 size={11} /> Eliminar
+                  </button>
                 </div>
               </div>
             )}
