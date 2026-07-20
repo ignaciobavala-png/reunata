@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, CheckCircle, Plus, X, GripVertical } from 'lucide-react'
+import { Loader2, CheckCircle, Plus, X, GripVertical, ChevronUp, ChevronDown } from 'lucide-react'
 
 const DEFAULT_ITEMS = [
   'Envío gratis desde $100.000',
@@ -100,6 +100,20 @@ export function PromoClient() {
     dragIdx.current = null
   }
 
+  // Botones ↑/↓ — el drag nativo (draggable/onDragStart/onDragOver) no dispara
+  // con touch en la mayoría de navegadores móviles (Safari iOS no lo soporta),
+  // así que en el celu arrastrar no hace nada. Mismo patrón que categorías del
+  // home (commit a79fd84): mover por índice funciona igual en mouse y touch.
+  function moverItem(idx: number, dir: -1 | 1) {
+    const target = idx + dir
+    if (target < 0 || target >= items.length) return
+    setItems(prev => {
+      const copy = [...prev]
+      ;[copy[idx], copy[target]] = [copy[target], copy[idx]]
+      return copy
+    })
+  }
+
   async function guardar() {
     setSaving(true)
 
@@ -183,13 +197,31 @@ export function PromoClient() {
                   className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors group cursor-grab active:cursor-grabbing"
                   style={{ borderColor: 'var(--color-acero-claro)', background: 'white' }}
                 >
-                  <GripVertical size={14} className="opacity-30 group-hover:opacity-60 flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }} />
+                  <GripVertical size={14} className="opacity-30 group-hover:opacity-60 flex-shrink-0 hidden sm:block" style={{ color: 'var(--color-acero-oscuro)' }} />
                   <span className="flex-1 text-sm min-w-0 truncate" style={{ color: 'var(--foreground)' }}>
                     {item.text}
                   </span>
                   <span className="text-xs font-mono opacity-50 flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {idx + 1}
                   </span>
+                  <div className="flex flex-col flex-shrink-0">
+                    <button
+                      onClick={() => moverItem(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Subir"
+                      className="p-0.5 rounded disabled:opacity-20 hover:bg-black/5"
+                    >
+                      <ChevronUp size={13} style={{ color: 'var(--color-acero-oscuro)' }} />
+                    </button>
+                    <button
+                      onClick={() => moverItem(idx, 1)}
+                      disabled={idx === items.length - 1}
+                      aria-label="Bajar"
+                      className="p-0.5 rounded disabled:opacity-20 hover:bg-black/5"
+                    >
+                      <ChevronDown size={13} style={{ color: 'var(--color-acero-oscuro)' }} />
+                    </button>
+                  </div>
                   <button
                     onClick={() => removeItem(idx)}
                     className="p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 flex-shrink-0"
