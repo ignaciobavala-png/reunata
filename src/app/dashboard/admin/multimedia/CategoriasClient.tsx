@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Plus, Check, X, ToggleLeft, ToggleRight, ImagePlus, Trash2 } from 'lucide-react'
+import { Plus, Check, X, ToggleLeft, ToggleRight, ImagePlus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import { supabaseImg } from '@/lib/images'
@@ -16,6 +16,7 @@ interface CategoriaHome {
   activo: boolean
   categoria_keys: string[]
   foto_url: string | null
+  orden: number
 }
 
 function GesuSelector({
@@ -112,6 +113,30 @@ export function CategoriasClient({
     setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, activo: !c.activo } : c))
   }
 
+  async function moverCategoria(id: number, dir: -1 | 1) {
+    const index = categorias.findIndex(c => c.id === id)
+    const target = index + dir
+    if (target < 0 || target >= categorias.length) return
+
+    const reordenado = [...categorias]
+    ;[reordenado[index], reordenado[target]] = [reordenado[target], reordenado[index]]
+    // Renumerar orden = posición en la lista (normaliza los 999 iniciales)
+    const conOrden = reordenado.map((c, i) => ({ ...c, orden: i }))
+    const previos = new Map(categorias.map(c => [c.id, c.orden]))
+    setCategorias(conOrden)
+
+    // Persistir solo las filas cuyo orden cambió
+    await Promise.all(
+      conOrden
+        .filter(c => previos.get(c.id) !== c.orden)
+        .map(c => fetch('/api/categorias-home', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+          body: JSON.stringify({ id: c.id, orden: c.orden }),
+        }))
+    )
+  }
+
   async function guardarEdicion(id: number) {
     setSaving(true)
     const keys = Array.isArray(form.categoria_keys) ? form.categoria_keys : []
@@ -193,7 +218,7 @@ export function CategoriasClient({
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
-        {categorias.map(cat => (
+        {categorias.map((cat, index) => (
           <div
             key={cat.id}
             className="rounded-xl border p-4"
@@ -392,6 +417,26 @@ export function CategoriasClient({
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 flex-shrink-0">
+                  <div className="flex gap-1 justify-end">
+                    <button
+                      onClick={() => moverCategoria(cat.id, -1)}
+                      disabled={index === 0}
+                      title="Subir"
+                      className="p-1 rounded-lg border disabled:opacity-30"
+                      style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      onClick={() => moverCategoria(cat.id, 1)}
+                      disabled={index === categorias.length - 1}
+                      title="Bajar"
+                      className="p-1 rounded-lg border disabled:opacity-30"
+                      style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--color-acero-oscuro)' }}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
                   <button
                     onClick={() => {
                       setEditando(cat.id)

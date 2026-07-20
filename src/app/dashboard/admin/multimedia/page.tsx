@@ -22,7 +22,7 @@ export default async function MultimediaPage({
   const [{ data: categorias }, { data: heroAssets }, { data: gesuCatsRaw }, { data: heroConfig }] = await Promise.all([
     supabase
       .from('categorias_home')
-      .select('id, nombre, descripcion, href, activo, categoria_keys, foto_url')
+      .select('id, nombre, descripcion, href, activo, categoria_keys, foto_url, orden')
       .order('orden'),
     supabase
       .from('hero_assets')
