@@ -5,13 +5,24 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { supabaseImg } from '@/lib/images'
-import { crearEnvioEnviopack, consultarEnvioEnviopack } from '@/lib/enviopack'
+import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/lib/enviopack'
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 
 interface LineaPedido {
   productoId: number
   cantidad: number
   variante?: string
+}
+
+// Envío a domicilio para el canal Emprendedores — cotiza y se cobra siempre (sin
+// envío gratis). El resto de los mayoristas coordina el envío con Elena desde el admin.
+interface EnvioBorrador {
+  provincia: string
+  codigo_postal: string
+  servicioId: string
+  calle: string
+  numero: string
+  piso?: string
 }
 
 const METODO_NOTA: Record<string, string> = {
@@ -53,7 +64,7 @@ const ESTADOS_EDITABLES = ['borrador', 'pendiente_pago', 'comprobante_subido']
 
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
-  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string; pedidoIdToEdit?: string },
+  opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string; pedidoIdToEdit?: string; envio?: EnvioBorrador },
 ): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -88,11 +99,13 @@ export async function crearPedidoBorrador(
   // Resolver lista de precios del canal del usuario
   const { data: canal } = await service
     .from('canales')
-    .select('lista_precios')
+    .select('lista_precios, slug')
     .eq('id', perfil.canal_id)
     .single()
 
   const listaPrecio = canal?.lista_precios ?? 'precio_lista3'
+  // El envío desde el carrito solo aplica al canal Emprendedores; ignorar el resto.
+  const envioParams = canal?.slug === 'emprendedores' ? opciones?.envio : undefined
 
   const [{ data: productos }, { data: tcRow }, { data: canalConfig }, { count: pedidosCount }] = await Promise.all([
     service
@@ -166,46 +179,69 @@ export async function crearPedidoBorrador(
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
 
-  // Descuento por volumen del canal — sobre el total de la compra al superar el monto configurado
-  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
-  const ajusteVolumenCanal = tramoVol ? -Math.round(subtotal * tramoVol.pct / 100) : 0
-  const basePostVolumenCanal = subtotal + ajusteVolumenCanal
+  // Orden de descuentos (pedido del tester): 1) WEB (autogestión), 2) Volumen,
+  // 3) forma de pago. Cada paso se aplica sobre el saldo del anterior.
 
+  // 1) Descuento web (autogestión) — sobre el bruto, para que sea el más alto posible
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
   const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(basePostVolumenCanal * pctAutogestion / 100) : 0
-  // El descuento de método de pago se aplica sobre el precio ya descontado por autogestión
-  const basePostAutogestion = basePostVolumenCanal + ajusteAutogestion
+  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+  const basePostAutogestion = subtotal + ajusteAutogestion
 
-  // Descuento / recargo por método de pago (mismo criterio que el cliente)
+  // 2) Descuento por volumen — el umbral se evalúa sobre el bruto (calificás por lo
+  // que comprás), pero el % se aplica sobre la base ya descontada por web
+  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
+  const ajusteVolumenCanal = tramoVol ? -Math.round(basePostAutogestion * tramoVol.pct / 100) : 0
+  const basePostVolumenCanal = basePostAutogestion + ajusteVolumenCanal
+
+  // 3) Descuento / recargo por método de pago — sobre el precio ya descontado por
+  // web y volumen (mismo criterio que el cliente)
   const medioPagoOriginal = opciones?.medioPago
   let ajusteMetodoPago = 0
   let pctMetodoPago = 0
   if (medioPagoOriginal === 'efectivo' && (canalConfig?.desc_efectivo_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.desc_efectivo_pct!
-    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.desc_transferencia_pct!
-    ajusteMetodoPago = -Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   } else if (medioPagoOriginal === 'transferencia_blanco' && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
     pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
-    ajusteMetodoPago = Math.round(basePostAutogestion * pctMetodoPago / 100)
+    ajusteMetodoPago = Math.round(basePostVolumenCanal * pctMetodoPago / 100)
   }
 
-  const totalFinal = basePostAutogestion + ajusteMetodoPago
+  const totalMercaderia = basePostVolumenCanal + ajusteMetodoPago
 
   // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
   // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
   const minimoCompra = (canalConfig?.minimo_compra as number | null) ?? null
-  if (minimoCompra && basePostAutogestion < minimoCompra) {
+  if (minimoCompra && basePostVolumenCanal < minimoCompra) {
     return { ok: false, error: `El mínimo de compra es ${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(minimoCompra)}.` }
   }
 
+  // Envío (solo Emprendedores) — se cotiza server-side y se cobra siempre (sin envío
+  // gratis). El costo del cliente nunca se confía: se recotiza acá contra Enviopack.
+  let envioResuelto: { descripcion: string; costo: number } | null = null
+  if (envioParams) {
+    const { opciones: opcsEnvio, error: envioError } = await cotizarEnvio({
+      items: lineas.map(l => ({ productoId: l.productoId, cantidad: l.cantidad })),
+      codigo_postal: envioParams.codigo_postal,
+      provincia: envioParams.provincia,
+    })
+    const opcion = opcsEnvio.find(o => o.id === envioParams.servicioId)
+    if (envioError || !opcion) {
+      return { ok: false, error: 'No se pudo verificar el costo de envío. Recalculá antes de continuar.' }
+    }
+    envioResuelto = { descripcion: opcion.descripcion, costo: opcion.costo }
+  }
+
+  const totalFinal = totalMercaderia + (envioResuelto?.costo ?? 0)
+
   const notaPartes: string[] = []
-  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
   if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
+  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
   if (ajusteMetodoPago !== 0) {
     notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
   }
@@ -228,6 +264,16 @@ export async function crearPedidoBorrador(
     expira_en: expiraEn,
     ...(medioPagoDb ? { medio_pago: medioPagoDb } : {}),
     ...(opciones?.facturaIva !== undefined ? { factura_iva: opciones.facturaIva } : {}),
+    ...(envioParams ? {
+      costo_envio: envioResuelto?.costo ?? null,
+      envio_descripcion: envioResuelto?.descripcion ?? null,
+      envio_codigo_postal: envioParams.codigo_postal,
+      envio_provincia: envioParams.provincia,
+      envio_calle: envioParams.calle,
+      envio_numero: envioParams.numero,
+      envio_piso: envioParams.piso ?? null,
+      envio_servicio: envioParams.servicioId,
+    } : {}),
   }
 
   let pedidoId: string

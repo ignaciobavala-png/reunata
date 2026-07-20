@@ -39,6 +39,7 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
   return {
     canal_id: canal.id,
     cuenta_sin_iva_id: null,
+    cuenta_con_iva_id: null,
     pagos_habilitados: pagos,
     cuotas_mp_sin_interes: 1,
     desc_transferencia_pct: 0,
@@ -112,11 +113,30 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
   )
 }
 
-// Campo numérico pequeño
+// Campo numérico pequeño.
+// Mantiene su propio estado de texto para poder vaciarse por completo mientras se
+// edita: si derivara el value directo del número del padre, los callers con
+// `?? default` (v ?? 0 / 1 / 21…) reinyectaban ese default en cada tecla y el
+// campo "no dejaba borrarse / el número volvía a aparecer" (bug del tester).
+// Solo resincroniza desde el padre cuando NO está enfocado (carga, cambio de
+// canal, guardado); el default recién se materializa al salir del campo.
 function NumField({ label, value, onChange, suffix, prefix }: {
   label: string; value: number | null; onChange: (v: number | null) => void
   suffix?: string; prefix?: string
 }) {
+  const [text, setText] = useState(value == null ? '' : String(value))
+  const [focused, setFocused] = useState(false)
+
+  // Resincronizar desde el padre cuando cambia el value externo (carga, cambio de
+  // canal, guardado) y el campo no está enfocado — ajuste de estado durante el
+  // render (patrón oficial de React), no un efecto, para no reinyectar mientras se
+  // tipea ni disparar renders en cascada.
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
+    if (!focused) setText(value == null ? '' : String(value))
+  }
+
   return (
     <div className="flex items-center gap-3">
       <label className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>{label}</label>
@@ -126,8 +146,14 @@ function NumField({ label, value, onChange, suffix, prefix }: {
           type="number"
           min="0"
           step="any"
-          value={value ?? ''}
-          onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
+          value={text}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={e => {
+            const raw = e.target.value
+            setText(raw)
+            onChange(raw.trim() === '' ? null : Number(raw))
+          }}
           className="w-24 px-2 py-1.5 text-sm rounded border outline-none text-right"
           style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
         />
@@ -161,6 +187,8 @@ export function CanalConfigDrawer({
   configInicial,
   cuentasSinIva = [],
   cuentaSinIvaActualId,
+  cuentasConIva = [],
+  cuentaConIvaActualId,
   onClose,
   onSaved,
 }: {
@@ -168,6 +196,8 @@ export function CanalConfigDrawer({
   configInicial: Config | undefined
   cuentasSinIva?: CuentaSinIva[]
   cuentaSinIvaActualId?: number | null
+  cuentasConIva?: CuentaSinIva[]
+  cuentaConIvaActualId?: number | null
   onClose: () => void
   onSaved: (canalId: number, config: CanalConfigPayload) => void
 }) {
@@ -178,6 +208,7 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
   const [form, setForm] = useState<CanalConfigPayload>(() => ({
     ...mergeConfig(canal, configInicial),
     cuenta_sin_iva_id: cuentaSinIvaActualId ?? null,
+    cuenta_con_iva_id: cuentaConIvaActualId ?? null,
   }))
   const [, startTransition] = useTransition()
   const [guardando, setGuardando] = useState(false)
@@ -253,6 +284,16 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
               label="Descuento por efectivo"
               value={form.desc_efectivo_pct}
               onChange={v => set('desc_efectivo_pct', v ?? 0)}
+              suffix="%"
+            />
+          </div>
+        )}
+        {m.key === 'transferencia_negro' && pagos['transferencia_negro']?.activo && (
+          <div className="ml-12 mt-1">
+            <NumField
+              label="Descuento por transferencia directa"
+              value={form.desc_transferencia_pct}
+              onChange={v => set('desc_transferencia_pct', v ?? 0)}
               suffix="%"
             />
           </div>
@@ -437,6 +478,27 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
                       >
                         <option value="">Sin asignar</option>
                         {cuentasSinIva.map(c => (
+                          <option key={c.id} value={c.id}>{c.nombre} ({c.tipo ?? 'CBU'})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {cuentasConIva.length > 0 && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm flex-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Cuenta para Transferencia (Factura A)
+                      </label>
+                      <select
+                        value={form.cuenta_con_iva_id ?? ''}
+                        onChange={e => set('cuenta_con_iva_id', e.target.value ? Number(e.target.value) : null)}
+                        className="w-48 px-2 py-1.5 text-sm rounded border outline-none"
+                        style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+                      >
+                        <option value="">Sin asignar</option>
+                        {cuentasConIva.map(c => (
                           <option key={c.id} value={c.id}>{c.nombre} ({c.tipo ?? 'CBU'})</option>
                         ))}
                       </select>

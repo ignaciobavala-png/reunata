@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCartStore, CartItem } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Loader2, Trash2 } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
@@ -9,6 +9,11 @@ import Link from 'next/link'
 import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
+import { tramosPendientes, type ConfigVolumen } from '@/lib/descuento-volumen'
+
+// Solo lo que el drawer necesita para los avisos de mínimo y volumen; el detalle
+// fino (base post-descuentos) vive en la página /carrito, acá es un adelanto.
+type ReglasDrawer = ConfigVolumen & { minimo_compra: number | null }
 
 const WHATSAPP = '5491132720974'
 
@@ -22,10 +27,28 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
   const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
   const [enviando, setEnviando] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
+  const [reglas, setReglas] = useState<ReglasDrawer | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
   const esMayorista = tipoCliente === 'mayorista'
+
+  // Reglas del canal para los avisos de mínimo de compra y descuento por volumen.
+  // Mismo endpoint que la página /carrito; se carga una vez al montar el drawer.
+  useEffect(() => {
+    fetch('/api/carrito/reglas')
+      .then(r => r.json())
+      .then(({ reglas: r }) => { if (r) setReglas(r as ReglasDrawer) })
+      .catch(() => {})
+  }, [])
+
+  // El total del drawer es el subtotal bruto (sin descuentos): sirve de referencia
+  // para los umbrales de volumen (que se evalúan sobre el bruto, igual que en /carrito)
+  // y como cota superior para el mínimo — la página /carrito hace el cálculo exacto.
+  const totalActual = total()
+  const tramosVolPend = tramosPendientes(reglas, totalActual)
+  const minimo = reglas?.minimo_compra ?? null
+  const faltaMinimo = minimo != null && totalActual < minimo ? minimo - totalActual : null
 
   // En la página de carrito completo el drawer es redundante
   if (pathname === '/carrito') return null
@@ -164,6 +187,22 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
         {/* Footer */}
         {items.length > 0 && (
           <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+            {/* Avisos de mínimo de compra y descuento por volumen — para que se
+                vean sin tener que entrar al carrito completo (pedido del tester) */}
+            {(faltaMinimo !== null || tramosVolPend.length > 0) && (
+              <div className="flex flex-col gap-1.5 mb-3">
+                {faltaMinimo !== null && (
+                  <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                    Mínimo de compra: {formatPrecio(minimo!)}. Te faltan {formatPrecio(faltaMinimo)}.
+                  </div>
+                )}
+                {tramosVolPend.map(t => (
+                  <div key={t.montoMin} className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                    Te faltan {formatPrecio(t.montoMin - totalActual)} para el {t.pct}% de descuento por volumen.
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                 {esMayorista ? 'Total' : 'Total estimado'}

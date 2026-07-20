@@ -3,13 +3,29 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react'
-import {
-  crearCuentaSinIva,
-  actualizarCuentaSinIva,
-  eliminarCuentaSinIva,
-  type CuentaSinIva,
-  type TipoCuenta,
-} from '@/app/actions/cuentas-sin-iva'
+
+// Manager genérico de cuentas bancarias (sin IVA / +IVA). La lógica es idéntica
+// en ambos casos; solo cambian las server actions y el texto del estado vacío,
+// que se pasan por props para no duplicar el componente.
+
+export type TipoCuenta = 'CBU' | 'CVU' | 'deposito'
+export type CuentaBancaria = {
+  id: number
+  nombre: string
+  tipo: TipoCuenta
+  cbu: string
+  alias: string
+  cuit?: string | null
+  banco?: string | null
+}
+
+type CuentaInput = { nombre: string; tipo: TipoCuenta; cbu: string; alias: string; cuit?: string; banco?: string }
+
+export type AccionesCuenta = {
+  crear: (data: CuentaInput) => Promise<{ ok: boolean; error?: string; cuenta?: CuentaBancaria }>
+  actualizar: (id: number, data: CuentaInput) => Promise<{ ok: boolean; error?: string }>
+  eliminar: (id: number) => Promise<{ ok: boolean; error?: string }>
+}
 
 const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none'
 const inputStyle: React.CSSProperties = {
@@ -21,10 +37,8 @@ const inputStyle: React.CSSProperties = {
 type FormState = {
   nombre: string
   tipo: TipoCuenta
-  // CBU / CVU
   cbu: string
   alias: string
-  // Depósito
   cuit: string
   banco: string
 }
@@ -157,7 +171,7 @@ function CuentaForm({
   )
 }
 
-function cuentaToForm(c: CuentaSinIva): FormState {
+function cuentaToForm(c: CuentaBancaria): FormState {
   return {
     nombre: c.nombre,
     tipo: c.tipo,
@@ -180,7 +194,7 @@ function validarForm(data: FormState): string | null {
   return null
 }
 
-function ResumenCuenta({ c }: { c: CuentaSinIva }) {
+function ResumenCuenta({ c }: { c: CuentaBancaria }) {
   if (c.tipo === 'deposito') {
     return (
       <div>
@@ -201,8 +215,16 @@ function ResumenCuenta({ c }: { c: CuentaSinIva }) {
   )
 }
 
-export function CuentasSinIvaManager({ inicial }: { inicial: CuentaSinIva[] }) {
-  const [cuentas, setCuentas] = useState<CuentaSinIva[]>(inicial)
+export function CuentasBancariasManager({
+  inicial,
+  acciones,
+  textoVacio,
+}: {
+  inicial: CuentaBancaria[]
+  acciones: AccionesCuenta
+  textoVacio: string
+}) {
+  const [cuentas, setCuentas] = useState<CuentaBancaria[]>(inicial)
   const [agregando, setAgregando] = useState(false)
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [confirmEliminar, setConfirmEliminar] = useState<number | null>(null)
@@ -215,8 +237,8 @@ export function CuentasSinIvaManager({ inicial }: { inicial: CuentaSinIva[] }) {
     if (err) { setError(err); return }
     setError(null)
     startTransition(async () => {
-      const res = await crearCuentaSinIva(data)
-      if (!res.ok) { setError(res.error ?? 'Error al guardar.'); return }
+      const res = await acciones.crear(data)
+      if (!res.ok || !res.cuenta) { setError(res.error ?? 'Error al guardar.'); return }
       setCuentas(prev => [...prev, res.cuenta!])
       setAgregando(false)
       router.refresh()
@@ -228,7 +250,7 @@ export function CuentasSinIvaManager({ inicial }: { inicial: CuentaSinIva[] }) {
     if (err) { setError(err); return }
     setError(null)
     startTransition(async () => {
-      const res = await actualizarCuentaSinIva(id, data)
+      const res = await acciones.actualizar(id, data)
       if (!res.ok) { setError(res.error ?? 'Error al guardar.'); return }
       setCuentas(prev => prev.map(c => c.id === id ? { ...c, ...data } : c))
       setEditandoId(null)
@@ -237,7 +259,7 @@ export function CuentasSinIvaManager({ inicial }: { inicial: CuentaSinIva[] }) {
 
   function handleEliminar(id: number) {
     startTransition(async () => {
-      const res = await eliminarCuentaSinIva(id)
+      const res = await acciones.eliminar(id)
       if (!res.ok) { setError(res.error ?? 'Error al eliminar.'); return }
       setCuentas(prev => prev.filter(c => c.id !== id))
       setConfirmEliminar(null)
@@ -248,7 +270,7 @@ export function CuentasSinIvaManager({ inicial }: { inicial: CuentaSinIva[] }) {
     <div className="flex flex-col gap-3">
       {cuentas.length === 0 && !agregando && (
         <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-          No hay cuentas configuradas. Agregá al menos una para que los mayoristas puedan pagar sin IVA.
+          {textoVacio}
         </p>
       )}
 

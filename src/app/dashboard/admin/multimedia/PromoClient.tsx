@@ -14,9 +14,18 @@ const DEFAULT_ITEMS = [
 
 const DEFAULT_SPEED = 30
 
+// Cada frase lleva un id estable propio: la lista se persiste como string[] pero
+// en memoria usamos {id, text}. El key del <li> debe ser ese id y NO el índice —
+// con key por índice, al reordenar en onDragOver cambian los keys, React remonta
+// el nodo que se está arrastrando y el drag nativo se aborta tras un solo swap
+// (bug del tester: "solo funciona un cambio hasta que recargás la pestaña").
+type PromoItem = { id: string; text: string }
+let _uid = 0
+const nuevoId = () => `promo-${Date.now()}-${_uid++}`
+
 export function PromoClient() {
   const supabase = createClient()
-  const [items, setItems] = useState<string[]>([])
+  const [items, setItems] = useState<PromoItem[]>([])
   const [speed, setSpeed] = useState(DEFAULT_SPEED)
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(true)
@@ -33,11 +42,14 @@ export function PromoClient() {
         .in('clave', ['promo_items', 'promo_speed'])
 
       const itemsRow = data?.find(r => r.clave === 'promo_items')
-      if (itemsRow?.valor) {
-        try { setItems(JSON.parse(itemsRow.valor)) } catch { setItems(DEFAULT_ITEMS) }
-      } else {
-        setItems(DEFAULT_ITEMS)
-      }
+      const textos: string[] = (() => {
+        if (!itemsRow?.valor) return DEFAULT_ITEMS
+        try {
+          const parsed = JSON.parse(itemsRow.valor)
+          return Array.isArray(parsed) ? parsed : DEFAULT_ITEMS
+        } catch { return DEFAULT_ITEMS }
+      })()
+      setItems(textos.map(text => ({ id: nuevoId(), text })))
 
       const speedRow = data?.find(r => r.clave === 'promo_speed')
       if (speedRow?.valor) {
@@ -52,7 +64,7 @@ export function PromoClient() {
   function addItem() {
     const text = inputValue.trim()
     if (!text) return
-    setItems(prev => [...prev, text])
+    setItems(prev => [...prev, { id: nuevoId(), text }])
     setInputValue('')
     inputRef.current?.focus()
   }
@@ -93,7 +105,7 @@ export function PromoClient() {
 
     await supabase
       .from('configuracion')
-      .upsert({ clave: 'promo_items', valor: JSON.stringify(items) }, { onConflict: 'clave' })
+      .upsert({ clave: 'promo_items', valor: JSON.stringify(items.map(i => i.text)) }, { onConflict: 'clave' })
 
     await supabase
       .from('configuracion')
@@ -163,7 +175,7 @@ export function PromoClient() {
             <div className="space-y-1.5">
               {items.map((item, idx) => (
                 <div
-                  key={`${item}-${idx}`}
+                  key={item.id}
                   draggable
                   onDragStart={() => handleDragStart(idx)}
                   onDragOver={e => handleDragOver(e, idx)}
@@ -173,7 +185,7 @@ export function PromoClient() {
                 >
                   <GripVertical size={14} className="opacity-30 group-hover:opacity-60 flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }} />
                   <span className="flex-1 text-sm min-w-0 truncate" style={{ color: 'var(--foreground)' }}>
-                    {item}
+                    {item.text}
                   </span>
                   <span className="text-xs font-mono opacity-50 flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }}>
                     {idx + 1}
