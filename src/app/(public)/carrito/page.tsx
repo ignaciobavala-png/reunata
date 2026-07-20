@@ -39,21 +39,34 @@ export default async function CarritoPage() {
   let cuitSinIva: string | undefined
   let bancoSinIva: string | undefined
 
+  let cbuConIva: string | undefined
+  let aliasConIva: string | undefined
+  let tipoCuentaConIva: 'CBU' | 'CVU' | 'deposito' = 'CBU'
+  let cuitConIva: string | undefined
+  let bancoConIva: string | undefined
+
   if (canalId) {
     const { data: canalRow } = await service
       .from('canales')
-      .select('cuentas_sin_iva(tipo, cbu, alias, cuit, banco, nombre)')
+      .select('cuentas_sin_iva(tipo, cbu, alias, cuit, banco, nombre), cuentas_con_iva(tipo, cbu, alias, cuit, banco, nombre)')
       .eq('id', canalId)
       .maybeSingle()
-    const cuenta = (canalRow as {
-      cuentas_sin_iva: { tipo: string; cbu: string; alias: string; cuit?: string; banco?: string; nombre: string } | null
-    } | null)?.cuentas_sin_iva
+    type CuentaRow = { tipo: string; cbu: string; alias: string; cuit?: string; banco?: string; nombre: string } | null
+    const cuenta = (canalRow as { cuentas_sin_iva: CuentaRow } | null)?.cuentas_sin_iva
     if (cuenta?.cbu) {
       tipoCuentaSinIva = (cuenta.tipo as 'CBU' | 'CVU' | 'deposito') || 'CBU'
       cbuSinIva = cuenta.cbu
       aliasSinIva = cuenta.alias || undefined
       cuitSinIva = cuenta.cuit || undefined
       bancoSinIva = cuenta.banco || undefined
+    }
+    const cuentaCon = (canalRow as { cuentas_con_iva: CuentaRow } | null)?.cuentas_con_iva
+    if (cuentaCon?.cbu) {
+      tipoCuentaConIva = (cuentaCon.tipo as 'CBU' | 'CVU' | 'deposito') || 'CBU'
+      cbuConIva = cuentaCon.cbu
+      aliasConIva = cuentaCon.alias || undefined
+      cuitConIva = cuentaCon.cuit || undefined
+      bancoConIva = cuentaCon.banco || undefined
     }
   }
 
@@ -68,6 +81,11 @@ export default async function CarritoPage() {
       tipoCuentaSinIva={tipoCuentaSinIva}
       cuitSinIva={cuitSinIva}
       bancoSinIva={bancoSinIva}
+      cbuConIva={cbuConIva}
+      aliasConIva={aliasConIva}
+      tipoCuentaConIva={tipoCuentaConIva}
+      cuitConIva={cuitConIva}
+      bancoConIva={bancoConIva}
     />
   )
 }

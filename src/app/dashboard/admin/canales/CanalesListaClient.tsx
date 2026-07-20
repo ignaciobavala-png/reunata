@@ -9,7 +9,7 @@ import { formatPrecio } from '@/lib/utils'
 import { tramosVolumen } from '@/lib/descuento-volumen'
 import { ordenarCanales } from '@/lib/canales-orden'
 
-type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null }
+type Canal = { id: number; slug: string; nombre: string; activo: boolean; categoria_comercial: 'minorista' | 'mayorista' | 'especial'; cuenta_sin_iva_id?: number | null; cuenta_con_iva_id?: number | null }
 type Config = Record<string, unknown>
 
 const COLORES_CANAL: Record<string, string> = {
@@ -161,10 +161,12 @@ export function CanalesListaClient({
   canales: canalesIniciales,
   configsIniciales,
   cuentasSinIva = [],
+  cuentasConIva = [],
 }: {
   canales: Canal[]
   configsIniciales: Record<number, Config>
   cuentasSinIva?: CuentaSinIva[]
+  cuentasConIva?: CuentaSinIva[]
 }) {
   const [canales, setCanales]         = useState<Canal[]>(canalesIniciales)
   const [configs, setConfigs]         = useState<Record<number, Config>>(configsIniciales)
@@ -173,9 +175,15 @@ export function CanalesListaClient({
 
   function handleSaved(canalId: number, payload: CanalConfigPayload) {
     setConfigs(prev => ({ ...prev, [canalId]: payload as unknown as Config }))
-    if (payload.cuenta_sin_iva_id !== undefined) {
+    if (payload.cuenta_sin_iva_id !== undefined || payload.cuenta_con_iva_id !== undefined) {
       setCanales(prev => prev.map(c =>
-        c.id === canalId ? { ...c, cuenta_sin_iva_id: payload.cuenta_sin_iva_id } : c
+        c.id === canalId
+          ? {
+              ...c,
+              ...(payload.cuenta_sin_iva_id !== undefined ? { cuenta_sin_iva_id: payload.cuenta_sin_iva_id } : {}),
+              ...(payload.cuenta_con_iva_id !== undefined ? { cuenta_con_iva_id: payload.cuenta_con_iva_id } : {}),
+            }
+          : c
       ))
     }
   }
@@ -349,6 +357,8 @@ export function CanalesListaClient({
           configInicial={configs[drawerCanal.id]}
           cuentasSinIva={cuentasSinIva}
           cuentaSinIvaActualId={drawerCanal.cuenta_sin_iva_id}
+          cuentasConIva={cuentasConIva}
+          cuentaConIvaActualId={drawerCanal.cuenta_con_iva_id}
           onClose={() => setDrawerCanal(null)}
           onSaved={handleSaved}
         />

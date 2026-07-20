@@ -111,6 +111,11 @@ interface Props {
   tipoCuentaSinIva?: 'CBU' | 'CVU' | 'deposito'
   cuitSinIva?: string
   bancoSinIva?: string
+  cbuConIva?: string
+  aliasConIva?: string
+  tipoCuentaConIva?: 'CBU' | 'CVU' | 'deposito'
+  cuitConIva?: string
+  bancoConIva?: string
 }
 
 function buildWhatsAppMsg(
@@ -194,7 +199,7 @@ function UploaderComprobante({
   )
 }
 
-export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva }: Props) {
+export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva, cbuConIva, aliasConIva, tipoCuentaConIva = 'CBU', cuitConIva, bancoConIva }: Props) {
   const { items, remove, updateCantidad, updatePrecios, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag, editingPedidoId, editingPedidoNumero } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -1190,6 +1195,23 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                               style={{ color: totalMayoristaConMetodo(k) < totalBtnConIva ? '#16a34a' : 'var(--foreground)' }}
                             >
                               {formatPrecio(totalMayoristaConMetodo(k))}
+                            </span>
+                          )}
+                          {/* Datos de la cuenta +IVA al elegir Transferencia (Factura A) */}
+                          {k === 'transferencia_blanco' && metodoPago === k && cbuConIva && (
+                            <span className="flex flex-col gap-0.5 mt-0.5 w-full min-w-0">
+                              {tipoCuentaConIva === 'deposito' ? (
+                                <>
+                                  {cuitConIva && <DatoCopiable label="CUIT" value={cuitConIva} />}
+                                  {bancoConIva && <DatoCopiable label="Banco" value={bancoConIva} />}
+                                  <DatoCopiable label="CTA/CTE" value={cbuConIva} />
+                                </>
+                              ) : (
+                                <>
+                                  {aliasConIva && <DatoCopiable label="Alias" value={aliasConIva} />}
+                                  <DatoCopiable label={tipoCuentaConIva} value={cbuConIva} />
+                                </>
+                              )}
                             </span>
                           )}
                         </label>

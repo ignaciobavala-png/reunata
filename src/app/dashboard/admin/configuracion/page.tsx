@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { CuentasSinIvaManager } from './CuentasSinIvaManager'
+import { CuentasBancariasManager } from './CuentasBancariasManager'
+import { crearCuentaSinIva, actualizarCuentaSinIva, eliminarCuentaSinIva } from '@/app/actions/cuentas-sin-iva'
+import { crearCuentaConIva, actualizarCuentaConIva, eliminarCuentaConIva } from '@/app/actions/cuentas-con-iva'
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -9,9 +11,10 @@ export default async function ConfiguracionPage({
   const { guardado, error: errorParam } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: config }, { data: cuentasSinIva }] = await Promise.all([
+  const [{ data: config }, { data: cuentasSinIva }, { data: cuentasConIva }] = await Promise.all([
     supabase.from('configuracion').select('clave, valor'),
     supabase.from('cuentas_sin_iva').select('id, nombre, tipo, cbu, alias, cuit, banco').order('id'),
+    supabase.from('cuentas_con_iva').select('id, nombre, tipo, cbu, alias, cuit, banco').order('id'),
   ])
 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
@@ -210,9 +213,31 @@ export default async function ConfiguracionPage({
           Cuentas sin IVA
         </h2>
         <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-          CBUs para transferencias sin IVA. Podés tener varias y asignar una distinta a cada canal mayorista desde la configuración de Canales.
+          CBUs para transferencias sin IVA (Transferencia Directa). Podés tener varias y asignar una distinta a cada canal mayorista desde la configuración de Canales.
         </p>
-        <CuentasSinIvaManager inicial={cuentasSinIva ?? []} />
+        <CuentasBancariasManager
+          inicial={cuentasSinIva ?? []}
+          acciones={{ crear: crearCuentaSinIva, actualizar: actualizarCuentaSinIva, eliminar: eliminarCuentaSinIva }}
+          textoVacio="No hay cuentas configuradas. Agregá al menos una para que los mayoristas puedan pagar sin IVA."
+        />
+      </section>
+
+      {/* Cuentas +IVA — CRUD para transferencias con Factura A */}
+      <section
+        className="rounded-xl border p-6 mt-6"
+        style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+      >
+        <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+          Cuentas +IVA
+        </h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+          CBUs para transferencias con IVA (Transferencia Factura A). Podés tener varias y asignar una distinta a cada canal mayorista desde la configuración de Canales.
+        </p>
+        <CuentasBancariasManager
+          inicial={cuentasConIva ?? []}
+          acciones={{ crear: crearCuentaConIva, actualizar: actualizarCuentaConIva, eliminar: eliminarCuentaConIva }}
+          textoVacio="No hay cuentas configuradas. Agregá al menos una para las transferencias con Factura A."
+        />
       </section>
 
     </div>

@@ -7,6 +7,7 @@ import { validarTramosVolumen } from '@/lib/descuento-volumen'
 export type CanalConfigPayload = {
   canal_id: number
   cuenta_sin_iva_id?: number | null
+  cuenta_con_iva_id?: number | null
   pagos_habilitados: Record<string, { activo: boolean }>
   cuotas_mp_sin_interes: number
   desc_transferencia_pct: number
@@ -51,8 +52,13 @@ export async function guardarCanalConfig(payload: CanalConfigPayload) {
 
   const supabase = createServiceClient()
 
-  // Separar cuenta_sin_iva_id — va en canales, no en canales_config
-  const { cuenta_sin_iva_id, ...configPayload } = payload
+  // Separar las cuentas — van en canales, no en canales_config
+  const { cuenta_sin_iva_id, cuenta_con_iva_id, ...configPayload } = payload
+
+  // Solo actualizar canales si vino alguna de las cuentas en el payload
+  const canalUpdate: Record<string, number | null> = {}
+  if (cuenta_sin_iva_id !== undefined) canalUpdate.cuenta_sin_iva_id = cuenta_sin_iva_id ?? null
+  if (cuenta_con_iva_id !== undefined) canalUpdate.cuenta_con_iva_id = cuenta_con_iva_id ?? null
 
   const [configResult, canalResult] = await Promise.all([
     supabase
@@ -61,10 +67,10 @@ export async function guardarCanalConfig(payload: CanalConfigPayload) {
         { ...configPayload, actualizado_en: new Date().toISOString() },
         { onConflict: 'canal_id' }
       ),
-    cuenta_sin_iva_id !== undefined
+    Object.keys(canalUpdate).length > 0
       ? supabase
           .from('canales')
-          .update({ cuenta_sin_iva_id: cuenta_sin_iva_id ?? null })
+          .update(canalUpdate)
           .eq('id', payload.canal_id)
       : Promise.resolve({ error: null }),
   ])
