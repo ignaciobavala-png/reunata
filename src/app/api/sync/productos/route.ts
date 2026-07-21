@@ -233,37 +233,25 @@ async function syncProductos(desactivarNoReunata = false) {
       }
     }
 
-    // Sincronizar categorias_home con las categorías de Gesu
+    // categorias_home es una lista fija curada a mano (Gastón define qué categorías
+    // se muestran). El sync NO crea ni desactiva categorías automáticamente: eso fue
+    // lo que generó duplicados en cada corrida cuando Gesu mandaba una variante de
+    // nombre (mayúscula/tilde/espacio) que no matcheaba el string guardado.
+    // Acá solo se parchea el href si falta y se loguean categorías de Gesu que no
+    // están mapeadas a ninguna fila activa, para agregarlas a mano si corresponde.
     const categoriasGesu = [...new Set(soloReunata.map(item => item.categoria).filter(Boolean))] as string[]
     const { data: filasExistentes } = await supabase.from('categorias_home').select('id, nombre, href, categoria_keys, activo')
-    // Solo contar keys de categorías activas — las inactivas liberan sus keys
-    const keysAsignadas = new Set(
-      (filasExistentes ?? []).filter(f => f.activo).flatMap(f => (f.categoria_keys ?? []) as string[])
-    )
 
-    // Crear nuevas categorías con activo: true (Gesu es la fuente de verdad)
-    for (const cat of categoriasGesu.filter(cat => !keysAsignadas.has(cat))) {
-      await supabase.from('categorias_home').insert({
-        nombre: cat,
-        href: `/tienda/${slugify(cat)}`,
-        categoria_keys: [cat],
-        activo: true,
-        orden: 999,
-      })
-    }
-
-    // Parchear filas existentes sin href
     for (const fila of (filasExistentes ?? []).filter(f => !f.href)) {
       await supabase.from('categorias_home').update({ href: `/tienda/${slugify(fila.nombre)}` }).eq('id', fila.id)
     }
 
-    // Auto-desactivar categorías cuyas categoria_keys ya no tienen productos activos en Gesu
-    for (const fila of (filasExistentes ?? []).filter(f => f.activo)) {
-      const keys = (fila.categoria_keys ?? []) as string[]
-      const tieneProductos = keys.some(k => categoriasGesu.includes(k))
-      if (!tieneProductos) {
-        await supabase.from('categorias_home').update({ activo: false }).eq('id', fila.id)
-      }
+    const keysAsignadas = new Set(
+      (filasExistentes ?? []).filter(f => f.activo).flatMap(f => (f.categoria_keys ?? []) as string[])
+    )
+    const categoriasSinMapear = categoriasGesu.filter(cat => !keysAsignadas.has(cat))
+    if (categoriasSinMapear.length > 0) {
+      console.warn('[sync/productos] Categorías de Gesu sin mapear en categorias_home:', categoriasSinMapear)
     }
 
   } catch (e) {
