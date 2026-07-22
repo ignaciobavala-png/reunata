@@ -137,6 +137,12 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
               const esRecargo = ajusteReal > 0
               const hasExtras = ajusteReal !== 0 || costoEnvio > 0
               if (!hasExtras) return null
+              const pctTotal = subtotalItems > 0
+                ? (Math.abs(ajusteReal) / subtotalItems * 100).toFixed(2).replace('.', ',')
+                : null
+              const etiquetaAjuste = descNota
+                ? `${esRecargo ? 'Recargo' : 'Descuento'} total (${descNota})${pctTotal ? `: ${esRecargo ? '+' : '-'}${pctTotal}%` : ''}`
+                : (esRecargo ? 'Recargo' : 'Descuento')
               return (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -150,7 +156,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                   {ajusteReal !== 0 && (
                     <tr style={{ background: 'var(--color-acero-brillo)' }}>
                       <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#16a34a' }}>
-                        {descNota ?? (esRecargo ? 'Recargo' : 'Descuento')}
+                        {etiquetaAjuste}
                       </td>
                       <td className="px-4 py-2 text-right text-sm font-medium" style={{ color: esRecargo ? '#dc2626' : '#16a34a' }}>
                         {esRecargo ? '+' : '-'}{formatPrecio(Math.abs(ajusteReal))}

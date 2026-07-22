@@ -218,6 +218,12 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
               const descNota = (pedido as any).descuento_nota as string | null
               const hasExtras = ajusteReal !== 0 || costoEnvio > 0
               const esRecargo = ajusteReal > 0
+              const pctTotal = subtotalItems > 0
+                ? (Math.abs(ajusteReal) / subtotalItems * 100).toFixed(2).replace('.', ',')
+                : null
+              const etiquetaAjuste = descNota
+                ? `${esRecargo ? 'Recargo' : 'Descuento'} total (${descNota})${pctTotal ? `: ${esRecargo ? '+' : '-'}${pctTotal}%` : ''}`
+                : (esRecargo ? 'Recargo' : 'Descuento')
               return hasExtras ? (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -231,7 +237,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                   {ajusteReal !== 0 && (
                     <tr style={{ background: 'var(--color-acero-brillo)' }}>
                       <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
-                        {descNota ?? (esRecargo ? 'Recargo' : 'Descuento')}
+                        {etiquetaAjuste}
                       </td>
                       <td className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
                         {esRecargo ? '+' : '-'}{formatPrecio(Math.abs(ajusteReal))}

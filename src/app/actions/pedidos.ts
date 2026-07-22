@@ -244,13 +244,13 @@ export async function crearPedidoBorrador(
   const totalFinal = totalMercaderia + (envioResuelto?.costo ?? 0)
 
   const notaPartes: string[] = []
-  if (pctAutogestion > 0) notaPartes.push(`${pctAutogestion}% autogestión — ${esPrimeraCompra ? 'primera compra' : 'compra recurrente'}`)
-  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`${tramoVol.pct}% desc. por volumen de compra`)
+  if (pctAutogestion > 0) notaPartes.push(`Desc. Web ${pctAutogestion}%`)
+  if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`Desc. Vol ${tramoVol.pct}%`)
   if (ajusteMetodoPago !== 0) {
-    notaPartes.push(`${ajusteMetodoPago < 0 ? `${pctMetodoPago}% desc.` : `${pctMetodoPago}% recargo`} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal}`)
+    notaPartes.push(`${ajusteMetodoPago < 0 ? 'Desc.' : 'Recargo'} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal} ${pctMetodoPago}%`)
   }
   const descuento_sugerido = pctAutogestion > 0 ? pctAutogestion : null
-  const descuento_nota = notaPartes.length > 0 ? notaPartes.join(' + ') : null
+  const descuento_nota = notaPartes.length > 0 ? notaPartes.join(', ') : null
 
   // Mapear transferencia_negro → transferencia_cueva para el DB (el canal config usa transferencia_negro como clave UI)
   const medioPagoDb = opciones?.medioPago === 'transferencia_negro'

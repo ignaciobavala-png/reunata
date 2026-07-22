@@ -998,13 +998,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     forma de pago se ven en el precio de cada opción, no acá */}
                 {ajusteAutogestion !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. web ({descAutogestPct}%)</span>
+                    <span>Desc. Web ({descAutogestPct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
                   </div>
                 )}
                 {ajusteVolumenCanal !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. por vol({descVolCanalPct}%)</span>
+                    <span>Desc. Volumen ({descVolCanalPct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
                   </div>
                 )}
