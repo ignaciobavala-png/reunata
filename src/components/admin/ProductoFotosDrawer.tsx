@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Upload, X, ImageIcon, Loader2, CheckCircle, Star, ChevronLeft } from 'lucide-react'
 import Image from 'next/image'
 
@@ -29,12 +28,6 @@ interface Props {
 }
 
 export function ProductoFotosDrawer({ producto, fotosIniciales, supabaseUrl, isMaster, onClose, onFotosChange }: Props) {
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  function getSupabase() {
-    if (!supabaseRef.current) supabaseRef.current = createClient()
-    return supabaseRef.current
-  }
-
   const [fotos, setFotos] = useState<FotoItem[]>(fotosIniciales)
   const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl: string }[]>([])
   const [subiendo, setSubiendo] = useState(false)
@@ -92,26 +85,23 @@ export function ProductoFotosDrawer({ producto, fotosIniciales, supabaseUrl, isM
   async function confirmarSubida() {
     if (subiendo || pendingFiles.length === 0) return
     setSubiendo(true)
-    const supabase = getSupabase()
     const nuevasFotos: FotoItem[] = []
+    let fallidas = 0
 
     for (const { file } of pendingFiles) {
       let blob: Blob
-      try { blob = await optimizarImagen(file) } catch { continue }
+      try { blob = await optimizarImagen(file) } catch { fallidas++; continue }
 
-      const path = `productos/${producto.codigo_interno}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.webp`
-      const { error: uploadError } = await supabase.storage
-        .from('multimedia')
-        .upload(path, blob, { contentType: 'image/webp', upsert: false })
-      if (uploadError) { console.error(uploadError); continue }
+      const fd = new FormData()
+      fd.append('file', blob, 'foto.webp')
+      fd.append('producto_id', String(producto.id))
+      fd.append('codigo_interno', producto.codigo_interno)
+      fd.append('orden', String(fotosOrdenadas.length + nuevasFotos.length))
 
-      const orden = fotosOrdenadas.length + nuevasFotos.length
-      const { data: fotoData } = await supabase
-        .from('producto_fotos')
-        .insert({ producto_id: producto.id, url: path, orden })
-        .select()
-        .single()
-      if (fotoData) nuevasFotos.push(fotoData)
+      const res = await fetch('/api/multimedia', { method: 'POST', body: fd })
+      if (!res.ok) { fallidas++; continue }
+      const { foto } = await res.json()
+      if (foto) nuevasFotos.push(foto)
     }
 
     pendingFiles.forEach(f => URL.revokeObjectURL(f.previewUrl))
@@ -120,13 +110,18 @@ export function ProductoFotosDrawer({ producto, fotosIniciales, supabaseUrl, isM
     setFotos(actualizadas)
     onFotosChange?.(producto.id, actualizadas)
     setSubiendo(false)
-    mostrarToast(`${nuevasFotos.length} foto${nuevasFotos.length !== 1 ? 's' : ''} subida${nuevasFotos.length !== 1 ? 's' : ''} correctamente`)
+    if (nuevasFotos.length > 0) {
+      mostrarToast(`${nuevasFotos.length} foto${nuevasFotos.length !== 1 ? 's' : ''} subida${nuevasFotos.length !== 1 ? 's' : ''} correctamente`)
+    }
+    if (fallidas > 0) {
+      mostrarToast(`${fallidas} foto${fallidas !== 1 ? 's' : ''} no se ${fallidas !== 1 ? 'pudieron' : 'pudo'} subir. Intentá de nuevo.`)
+    }
   }
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files)
-  }, []) // eslint-disable-line
+  }, [])
 
   async function toggleDestacada(foto: FotoItem) {
     const nuevoValor = !foto.destacada

@@ -15,6 +15,38 @@ async function verificarMaster(): Promise<boolean> {
   return profile?.rol === 'master'
 }
 
+// Subir una foto de producto (webp ya optimizada en el cliente)
+export async function POST(request: Request) {
+  if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const form = await request.formData()
+  const file = form.get('file') as File | null
+  const productoId = Number(form.get('producto_id'))
+  const codigo = (form.get('codigo_interno') as string | null)?.trim()
+  const orden = Number(form.get('orden'))
+
+  if (!file || !productoId || !codigo) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+
+  const path = `productos/${codigo}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.webp`
+
+  const { error: uploadError } = await admin.storage
+    .from('multimedia')
+    .upload(path, file, { contentType: 'image/webp', upsert: false })
+  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+
+  const { data: foto, error: dbError } = await admin
+    .from('producto_fotos')
+    .insert({ producto_id: productoId, url: path, orden: Number.isFinite(orden) ? orden : 0 })
+    .select()
+    .single()
+  if (dbError) {
+    await admin.storage.from('multimedia').remove([path])
+    return NextResponse.json({ error: dbError.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ foto })
+}
+
 export async function DELETE(request: Request) {
   if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
