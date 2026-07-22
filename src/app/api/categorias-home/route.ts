@@ -27,7 +27,8 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   if (!(await verificarMaster())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { id } = await request.json()
+  const { id, foto_url } = await request.json()
+  if (foto_url) await admin.storage.from('multimedia').remove([foto_url])
   await admin.from('categorias_home').delete().eq('id', id)
 
   return NextResponse.json({ ok: true })

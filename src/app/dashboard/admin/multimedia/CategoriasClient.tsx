@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react'
 import { Plus, Check, X, ToggleLeft, ToggleRight, ImagePlus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import { supabaseImg } from '@/lib/images'
 
@@ -87,12 +86,6 @@ export function CategoriasClient({
   isMaster: boolean
   gesuCategorias: string[]
 }) {
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  function getSupabase() {
-    if (!supabaseRef.current) supabaseRef.current = createClient()
-    return supabaseRef.current
-  }
-
   const [categorias, setCategorias] = useState<CategoriaHome[]>(categoriasIniciales)
   const [editando, setEditando] = useState<number | null>(null)
   const [form, setForm] = useState<Partial<CategoriaHome>>({})
@@ -167,25 +160,22 @@ export function CategoriasClient({
   async function subirFoto(cat: CategoriaHome, file: File) {
     setUploadingId(cat.id)
     setUploadError(null)
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const path = `categorias/${cat.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-    const { error } = await getSupabase().storage.from('multimedia').upload(path, file, { upsert: true })
-    if (error) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('id', String(cat.id))
+    if (cat.foto_url) fd.append('oldPath', cat.foto_url)
+
+    const res = await fetch('/api/categorias-home/foto', { method: 'POST', body: fd })
+    if (!res.ok) {
       setUploadError('Error al subir la imagen. Intentá de nuevo.')
       setUploadingId(null)
       return
     }
+    const { foto_url } = await res.json()
 
-    if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
-
-    await fetch('/api/categorias-home', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id: cat.id, foto_url: path }),
-    })
-    setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url: path } : c))
-    setForm(f => ({ ...f, foto_url: path }))
+    setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url } : c))
+    setForm(f => ({ ...f, foto_url }))
     setUploadingId(null)
   }
 
@@ -194,24 +184,23 @@ export function CategoriasClient({
       ? `"${cat.nombre}" está ACTIVA y se muestra en la tienda. ¿Eliminarla igual? Esta acción no se puede deshacer.`
       : `¿Eliminar "${cat.nombre}"? Esta acción no se puede deshacer.`
     if (!confirm(aviso)) return
-    if (cat.foto_url) await getSupabase().storage.from('multimedia').remove([cat.foto_url])
     await fetch('/api/categorias-home', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id: cat.id }),
+      body: JSON.stringify({ id: cat.id, foto_url: cat.foto_url }),
     })
     setCategorias(prev => prev.filter(c => c.id !== cat.id))
   }
 
   async function quitarFoto(cat: CategoriaHome) {
     if (!cat.foto_url) return
-    await getSupabase().storage.from('multimedia').remove([cat.foto_url])
-    await fetch('/api/categorias-home', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id: cat.id, foto_url: null }),
+    await fetch('/api/categorias-home/foto', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: cat.id, path: cat.foto_url }),
     })
     setCategorias(prev => prev.map(c => c.id === cat.id ? { ...c, foto_url: null } : c))
+    setForm(f => ({ ...f, foto_url: null }))
   }
 
   return (
