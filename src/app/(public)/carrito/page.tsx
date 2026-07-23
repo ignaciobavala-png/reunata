@@ -35,6 +35,17 @@ export default async function CarritoPage() {
     }
   }
 
+  // Invitado (sin sesión): usa la cuenta configurada en el canal consumidor_final,
+  // igual que un minorista logueado usa la de su propio canal.
+  if (!canalId) {
+    const { data: canalCF } = await service
+      .from('canales')
+      .select('id')
+      .eq('slug', 'consumidor_final')
+      .maybeSingle()
+    canalId = canalCF?.id ?? null
+  }
+
   let cbuSinIva: string | undefined
   let aliasSinIva: string | undefined
   let tipoCuentaSinIva: 'CBU' | 'CVU' | 'deposito' = 'CBU'

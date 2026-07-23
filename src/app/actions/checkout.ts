@@ -397,6 +397,10 @@ export async function iniciarCheckoutTransferencia(
       return { ok: false, error: 'Este método de pago es solo para minoristas.' }
     }
 
+    if (!comprobantePath) {
+      return { ok: false, error: 'Adjuntá el comprobante de la transferencia para continuar.' }
+    }
+
     // WhatsApp obligatorio (mismo criterio que MP): sin él no podríamos avisar por stock.
     const telefonoActual = (perfil?.telefono as string | null) ?? null
     const telefonoFinal = telefono?.trim() || telefonoActual

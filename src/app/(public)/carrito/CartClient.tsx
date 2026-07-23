@@ -39,18 +39,20 @@ function DatoCopiable({ label, value }: { label: string; value: string }) {
     setTimeout(() => setCopiado(false), 1500)
   }
   return (
-    <span className="flex items-center gap-1.5 w-full min-w-0 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-      <span className="flex-shrink-0">{label}:</span>
-      <span className="font-mono break-all min-w-0" style={{ color: 'var(--foreground)' }}>{value}</span>
-      <button
-        type="button"
-        onClick={copiar}
-        aria-label={`Copiar ${label}`}
-        className="p-1 rounded flex-shrink-0 transition-colors duration-150"
-        style={{ color: copiado ? '#10b981' : 'var(--color-acero)' }}
-      >
-        {copiado ? <Check size={12} /> : <Copy size={12} />}
-      </button>
+    <span className="flex flex-col w-full min-w-0 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+      <span className="flex items-center gap-1.5">
+        <span className="flex-shrink-0">{label}:</span>
+        <button
+          type="button"
+          onClick={copiar}
+          aria-label={`Copiar ${label}`}
+          className="ml-auto p-1 rounded flex-shrink-0 transition-colors duration-150"
+          style={{ color: copiado ? '#10b981' : 'var(--color-acero)' }}
+        >
+          {copiado ? <Check size={12} /> : <Copy size={12} />}
+        </button>
+      </span>
+      <span className="font-mono break-all w-full" style={{ color: 'var(--foreground)' }}>{value}</span>
     </span>
   )
 }
@@ -176,7 +178,7 @@ function UploaderComprobante({
     <div className="rounded-lg border px-3 py-2.5 flex flex-col gap-1.5"
       style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
       <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
-        Adjuntar comprobante <span className="font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>(opcional, agiliza la confirmación)</span>
+        Adjuntar comprobante <span className="font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>(obligatorio)</span>
       </p>
       <button
         type="button"
@@ -449,6 +451,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   async function handlePagarTransferencia() {
     if (!items.length || pagando) return
+    if (!comprobantePath) { setErrorPago('Adjuntá el comprobante de la transferencia.'); return }
     setPagando(true)
     setErrorPago(null)
 
@@ -464,7 +467,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             piso: envioSeleccionado.piso,
           }
         : undefined,
-      comprobantePath ?? undefined,
+      comprobantePath,
       telefonoMinorista.trim() || undefined,
     )
 
@@ -1173,12 +1176,39 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </button>
               )}
 
-              {/* Botón Transferencia — sin adjuntar comprobante acá: se sube después, desde el detalle del pedido */}
+              {/* Botón Transferencia — mismos datos de cuenta y comprobante obligatorio que
+                  "Transferencia Directa" (mayorista): el tester reportó que no se veía a dónde transferir */}
               {metodoPagoMinorista === 'transferencia' && (
                 <>
+                  {cbuSinIva && (
+                    <div className="rounded-lg border px-3 py-2.5 flex flex-col gap-0.5" style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                      <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Datos para transferir</p>
+                      {tipoCuentaSinIva === 'deposito' ? (
+                        <>
+                          {cuitSinIva && <DatoCopiable label="CUIT" value={cuitSinIva} />}
+                          {bancoSinIva && <DatoCopiable label="Banco" value={bancoSinIva} />}
+                          <DatoCopiable label="CTA/CTE" value={cbuSinIva} />
+                        </>
+                      ) : (
+                        <>
+                          {aliasSinIva && <DatoCopiable label="Alias" value={aliasSinIva} />}
+                          <DatoCopiable label={tipoCuentaSinIva} value={cbuSinIva} />
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <UploaderComprobante
+                    path={comprobantePath}
+                    uploading={uploadingComp}
+                    error={compError}
+                    onFile={handleUploadComprobante}
+                    onClear={() => { setComprobantePath(null); setCompError(null) }}
+                  />
+
                   <button
                     onClick={handlePagarTransferencia}
-                    disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente || !telefonoMinoristaValido}
+                    disabled={pagando || hayProblemaStock || refreshingPrecios || !envioSeleccionado || minimoInsuficiente || !telefonoMinoristaValido || !comprobantePath}
                     className="w-full py-3 rounded-lg text-base font-medium flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                     style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
                   >
@@ -1187,7 +1217,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     ) : refreshingPrecios ? (
                       <><Loader2 size={15} className="animate-spin" /> Verificando precios…</>
                     ) : (
-                      'Confirmar y pagar por transferencia'
+                      'Confirmar y enviar comprobante'
                     )}
                   </button>
                 </>
@@ -1528,6 +1558,23 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Transferencia: el invitado debe adjuntar el comprobante acá mismo
                   (no tiene una cuenta a la que volver para subirlo después) */}
+              {metodoPagoMinorista === 'transferencia' && cbuSinIva && (
+                <div className="rounded-lg border px-3 py-2.5 flex flex-col gap-0.5" style={{ borderColor: 'var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
+                  <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>Datos para transferir</p>
+                  {tipoCuentaSinIva === 'deposito' ? (
+                    <>
+                      {cuitSinIva && <DatoCopiable label="CUIT" value={cuitSinIva} />}
+                      {bancoSinIva && <DatoCopiable label="Banco" value={bancoSinIva} />}
+                      <DatoCopiable label="CTA/CTE" value={cbuSinIva} />
+                    </>
+                  ) : (
+                    <>
+                      {aliasSinIva && <DatoCopiable label="Alias" value={aliasSinIva} />}
+                      <DatoCopiable label={tipoCuentaSinIva} value={cbuSinIva} />
+                    </>
+                  )}
+                </div>
+              )}
               {metodoPagoMinorista === 'transferencia' && (
                 <UploaderComprobante
                   path={comprobantePath}
