@@ -8,6 +8,7 @@ import { EstadoActions } from './EstadoActions'
 import { PrintButton } from './PrintButton'
 import { GenerarEnvioButton } from './GenerarEnvioButton'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
+import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 
 export default async function AdminDetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -217,13 +218,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
               const ajusteReal = Math.round(Number(pedido.total_usd) - costoEnvio - subtotalItems)
               const descNota = (pedido as any).descuento_nota as string | null
               const hasExtras = ajusteReal !== 0 || costoEnvio > 0
-              const esRecargo = ajusteReal > 0
-              const pctTotal = subtotalItems > 0
-                ? (Math.abs(ajusteReal) / subtotalItems * 100).toFixed(2).replace('.', ',')
-                : null
-              const etiquetaAjuste = descNota
-                ? `${esRecargo ? 'Recargo' : 'Descuento'} total (${descNota})${pctTotal ? `: ${esRecargo ? '+' : '-'}${pctTotal}%` : ''}`
-                : (esRecargo ? 'Recargo' : 'Descuento')
+              const lineasAjuste = desglosarAjustePedido(subtotalItems, descNota, ajusteReal)
               return hasExtras ? (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -234,16 +229,16 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                       {formatPrecio(subtotalItems)}
                     </td>
                   </tr>
-                  {ajusteReal !== 0 && (
-                    <tr style={{ background: 'var(--color-acero-brillo)' }}>
-                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
-                        {etiquetaAjuste}
+                  {lineasAjuste.map((linea, idx) => (
+                    <tr key={idx} style={{ background: 'var(--color-acero-brillo)' }}>
+                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: linea.monto > 0 ? '#dc2626' : '#10b981' }}>
+                        {linea.label}
                       </td>
-                      <td className="px-4 py-2 text-right text-sm" style={{ color: esRecargo ? '#dc2626' : '#10b981' }}>
-                        {esRecargo ? '+' : '-'}{formatPrecio(Math.abs(ajusteReal))}
+                      <td className="px-4 py-2 text-right text-sm" style={{ color: linea.monto > 0 ? '#dc2626' : '#10b981' }}>
+                        {linea.monto > 0 ? '+' : '-'}{formatPrecio(Math.abs(linea.monto))}
                       </td>
                     </tr>
-                  )}
+                  ))}
                   {costoEnvio > 0 && (
                     <tr style={{ background: 'var(--color-acero-brillo)' }}>
                       <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
