@@ -1493,6 +1493,25 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
             <>
+              {/* WhatsApp de contacto — mismo módulo que ve el minorista logueado,
+                  pedido por el tester para que también salga sin loguearse */}
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  WhatsApp de contacto *
+                </label>
+                <input
+                  type="tel"
+                  value={guestTelefono}
+                  onChange={e => { setGuestTelefono(e.target.value); setGuestErrors(null) }}
+                  placeholder="+54 9 11 1234-5678"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Te avisamos por acá si hay algún tema con el stock de tu pedido.
+                </p>
+              </div>
+
               {!envioSeleccionado && !envioGratisPorMonto && (
                 <p className="text-xs text-center" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Calculá el envío para continuar.
@@ -1685,17 +1704,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 className={inputClass}
                 style={inputStyle}
               />
-              <input
-                type="tel"
-                placeholder="WhatsApp *"
-                value={guestTelefono}
-                onChange={e => { setGuestTelefono(e.target.value); setGuestErrors(null) }}
-                className={inputClass}
-                style={inputStyle}
-              />
-              <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Te avisamos por WhatsApp si hay algún tema con el stock de tu pedido.
-              </p>
             </div>
 
             {guestErrors && (
