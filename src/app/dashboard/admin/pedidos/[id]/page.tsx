@@ -229,16 +229,19 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                       {formatPrecio(subtotalItems)}
                     </td>
                   </tr>
-                  {lineasAjuste.map((linea, idx) => (
-                    <tr key={idx} style={{ background: 'var(--color-acero-brillo)' }}>
-                      <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: linea.monto > 0 ? '#dc2626' : '#10b981' }}>
-                        {linea.label}
-                      </td>
-                      <td className="px-4 py-2 text-right text-sm" style={{ color: linea.monto > 0 ? '#dc2626' : '#10b981' }}>
-                        {linea.monto > 0 ? '+' : '-'}{formatPrecio(Math.abs(linea.monto))}
-                      </td>
-                    </tr>
-                  ))}
+                  {lineasAjuste.map((linea, idx) => {
+                    const color = linea.esIva ? 'var(--color-acero-oscuro)' : '#10b981'
+                    return (
+                      <tr key={idx} style={{ background: 'var(--color-acero-brillo)' }}>
+                        <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color }}>
+                          {linea.label}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm" style={{ color }}>
+                          {linea.monto > 0 ? '+' : '-'}{formatPrecio(Math.abs(linea.monto))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                   {costoEnvio > 0 && (
                     <tr style={{ background: 'var(--color-acero-brillo)' }}>
                       <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
