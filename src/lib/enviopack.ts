@@ -123,7 +123,7 @@ export async function crearEnvioEnviopack(pedidoId: string): Promise<{
     .from('pedidos')
     .select(`
       id, numero, total_usd, estado, enviopack_envio_id,
-      envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia, envio_localidad, envio_servicio,
+      envio_calle, envio_numero, envio_piso, envio_referencia, envio_codigo_postal, envio_provincia, envio_localidad, envio_servicio,
       guest_nombre, guest_email,
       cliente:cliente_id ( nombre, email ),
       pedido_items ( cantidad, producto_id )
@@ -190,6 +190,8 @@ export async function crearEnvioEnviopack(pedidoId: string): Promise<{
       provincia: pedido.envio_provincia,
     }
     if (pedido.envio_piso) envioBody.piso = pedido.envio_piso
+    // Entre calles / horario que cargó el cliente — le sirve al transportista para ubicar.
+    if (pedido.envio_referencia) envioBody.observaciones = pedido.envio_referencia
     if (pedido.envio_localidad) envioBody.localidad = pedido.envio_localidad
     // Al confirmar hace falta el servicio elegido (correo se resuelve en Enviopack/panel)
     if (confirmar && pedido.envio_servicio) envioBody.servicio = pedido.envio_servicio

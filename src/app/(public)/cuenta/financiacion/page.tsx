@@ -8,10 +8,22 @@ export const metadata: Metadata = { title: 'Financiación', robots: { index: fal
 
 const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
-export default async function FinanciacionPage() {
+export default async function FinanciacionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nueva?: string; from?: string }>
+}) {
+  const { nueva, from } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?next=/cuenta/financiacion')
+  // El next conserva ?nueva/?from para no perder el formulario abierto tras loguearse.
+  if (!user) {
+    const qs = new URLSearchParams()
+    if (nueva) qs.set('nueva', nueva)
+    if (from) qs.set('from', from)
+    const next = `/cuenta/financiacion${qs.size ? `?${qs}` : ''}`
+    redirect(`/login?next=${encodeURIComponent(next)}`)
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -38,7 +50,11 @@ export default async function FinanciacionPage() {
 
       <CuentaNav esMayorista />
 
-      <FinanciacionClient solicitudes={solicitudes ?? []} />
+      <FinanciacionClient
+        solicitudes={solicitudes ?? []}
+        abrirFormulario={nueva === '1'}
+        volverAlCarrito={from === 'carrito'}
+      />
     </main>
   )
 }

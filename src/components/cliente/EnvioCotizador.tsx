@@ -41,6 +41,7 @@ export interface EnvioSeleccionado {
   calle: string
   numero: string
   piso?: string
+  referencia?: string
 }
 
 interface Props {
@@ -65,6 +66,7 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
   const [calle, setCalle]   = useState('')
   const [numero, setNumero] = useState('')
   const [piso, setPiso]     = useState('')
+  const [referencia, setReferencia] = useState('')
   const [dirError, setDirError] = useState<string | null>(null)
 
   async function calcular() {
@@ -77,6 +79,7 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
     setCalle('')
     setNumero('')
     setPiso('')
+    setReferencia('')
     setDirError(null)
 
     try {
@@ -125,6 +128,7 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
       calle: calle.trim(),
       numero: numero.trim(),
       piso: piso.trim() || undefined,
+      referencia: referencia.trim() || undefined,
     })
     setAbierto(false)
   }
@@ -281,6 +285,16 @@ export function EnvioCotizador({ items, onSelect, seleccionada, defaultOpen = fa
                   style={inputStyle}
                 />
               </div>
+              {/* Referencia opcional — el placeholder gris alcanza como ayuda, sin
+                  sumarle un label más al panel (pedido del tester 2026-07-22). */}
+              <input
+                type="text"
+                placeholder="Referencia: entre calles, horario (opcional)"
+                value={referencia}
+                onChange={e => setReferencia(e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              />
               {dirError && (
                 <p className="text-xs" style={{ color: '#ef4444' }}>{dirError}</p>
               )}

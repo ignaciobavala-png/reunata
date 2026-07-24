@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect } from 'react'
-import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react'
 import { crearSolicitudCredito, cancelarSolicitudCredito } from '@/app/actions/financiacion'
 import { formatPrecio } from '@/lib/utils'
 
@@ -50,9 +50,31 @@ function soloNumeros(raw: string): string {
   return raw.replace(/\D/g, '')
 }
 
-export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Solicitud[] }) {
+// El monto se guarda como dígitos planos (lo que espera el server action) y se muestra
+// con separador de miles y "$" — pedido del tester: sin formato no se leen los ceros.
+// El input pasó de type="number" a texto con máscara, así que hay que sanear: un borrador
+// guardado con el input viejo puede traer decimales o basura y no debe pintar "$ NaN".
+function formatMonto(valor: string): string {
+  const digitos = valor.replace(/\D/g, '')
+  if (!digitos) return ''
+  return `$ ${Number(digitos).toLocaleString('es-AR')}`
+}
+
+export function FinanciacionClient({
+  solicitudes: inicial,
+  abrirFormulario = false,
+  volverAlCarrito = false,
+}: {
+  solicitudes: Solicitud[]
+  abrirFormulario?: boolean
+  volverAlCarrito?: boolean
+}) {
   const [solicitudes, setSolicitudes] = useState(inicial)
-  const [mostrarForm, setMostrarForm] = useState(false)
+  // Con ?nueva=1 (link del carrito) el formulario aparece ya desplegado, salvo que el
+  // usuario tenga una solicitud pendiente — en ese caso no puede enviar otra.
+  const [mostrarForm, setMostrarForm] = useState(
+    abrirFormulario && !inicial.some(s => s.estado === 'pendiente')
+  )
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState(false)
@@ -108,7 +130,7 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
     e.preventDefault()
     setError(null)
     const fd = new FormData()
-    fd.set('monto', draft.monto)
+    fd.set('monto', draft.monto.replace(/\D/g, ''))
     fd.set('garantias', draft.garantias)
     fd.set('notas', draft.notas)
     draft.refs.forEach((ref, i) => {
@@ -181,41 +203,17 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
             Nueva solicitud
           </h2>
 
+          {/* Orden pedido por el tester (2026-07-22):
+              Monto → Referencias comerciales → Garantías → Información adicional. */}
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Monto solicitado ($) <span style={{ color: '#ef4444' }}>*</span>
+              Monto solicitado <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
-              type="number" min="1" step="1000" required
-              placeholder="Ej: 500000"
-              value={draft.monto}
-              onChange={e => setField('monto', e.target.value)}
-              className={inputClass} style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Garantías ofrecidas (opcional)
-            </label>
-            <input
-              type="text"
-              placeholder="Ej: aval personal, bien inmueble, cheques propios"
-              value={draft.garantias}
-              onChange={e => setField('garantias', e.target.value)}
-              className={inputClass} style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Información adicional (opcional)
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Contanos más sobre tu negocio o el motivo de la solicitud"
-              value={draft.notas}
-              onChange={e => setField('notas', e.target.value)}
+              type="text" inputMode="numeric" required
+              placeholder="Ej: $ 500.000"
+              value={formatMonto(draft.monto)}
+              onChange={e => setField('monto', soloNumeros(e.target.value))}
               className={inputClass} style={inputStyle}
             />
           </div>
@@ -269,7 +267,46 @@ export function FinanciacionClient({ solicitudes: inicial }: { solicitudes: Soli
             </div>
           </div>
 
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Garantías ofrecidas (opcional)
+            </label>
+            <input
+              type="text"
+              placeholder="Ej: aval personal, bien inmueble, cheques propios"
+              value={draft.garantias}
+              onChange={e => setField('garantias', e.target.value)}
+              className={inputClass} style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Información adicional (opcional)
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Contanos más sobre tu negocio o el motivo de la solicitud"
+              value={draft.notas}
+              onChange={e => setField('notas', e.target.value)}
+              className={inputClass} style={inputStyle}
+            />
+          </div>
+
           {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+
+          {/* Volver al carrito — el borrador queda guardado en localStorage, así que
+              se puede retomar la solicitud después (pedido del tester). */}
+          {volverAlCarrito && (
+            <a
+              href="/carrito"
+              className="self-start inline-flex items-center gap-1.5 text-xs"
+              style={{ color: 'var(--color-acero-oscuro)' }}
+            >
+              <ArrowLeft size={13} />
+              Volver al carrito de compras
+            </a>
+          )}
 
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={handleCancelar}

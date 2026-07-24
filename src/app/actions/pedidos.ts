@@ -23,6 +23,7 @@ interface EnvioBorrador {
   calle: string
   numero: string
   piso?: string
+  referencia?: string
 }
 
 const METODO_NOTA: Record<string, string> = {
@@ -276,6 +277,7 @@ export async function crearPedidoBorrador(
       envio_calle: envioParams.calle,
       envio_numero: envioParams.numero,
       envio_piso: envioParams.piso ?? null,
+      envio_referencia: envioParams.referencia ?? null,
       envio_servicio: envioParams.servicioId,
     } : {}),
   }

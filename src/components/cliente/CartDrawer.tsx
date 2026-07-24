@@ -243,7 +243,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                 )}
                 <div className="h-px mt-1" style={{ background: 'var(--color-acero-claro)' }} />
                 <a
-                  href="/cuenta/financiacion"
+                  href="/cuenta/financiacion?nueva=1&from=carrito"
                   onClick={() => setCartOpen(false)}
                   className="w-full py-2 rounded-lg text-xs text-center transition-colors"
                   style={{ color: 'var(--color-acero-oscuro)' }}

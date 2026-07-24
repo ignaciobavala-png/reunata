@@ -381,6 +381,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             calle: envioSeleccionado.calle,
             numero: envioSeleccionado.numero,
             piso: envioSeleccionado.piso,
+            referencia: envioSeleccionado.referencia,
           }
         : undefined,
       esMinorista ? telefonoMinorista.trim() : undefined,
@@ -433,6 +434,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             calle: envioSeleccionado.calle,
             numero: envioSeleccionado.numero,
             piso: envioSeleccionado.piso,
+            referencia: envioSeleccionado.referencia,
           }
         : undefined,
       comprobantePath,
@@ -465,6 +467,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
             calle: envioSeleccionado.calle,
             numero: envioSeleccionado.numero,
             piso: envioSeleccionado.piso,
+            referencia: envioSeleccionado.referencia,
           }
         : undefined,
       comprobantePath,
@@ -503,6 +506,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
               calle: envioSeleccionado.calle,
               numero: envioSeleccionado.numero,
               piso: envioSeleccionado.piso,
+              referencia: envioSeleccionado.referencia,
             }
           : undefined,
       },
@@ -624,9 +628,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   const ambosPagosMinorista = mpActivo && transferenciaActiva
 
   // Métodos de pago mayorista agrupados por IVA
-  const canalHabilitaFinanciado = esMayorista && reglas
-    ? (reglas.pagos_habilitados ?? {})['cheque_fisico_financiado']?.activo
-    : false
   const metodosConIva = esMayorista && reglas
     ? METODOS_CON_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
@@ -1050,6 +1051,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     </div>
                   </>
                 )}
+
+                {/* Aviso de mínimo de compra — pegado al Total para que se vea
+                    (antes quedaba enterrado abajo de todo; pedido del tester). */}
+                {minimoInsuficiente && reglas?.minimo_compra && (
+                  <div className="px-3 py-2 rounded-lg text-xs mt-1" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                    Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
+                    Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1096,7 +1106,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </p>
               )}
 
-              {envioGratisPorMonto && (
+              {/* Solo mientras falta la dirección: una vez cargada, el envío ya figura
+                  como "Gratis" en el resumen y repetirlo confunde (pedido del tester). */}
+              {envioGratisPorMonto && !envioSeleccionado && (
                 <div className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   🎉 ¡Tenés envío gratis! Ingresá la dirección de entrega para continuar.
                 </div>
@@ -1109,7 +1121,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   <div className="flex flex-col gap-1.5">
                     {[
                       { key: 'mercado_pago', label: 'Mercado Pago', descPct: 0 },
-                      { key: 'transferencia', label: 'Transferencia', descPct: reglas?.desc_transferencia_pct ?? 0 },
+                      // "Directa" para que quede claro que es la misma operatoria que la
+                      // Transferencia Directa del mayorista: datos de cuenta + comprobante.
+                      { key: 'transferencia', label: 'Transferencia Directa', descPct: reglas?.desc_transferencia_pct ?? 0 },
                     ].map(m => (
                       <label
                         key={m.key}
@@ -1137,14 +1151,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       </label>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Aviso mínimo de compra — minoristas */}
-              {minimoInsuficiente && reglas?.minimo_compra && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
-                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
                 </div>
               )}
 
@@ -1351,37 +1357,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </div>
               )}
 
-              {/* Aviso línea de crédito — visible para todo mayorista sin crédito aprobado */}
-              {reglas && !reglas.credito_aprobado && (
-                <div className="px-3 py-2.5 rounded-lg text-xs flex flex-col gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium" style={{ color: '#854d0e' }}>
-                      {canalHabilitaFinanciado ? 'Cheque financiado disponible con línea de crédito' : '¿Necesitás pago diferido?'}
-                    </p>
-                    <p style={{ color: '#92400e' }}>
-                      {canalHabilitaFinanciado
-                        ? 'Tu canal permite operar con cheques a plazo, pero necesitás una línea de crédito aprobada.'
-                        : 'Podés solicitar una línea de crédito para operar en cuenta corriente o con cheques a plazo.'}
-                      {' '}Podés solicitarla ahora — Gastón la evalúa en 48–72 hs hábiles.
-                    </p>
-                  </div>
-                  <a
-                    href="/cuenta/financiacion"
-                    className="self-start px-3 py-1.5 rounded-lg text-xs font-medium"
-                    style={{ background: '#854d0e', color: '#fef9c3' }}
-                  >
-                    Calificar para pago diferido
-                  </a>
-                </div>
-              )}
-
-              {/* Aviso mínimo de compra */}
-              {minimoInsuficiente && reglas?.minimo_compra && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
-                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
-                </div>
-              )}
+              {/* El cartel de "¿Necesitás pago diferido?" se sacó a pedido del tester
+                  (2026-07-22): le salía a todo mayorista sin crédito aprobado, incluidos
+                  los que nunca pidieron financiamiento. Por ahora queda solo el link del
+                  final, hasta redefinir a quién corresponde mostrárselo. */}
 
               {/* Aviso descuento por volumen cercano */}
               {avisoDescVolumen}
@@ -1476,19 +1455,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 <p className="text-xs text-center" style={{ color: '#ef4444' }}>{errorPago}</p>
               )}
 
-              {/* Acceso al formulario de financiamiento — siempre disponible para
-                  mayoristas, igual que en el carrito desplegable. Cuando el crédito
-                  todavía no está aprobado, el aviso amarillo de arriba ya lleva al
-                  formulario, así que este link se muestra solo para no duplicarlo. */}
-              {reglas?.credito_aprobado && (
-                <a
-                  href="/cuenta/financiacion"
-                  className="w-full py-2 rounded-lg text-xs text-center transition-colors"
-                  style={{ color: 'var(--color-acero-oscuro)' }}
-                >
-                  ¿Necesitás financiamiento? <span className="underline">Solicitalo acá →</span>
-                </a>
-              )}
+              {/* Acceso al formulario de financiamiento — único punto de entrada desde el
+                  carrito ahora que se sacó el cartel amarillo. `nueva=1` abre el formulario
+                  directo y `from=carrito` habilita el botón para volver acá. */}
+              <a
+                href="/cuenta/financiacion?nueva=1&from=carrito"
+                className="w-full py-2 rounded-lg text-xs text-center transition-colors"
+                style={{ color: 'var(--color-acero-oscuro)' }}
+              >
+                ¿Necesitás financiamiento? <span className="underline">Solicitalo acá →</span>
+              </a>
             </div>
           ) : esGuest ? (
             // ── Comprador sin cuenta ────────────────────────────────────
@@ -1518,19 +1494,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 </p>
               )}
 
-              {envioGratisPorMonto && (
+              {/* Solo mientras falta la dirección: una vez cargada, el envío ya figura
+                  como "Gratis" en el resumen y repetirlo confunde (pedido del tester). */}
+              {envioGratisPorMonto && !envioSeleccionado && (
                 <div className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   🎉 ¡Tenés envío gratis! Ingresá la dirección de entrega para continuar.
                 </div>
               )}
 
-              {/* Avisos de mínimo de compra y envío gratis — el server los aplica también a guests */}
-              {minimoInsuficiente && reglas?.minimo_compra && (
-                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
-                  Mínimo de compra: {formatPrecio(reglas.minimo_compra)}.{' '}
-                  Te faltan {formatPrecio(reglas.minimo_compra - totalPostDescuentoPreEnvio)}.
-                </div>
-              )}
+              {/* Aviso de envío gratis cercano — el server lo aplica también a guests */}
               {faltaParaEnvioGratis !== null && (
                 <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
                   Te faltan {formatPrecio(faltaParaEnvioGratis)} para el envío gratis.
@@ -1545,7 +1517,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                   <div className="flex flex-col gap-1.5">
                     {[
                       { key: 'mercado_pago', label: 'Mercado Pago', descPct: 0 },
-                      { key: 'transferencia', label: 'Transferencia', descPct: reglas?.desc_transferencia_pct ?? 0 },
+                      // "Directa" para que quede claro que es la misma operatoria que la
+                      // Transferencia Directa del mayorista: datos de cuenta + comprobante.
+                      { key: 'transferencia', label: 'Transferencia Directa', descPct: reglas?.desc_transferencia_pct ?? 0 },
                     ].map(m => (
                       <label
                         key={m.key}

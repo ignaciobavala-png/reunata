@@ -20,7 +20,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     .select(`
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       descuento_sugerido, descuento_nota,
-      envio_calle, envio_numero, envio_piso, envio_codigo_postal, envio_provincia,
+      envio_calle, envio_numero, envio_piso, envio_referencia, envio_codigo_postal, envio_provincia,
       envio_servicio, enviopack_envio_id, enviopack_estado, tracking, metodo_envio,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       cliente_id, guest_nombre, guest_email, guest_telefono,
@@ -61,6 +61,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     cuit_dni?: string; direccion?: string; localidad?: string; sitio_web?: string; puntos_venta?: number
   } | null
   const esGuest = !cliente
+  const envioReferencia = (pedido as unknown as { envio_referencia?: string | null }).envio_referencia ?? null
 
   const nombreCliente = cliente?.nombre ?? (pedido as any).guest_nombre ?? '—'
   const emailCliente  = cliente?.email  ?? (pedido as any).guest_email  ?? ''
@@ -223,7 +224,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
                     <td colSpan={3} className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Subtotal
+                      Subtotal productos
                     </td>
                     <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
                       {formatPrecio(subtotalItems)}
@@ -286,6 +287,12 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                   `${(pedido as any).envio_calle} ${(pedido as any).envio_numero ?? ''}`.trim(),
                   (pedido as any).envio_piso,
                 ].filter(Boolean).join(', ')}
+              </p>
+            )}
+            {envioReferencia && (
+              <p style={{ color: 'var(--foreground)' }}>
+                <span style={{ color: 'var(--color-acero-oscuro)' }}>Referencia: </span>
+                {envioReferencia}
               </p>
             )}
             {((pedido as any).envio_codigo_postal || (pedido as any).envio_provincia) && (
