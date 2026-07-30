@@ -254,10 +254,16 @@ export async function iniciarCheckoutMP(
     await q
   }
 
+  // Nota del desglose — mismo formato que el canal mayorista (ver crearPedidoBorrador):
+  // sin ella, el resumen del pedido no puede explicar el descuento y muestra "Ajuste".
+  const notaPartesMP: string[] = []
+  if (tramoMP) notaPartesMP.push(`Desc. Vol ${tramoMP.pct}%`)
+
   const pedidoInsert: Record<string, unknown> = {
     estado: 'pendiente_pago',
     total_usd: total,
     medio_pago: 'mercadopago',
+    descuento_nota: notaPartesMP.length > 0 ? notaPartesMP.join(', ') : null,
     expira_en: expiraEn,
     costo_envio: envio?.costo ?? null,
     envio_descripcion: envio?.descripcion ?? null,
@@ -558,6 +564,12 @@ export async function iniciarCheckoutTransferencia(
 
   const total = subtotalPostDescuento + (envio?.costo ?? 0)
 
+  // Nota del desglose — mismo formato que el canal mayorista (ver crearPedidoBorrador):
+  // sin ella, el resumen del pedido no puede explicar el descuento y muestra "Ajuste".
+  const notaPartesTransf: string[] = []
+  if (descuentoVolumenCanal !== 0 && tramoVol) notaPartesTransf.push(`Desc. Vol ${tramoVol.pct}%`)
+  if (descuento !== 0) notaPartesTransf.push(`Desc. transferencia ${descPct}%`)
+
   const diasVencimiento = (canalCfg?.dias_vencimiento_pedido as number | null) ?? 7
   const expiraEn = new Date(Date.now() + diasVencimiento * 24 * 60 * 60 * 1000).toISOString()
 
@@ -591,6 +603,7 @@ export async function iniciarCheckoutTransferencia(
       estado: comprobantePath ? 'comprobante_subido' : 'pendiente_pago',
       total_usd: total,
       medio_pago: 'transferencia',
+      descuento_nota: notaPartesTransf.length > 0 ? notaPartesTransf.join(', ') : null,
       expira_en: expiraEn,
       costo_envio: envio?.costo ?? null,
       envio_descripcion: envio?.descripcion ?? null,
