@@ -31,7 +31,9 @@ const ALLOWED_CV_MIMES = [
 
 const MAX_CV_SIZE = 5 * 1024 * 1024       // 5 MB
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
-const RATE_LIMIT_MAX = 5                     // max postulaciones por hora globales
+const RATE_LIMIT_MAX = 3                     // max postulaciones por hora POR EMAIL
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 export async function crearPostulacion(formData: FormData) {
   const tipo = formData.get('tipo') as string
@@ -39,11 +41,13 @@ export async function crearPostulacion(formData: FormData) {
     return { error: 'Tipo de postulación inválido.' }
   }
 
+  const email = ((formData.get('email') as string) || '').trim().toLowerCase()
+
   const campos: Record<string, string | boolean | null> = {
     tipo,
     nombre: formData.get('nombre') as string,
     apellido: formData.get('apellido') as string,
-    email: formData.get('email') as string,
+    email,
     dni: formData.get('dni') as string || null,
     direccion: formData.get('direccion') as string,
     nacionalidad: formData.get('nacionalidad') as string || null,
@@ -55,6 +59,10 @@ export async function crearPostulacion(formData: FormData) {
     if (!campos[key]) return { error: `El campo ${key} es obligatorio.` }
   }
 
+  if (!EMAIL_RE.test(email)) {
+    return { error: 'El e-mail no es válido.' }
+  }
+
   for (const [key, max] of Object.entries(MAX_LENGTHS)) {
     const val = campos[key] as string
     if (val && val.length > max) {
@@ -64,13 +72,15 @@ export async function crearPostulacion(formData: FormData) {
 
   const supabase = createServiceClient()
 
+  // Rate limit por email: no puede bloquear a otros postulantes
   const { count } = await supabase
     .from('postulaciones')
     .select('*', { count: 'exact', head: true })
+    .eq('email', email)
     .gte('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString())
 
   if (count && count >= RATE_LIMIT_MAX) {
-    return { error: 'Demasiadas postulaciones. Intentalo mas tarde.' }
+    return { error: 'Ya enviaste varias postulaciones con este e-mail. Intentalo mas tarde.' }
   }
 
   let cvUrl: string | null = null

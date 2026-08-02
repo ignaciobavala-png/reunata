@@ -15,7 +15,7 @@ const MAX_LENGTHS: Record<string, number> = {
 }
 
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
-const RATE_LIMIT_MAX = 5
+const RATE_LIMIT_MAX = 3   // max solicitudes por hora POR EMAIL
 
 const OCASIONES_VALIDAS = [
   'Tu equipo de trabajo',
@@ -30,7 +30,7 @@ const PRODUCTOS_VALIDOS = ['Mates', 'Mochilas', 'Termos', 'Todos']
 export async function crearCorporativo(formData: FormData) {
   const nombre = formData.get('nombre') as string
   const empresa = formData.get('empresa') as string
-  const email = formData.get('email') as string
+  const email = ((formData.get('email') as string) || '').trim().toLowerCase()
   const telefono = formData.get('telefono') as string
   const cuit = formData.get('cuit') as string
   const ubicacion = formData.get('ubicacion') as string
@@ -42,7 +42,7 @@ export async function crearCorporativo(formData: FormData) {
 
   if (!nombre?.trim()) return { error: 'El nombre es obligatorio.' }
   if (!empresa?.trim()) return { error: 'La empresa es obligatoria.' }
-  if (!email?.trim()) return { error: 'El correo es obligatorio.' }
+  if (!email) return { error: 'El correo es obligatorio.' }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: 'El formato del correo no es válido.' }
@@ -70,6 +70,17 @@ export async function crearCorporativo(formData: FormData) {
 
   const supabase = createServiceClient()
 
+  // Rate limit por email (antes de subir el logo, para no dejar archivos huerfanos)
+  const { count } = await supabase
+    .from('corporativos')
+    .select('*', { count: 'exact', head: true })
+    .eq('email', email)
+    .gte('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString())
+
+  if (count && count >= RATE_LIMIT_MAX) {
+    return { error: 'Ya enviaste varias solicitudes con este e-mail. Intentalo mas tarde.' }
+  }
+
   // Upload logo if provided
   let logoUrl: string | null = null
   const logoFile = formData.get('logo') as File | null
@@ -81,15 +92,6 @@ export async function crearCorporativo(formData: FormData) {
       .from('corporativos')
       .upload(path, buffer, { contentType: logoFile.type, upsert: false })
     if (!uploadError) logoUrl = path
-  }
-
-  const { count } = await supabase
-    .from('corporativos')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString())
-
-  if (count && count >= RATE_LIMIT_MAX) {
-    return { error: 'Demasiadas solicitudes. Intentalo mas tarde.' }
   }
 
   let cantidades: number | null = null
@@ -105,7 +107,7 @@ export async function crearCorporativo(formData: FormData) {
   const { error } = await supabase.from('corporativos').insert({
     nombre: nombre.trim(),
     empresa: empresa.trim(),
-    email: email.trim(),
+    email,
     telefono: telefono?.trim() || null,
     cuit: cuit?.trim() || null,
     ubicacion: ubicacion?.trim() || null,
