@@ -60,6 +60,7 @@ interface Props {
   onFotosChange?: (productoId: number, fotos: FotoItem[]) => void
   onCanalesChange?: (productoId: number, asignados: Set<number>, multiplos: Record<number, number>) => void
   onDimensionesChange?: (productoId: number, dims: DimensionesEnvio) => void
+  onDescripcionChange?: (productoId: number, descripcion: string | null, descripcionTecnica: string | null) => void
 }
 
 // Dimensiones: se muestran y escriben con coma decimal (es-AR); se acepta también
@@ -78,7 +79,7 @@ export function ProductoFichaDrawer({
   canales, asignacionesIniciales, multiplosIniciales, descripcionInicial = null,
   descripcionTecnicaInicial = null,
   dimensionesIniciales,
-  onClose, onFotosChange, onCanalesChange, onDimensionesChange,
+  onClose, onFotosChange, onCanalesChange, onDimensionesChange, onDescripcionChange,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -331,10 +332,19 @@ export function ProductoFichaDrawer({
 
   async function handleGuardarDescripcion() {
     setGuardandoDesc(true)
-    const res = await guardarDescripcion(producto.id, descripcion || null, descripcionTecnica || null)
+    const nuevaDesc = descripcion.trim() || null
+    const nuevaTecnica = descripcionTecnica.trim() || null
+    const res = await guardarDescripcion(producto.id, nuevaDesc, nuevaTecnica)
     setGuardandoDesc(false)
-    if (res.ok) mostrarToast('Descripción guardada')
-    else mostrarToast('Error al guardar')
+    if (res.ok) {
+      // Sin esto el listado sigue mostrando la descripción vieja hasta que el
+      // admin recarga la página a mano.
+      onDescripcionChange?.(producto.id, nuevaDesc, nuevaTecnica)
+      router.refresh()
+      mostrarToast('Descripción guardada')
+    } else {
+      mostrarToast('Error al guardar')
+    }
   }
 
   async function handleGuardarDims() {

@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { parseAtributos } from '@/lib/atributos'
 
@@ -35,6 +36,8 @@ export async function guardarDescripcion(
     })
     .eq('id', productoId)
   if (error) return { ok: false }
+  revalidatePath('/dashboard/admin/productos')
+  revalidatePath(`/tienda/p/${productoId}`)
   return { ok: true }
 }
 

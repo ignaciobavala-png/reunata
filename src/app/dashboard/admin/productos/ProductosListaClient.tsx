@@ -112,6 +112,9 @@ export function ProductosListaClient({
     }
     return map
   })
+  // Overrides locales de descripción: el drawer las escribe al guardar para que
+  // el badge y el propio drawer no queden mostrando el texto viejo.
+  const [descripciones, setDescripciones] = useState<Record<number, { descripcion: string | null; tecnica: string | null }>>({})
   const [vista, setVista] = useState<'lista' | 'asignaciones' | 'canales'>('lista')
 
   // Asignaciones masivas por categoría
@@ -275,6 +278,12 @@ export function ProductosListaClient({
     if (!drawerState) return { alto: null, ancho: null, largo: null, peso: null, enviar_solo: false }
     return dimensiones[drawerState.producto.id] ?? { alto: null, ancho: null, largo: null, peso: null, enviar_solo: false }
   }, [drawerState, dimensiones])
+
+  const drawerDescripcion = useMemo(() => {
+    if (!drawerState) return { descripcion: null, tecnica: null }
+    const p = drawerState.producto
+    return descripciones[p.id] ?? { descripcion: p.descripcion ?? null, tecnica: p.descripcion_tecnica ?? null }
+  }, [drawerState, descripciones])
 
   const drawerMultiplos = useMemo<Record<number, number>>(() => {
     if (!drawerState) return {}
@@ -634,17 +643,22 @@ export function ProductosListaClient({
 
                         {/* Descripción */}
                         <td className="px-4 py-2.5 text-center">
-                          <button
-                            onClick={() => setDrawerState({ producto: p, tab: 'descripcion' })}
-                            title={p.descripcion ? 'Editar descripción' : 'Sin descripción — click para agregar'}
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors"
-                            style={{
-                              background: p.descripcion ? '#dcfce7' : '#fee2e2',
-                              color: p.descripcion ? '#16a34a' : '#dc2626',
-                            }}
-                          >
-                            <FileText size={11} />
-                          </button>
+                          {(() => {
+                            const tieneDesc = (descripciones[p.id]?.descripcion ?? p.descripcion) != null
+                            return (
+                              <button
+                                onClick={() => setDrawerState({ producto: p, tab: 'descripcion' })}
+                                title={tieneDesc ? 'Editar descripción' : 'Sin descripción — click para agregar'}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors"
+                                style={{
+                                  background: tieneDesc ? '#dcfce7' : '#fee2e2',
+                                  color: tieneDesc ? '#16a34a' : '#dc2626',
+                                }}
+                              >
+                                <FileText size={11} />
+                              </button>
+                            )
+                          })()}
                         </td>
 
                         {TAGS_VISIBLES.map(t => {
@@ -748,8 +762,8 @@ export function ProductosListaClient({
           canales={canalesIniciales}
           asignacionesIniciales={drawerAsignaciones}
           multiplosIniciales={drawerMultiplos}
-          descripcionInicial={drawerState.producto.descripcion ?? null}
-          descripcionTecnicaInicial={drawerState.producto.descripcion_tecnica ?? null}
+          descripcionInicial={drawerDescripcion.descripcion}
+          descripcionTecnicaInicial={drawerDescripcion.tecnica}
           dimensionesIniciales={drawerDimensiones}
           onClose={() => setDrawerState(null)}
           onFotosChange={(productoId, fotos) =>
@@ -758,6 +772,9 @@ export function ProductosListaClient({
           onCanalesChange={handleCanalesChange}
           onDimensionesChange={(productoId, dims) =>
             setDimensiones(prev => ({ ...prev, [productoId]: dims }))
+          }
+          onDescripcionChange={(productoId, descripcion, tecnica) =>
+            setDescripciones(prev => ({ ...prev, [productoId]: { descripcion, tecnica } }))
           }
         />
       )}
