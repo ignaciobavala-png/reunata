@@ -1,6 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 import { TOOLS, handleToolCall } from '@/lib/chatbot/tools'
+import { FILTRO_ROL_CLIENTE } from '@/lib/roles'
 
 const admin = createAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,7 +34,7 @@ async function fetchKPIs() {
     admin.from('productos').select('categoria, stock').eq('activo', true),
     admin.from('pedidos').select('estado'),
     admin.from('pedidos').select('total_usd').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-    admin.from('profiles').select('canal_id, canales(slug)').in('rol', ['consumidor_final', 'distribuidor', 'local', 'mercha']),
+    admin.from('profiles').select('canal_id, canales(slug)').not('rol', 'in', FILTRO_ROL_CLIENTE),
     admin.from('profiles').select('id').gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
     admin.from('sync_log').select('*').order('created_at', { ascending: false }).limit(1),
   ])

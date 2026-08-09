@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { ShoppingCart, Users, Package, RefreshCw } from 'lucide-react'
+import { FILTRO_ROL_CLIENTE } from '@/lib/roles'
 
 async function getStats() {
   const supabase = await createClient()
   const [pedidos, clientes, productos, lastSync] = await Promise.all([
     supabase.from('pedidos').select('id, estado', { count: 'exact' }).neq('estado', 'borrador'),
-    supabase.from('profiles').select('id', { count: 'exact' }).in('rol', ['consumidor_final','distribuidor','local','mercha']),
+    supabase.from('profiles').select('id', { count: 'exact' }).not('rol', 'in', FILTRO_ROL_CLIENTE),
     supabase.from('productos').select('id', { count: 'exact' }).eq('activo', true),
     supabase.from('sync_log').select('estado, mensaje, created_at').eq('tipo', 'productos').order('created_at', { ascending: false }).limit(1).single(),
   ])

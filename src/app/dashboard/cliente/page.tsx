@@ -4,20 +4,7 @@ import { ShoppingCart, Store, Tag } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import Link from 'next/link'
 import { estadoLabel } from '@/lib/estadosPedido'
-
-const LABEL_ROL: Record<string, string> = {
-  consumidor_final: 'Consumidor Final',
-  distribuidor: 'Distribuidor',
-  local: 'Local',
-  mercha: 'Merchandising',
-}
-
-const CANAL_COLOR: Record<string, string> = {
-  consumidor_final: '#6366f1',
-  distribuidor:     '#0ea5e9',
-  local:            '#10b981',
-  mercha:           '#f59e0b',
-}
+import { esRolMayorista, labelRol, colorRol } from '@/lib/roles'
 
 export default async function ClienteDashboardPage() {
   const supabase = await createClient()
@@ -46,8 +33,8 @@ export default async function ClienteDashboardPage() {
   const count = pedidosRes.count
   const canal = canalRes.data as { nombre: string; descripcion: string | null; categoria_comercial: string | null } | null
 
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile?.rol ?? '')
-  const color = CANAL_COLOR[profile?.rol ?? ''] ?? '#6366f1'
+  const esMayorista = esRolMayorista(profile?.rol)
+  const color = colorRol(profile?.rol)
   const nombreMostrado = esMayorista && profile?.razon_social
     ? profile.razon_social
     : (profile?.nombre ?? 'cliente')
@@ -85,7 +72,7 @@ export default async function ClienteDashboardPage() {
           className="text-xs px-2.5 py-1 rounded-full font-medium"
           style={{ background: `${color}22`, color }}
         >
-          {LABEL_ROL[profile?.rol ?? ''] ?? profile?.rol}
+          {labelRol(profile?.rol)}
         </span>
       </div>
 

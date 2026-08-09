@@ -9,6 +9,7 @@ import { PrintButton } from './PrintButton'
 import { GenerarEnvioButton } from './GenerarEnvioButton'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
+import { esRolMayorista } from '@/lib/roles'
 
 export default async function AdminDetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -66,7 +67,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   const nombreCliente = cliente?.nombre ?? (pedido as any).guest_nombre ?? '—'
   const emailCliente  = cliente?.email  ?? (pedido as any).guest_email  ?? ''
   const telCliente    = cliente?.telefono ?? (pedido as any).guest_telefono ?? ''
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(cliente?.rol ?? '')
+  const esMayorista = esRolMayorista(cliente?.rol)
 
   return (
     <div className="p-8 max-w-3xl">

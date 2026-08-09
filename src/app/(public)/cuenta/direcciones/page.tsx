@@ -3,11 +3,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaNav } from '@/components/cuenta/CuentaNav'
+import { esRolMayorista } from '@/lib/roles'
 import { DireccionesClient } from './DireccionesClient'
 
 export const metadata: Metadata = { title: 'Mis direcciones', robots: { index: false, follow: false } }
-
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function DireccionesPage({
   searchParams,
@@ -25,7 +24,7 @@ export default async function DireccionesPage({
     .eq('id', user.id)
     .single()
 
-  if (!profile || !MAYORISTAS.includes(profile.rol)) redirect('/cuenta')
+  if (!esRolMayorista(profile?.rol)) redirect('/cuenta')
 
   const { data: direcciones } = await supabase
     .from('direcciones_entrega')

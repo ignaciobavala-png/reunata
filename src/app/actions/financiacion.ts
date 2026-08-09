@@ -3,15 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-
-const MAYORISTAS = ['distribuidor', 'local', 'mercha', 'fabricantes']
+import { esRolMayorista } from '@/lib/roles'
 
 async function getMayoristaId(): Promise<string | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data: p } = await supabase.from('profiles').select('rol').eq('id', user.id).single()
-  if (!p || !MAYORISTAS.includes(p.rol)) return null
+  if (!esRolMayorista(p?.rol)) return null
   return user.id
 }
 

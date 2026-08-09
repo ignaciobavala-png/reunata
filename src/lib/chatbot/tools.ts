@@ -1,4 +1,5 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { FILTRO_ROL_CLIENTE } from '@/lib/roles'
 
 const admin = createAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -230,7 +231,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
       let q = admin
         .from('profiles')
         .select('id, nombre, email, rol, aprobado, canal_id, created_at, canales!inner(slug)')
-        .in('rol', ['consumidor_final', 'distribuidor', 'local', 'mercha'])
+        .not('rol', 'in', FILTRO_ROL_CLIENTE)
         .order('created_at', { ascending: false })
         .limit(limit)
 

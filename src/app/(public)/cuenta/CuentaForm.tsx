@@ -4,6 +4,7 @@ import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { actualizarPerfil } from '@/app/actions/cuenta'
+import { esRolMayorista } from '@/lib/roles'
 
 interface Profile {
   nombre?: string | null
@@ -31,7 +32,7 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
   const [isPending, startTransition] = useTransition()
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
   const router = useRouter()
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile.rol ?? '')
+  const esMayorista = esRolMayorista(profile.rol)
 
   function handleSubmit(formData: FormData) {
     setErrorGuardado(null)

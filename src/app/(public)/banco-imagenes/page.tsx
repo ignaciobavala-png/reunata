@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ImageIcon, ExternalLink, Lock } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { esRolMayorista } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Banco de imágenes — Reunata' }
 
@@ -28,8 +29,6 @@ function FotoLateral({ path, supabaseUrl }: { path: string | null; supabaseUrl: 
     </div>
   )
 }
-
-const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha']
 
 export default async function BancoImagenesPage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -60,8 +59,8 @@ export default async function BancoImagenesPage() {
       .eq('id', user.id)
       .single()
 
-    if (profile && ROLES_MAYORISTA.includes(profile.rol)) {
-      acceso = profile.aprobado ? 'mayorista' : 'pendiente'
+    if (esRolMayorista(profile?.rol)) {
+      acceso = profile?.aprobado ? 'mayorista' : 'pendiente'
     }
   }
 

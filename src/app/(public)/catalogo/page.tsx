@@ -6,10 +6,10 @@ import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { CatalogoDescargas } from './CatalogoDescargas'
 import { CatalogoView } from './CatalogoView'
+import { esRolInterno, esRolMayorista } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Catálogo — Reunata' }
 
-const ROLES_CON_ACCESO = ['master', 'empleado', 'comisionista', 'distribuidor', 'local', 'mercha']
 const ROLES_ADMIN = ['master', 'empleado']
 
 export default async function CatalogoPage({
@@ -27,7 +27,7 @@ export default async function CatalogoPage({
 
   // Gates
   if (!user) return <CatalogoDescargas pdfs={[]} estado="sin_sesion" />
-  if (!ROLES_CON_ACCESO.includes(rol)) return <CatalogoDescargas pdfs={[]} estado="sin_acceso" />
+  if (!esRolInterno(rol) && !esRolMayorista(rol)) return <CatalogoDescargas pdfs={[]} estado="sin_acceso" />
   if (pendienteAprobacion) return <CatalogoDescargas pdfs={[]} estado="pendiente" />
 
   // Preview override para admins: simula la vista de otro canal

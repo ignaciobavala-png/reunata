@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { FILTRO_ROL_MAYORISTA } from '@/lib/roles'
 
 const ROLES_CON_DASHBOARD = ['master', 'empleado', 'comisionista']
 
@@ -30,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('requiere_recontacto', true)
-        .in('rol', ['distribuidor', 'local', 'mercha']),
+        .not('rol', 'in', FILTRO_ROL_MAYORISTA),
       service
         .from('solicitudes_credito')
         .select('id', { count: 'exact', head: true })

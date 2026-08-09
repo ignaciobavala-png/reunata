@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaNav } from '@/components/cuenta/CuentaNav'
+import { esRolMayorista } from '@/lib/roles'
 import { FinanciacionClient } from './FinanciacionClient'
 
 export const metadata: Metadata = { title: 'Financiación', robots: { index: false, follow: false } }
-
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function FinanciacionPage({
   searchParams,
@@ -31,7 +30,7 @@ export default async function FinanciacionPage({
     .eq('id', user.id)
     .single()
 
-  if (!profile || !MAYORISTAS.includes(profile.rol)) redirect('/cuenta')
+  if (!esRolMayorista(profile?.rol)) redirect('/cuenta')
 
   const { data: solicitudes } = await supabase
     .from('solicitudes_credito')

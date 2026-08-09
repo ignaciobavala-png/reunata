@@ -2,6 +2,7 @@
 
 import { useState, useTransition, Fragment } from 'react'
 import { aprobarCliente, actualizarCanalCliente } from '@/app/actions/clientes'
+import { esRolMayorista, labelRol, colorRol } from '@/lib/roles'
 import { Check, X, Search, Loader2, ChevronDown, ChevronRight, Store, Building2, MapPin, Globe, Phone, Users, PackageOpen } from 'lucide-react'
 
 interface Canal   { id: number; slug: string; nombre: string }
@@ -21,20 +22,6 @@ interface Cliente {
   puntos_venta: number | null
   clientes_activos: number | null
   telefono: string | null
-}
-
-const LABEL_ROL: Record<string, string> = {
-  consumidor_final: 'Consumidor',
-  distribuidor: 'Distribuidor',
-  local: 'Local',
-  mercha: 'Merchandising',
-}
-
-const COLOR_ROL: Record<string, string> = {
-  consumidor_final: '#6366f1',
-  distribuidor:     '#0ea5e9',
-  local:            '#10b981',
-  mercha:           '#f59e0b',
 }
 
 export function ClientesClient({ clientes: inicial, canales }: { clientes: Cliente[]; canales: Canal[] }) {
@@ -71,10 +58,6 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
   function handleCanal(id: string, canalId: number | null) {
     setClientes(prev => prev.map(c => c.id === id ? { ...c, canal_id: canalId } : c))
     startTransition(() => actualizarCanalCliente(id, canalId))
-  }
-
-  function esMayorista(rol: string) {
-    return rol === 'distribuidor' || rol === 'local' || rol === 'mercha'
   }
 
   return (
@@ -138,7 +121,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                     }}
                   >
                     <td className="px-4 py-3">
-                      {esMayorista(c.rol) && (
+                      {esRolMayorista(c.rol) && (
                         expandido === c.id
                           ? <ChevronDown size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
                           : <ChevronRight size={14} style={{ color: 'var(--color-acero-oscuro)' }} />
@@ -152,11 +135,11 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                       <span
                         className="px-2 py-0.5 rounded-full"
                         style={{
-                          background: (COLOR_ROL[c.rol] ?? '#888') + '22',
-                          color: COLOR_ROL[c.rol] ?? '#888',
+                          background: colorRol(c.rol) + '22',
+                          color: colorRol(c.rol),
                         }}
                       >
-                        {LABEL_ROL[c.rol] ?? c.rol}
+                        {labelRol(c.rol)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -212,7 +195,7 @@ export function ClientesClient({ clientes: inicial, canales }: { clientes: Clien
                       </div>
                     </td>
                   </tr>
-                  {expandido === c.id && esMayorista(c.rol) && (
+                  {expandido === c.id && esRolMayorista(c.rol) && (
                     <tr key={`${c.id}-detail`}>
                       <td colSpan={8} style={{ background: '#fafafa', borderBottom: '1px solid var(--color-acero-claro)' }}>
                         <div className="px-8 py-5 grid grid-cols-2 md:grid-cols-3 gap-5 text-sm">

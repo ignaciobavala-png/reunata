@@ -7,13 +7,9 @@ import { Loader2 } from 'lucide-react'
 
 type Tab = 'minorista' | 'mayorista'
 
-const TIPOS_MAYORISTA = [
-  { value: 'distribuidor', label: 'Distribuidor' },
-  { value: 'local', label: 'Local' },
-  { value: 'mercha', label: 'Merchandising' },
-]
+interface TipoMayorista { value: string; label: string }
 
-export function RegistroForm({ defaultTab = 'minorista', defaultTipo, next }: { defaultTab?: Tab; defaultTipo?: string; next?: string }) {
+export function RegistroForm({ defaultTab = 'minorista', defaultTipo, tipos, next }: { defaultTab?: Tab; defaultTipo?: string; tipos: TipoMayorista[]; next?: string }) {
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -130,7 +126,7 @@ export function RegistroForm({ defaultTab = 'minorista', defaultTipo, next }: { 
             <label className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-acero-claro)' }}>Tipo de cliente</label>
             <select name="tipo" required defaultValue={defaultTipo ?? ''} className={inputClass} style={inputStyle}>
               <option value="" disabled className="text-sm" style={{ background: '#1a1a1a', color: '#ccc' }}>Seleccioná un tipo</option>
-              {TIPOS_MAYORISTA.map(t => (
+              {tipos.map(t => (
                 <option key={t.value} value={t.value} className="text-sm" style={{ background: '#1a1a1a', color: '#ccc' }}>{t.label}</option>
               ))}
             </select>

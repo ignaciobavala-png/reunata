@@ -3,6 +3,9 @@ import type { Metadata } from 'next'
 import { RegistroForm } from './RegistroForm'
 import { Check } from 'lucide-react'
 import { getHeaderData } from '@/lib/header'
+import { createServiceClient } from '@/lib/supabase/server'
+import { ordenarCanales } from '@/lib/canales-orden'
+import { ROL_MINORISTA } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Crear cuenta' }
 
@@ -26,8 +29,20 @@ export default async function RegistroPage({
 }) {
   const { confirmar, tab, tipo, next } = await searchParams
   const defaultTab = tab === 'mayorista' ? 'mayorista' : 'minorista'
-  const defaultTipo = ['distribuidor', 'local', 'mercha'].includes(tipo ?? '') ? tipo : undefined
   const esMayorista = defaultTab === 'mayorista'
+
+  // Los tipos de cliente salen de los canales cargados en el panel (Emprendedores,
+  // Pool de Compras…), no de una lista fija: un canal nuevo tiene que poder
+  // registrarse sin tocar código. Service client porque la página es pública.
+  const { data: canalesData } = await createServiceClient()
+    .from('canales')
+    .select('slug, nombre')
+    .eq('activo', true)
+    .eq('categoria_comercial', 'mayorista')
+    .neq('slug', ROL_MINORISTA)
+  const tiposMayorista = ordenarCanales(canalesData ?? []).map(c => ({ value: c.slug, label: c.nombre }))
+
+  const defaultTipo = tiposMayorista.some(t => t.value === tipo) ? tipo : undefined
   const beneficios = esMayorista ? BENEFICIOS_MAYORISTA : BENEFICIOS_MINORISTA
 
   const { headerUser, headerCategorias } = await getHeaderData()
@@ -122,7 +137,7 @@ export default async function RegistroPage({
               border: '1px solid rgba(143,170,156,0.12)',
             }}
           >
-            <RegistroForm defaultTab={defaultTab} defaultTipo={defaultTipo} next={next} />
+            <RegistroForm defaultTab={defaultTab} defaultTipo={defaultTipo} tipos={tiposMayorista} next={next} />
           </div>
         </div>
 

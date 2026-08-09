@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { RecontactoClient } from './RecontactoClient'
+import { FILTRO_ROL_MAYORISTA } from '@/lib/roles'
 
 export default async function RecontactoPage() {
   const supabase = await createClient()
@@ -23,7 +24,7 @@ export default async function RecontactoPage() {
       canales_config ( marketing_mensaje_recontacto, marketing_link_agendamiento )
     `)
     .eq('requiere_recontacto', true)
-    .in('rol', ['distribuidor', 'local', 'mercha'])
+    .not('rol', 'in', FILTRO_ROL_MAYORISTA)
     .order('ultima_compra_en', { ascending: true, nullsFirst: true })
 
   const datos = (clientes ?? []).map(c => ({

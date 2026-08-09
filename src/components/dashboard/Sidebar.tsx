@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { LogoutButton } from '@/components/LogoutButton'
+import { labelRol } from '@/lib/roles'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
@@ -12,7 +13,9 @@ import {
   ChevronDown, TrendingUp, FileText, Mail, CreditCard, PhoneCall,
 } from 'lucide-react'
 
-type Rol = 'master' | 'empleado' | 'comisionista' | 'consumidor_final' | 'distribuidor' | 'local' | 'mercha'
+// El rol de un cliente es el slug de su canal, y los canales se crean desde el
+// panel — por eso es string y no una unión cerrada.
+type Rol = string
 
 type NavLink = { label: string; href: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; badge?: number }
 type NavGroup = {
@@ -115,16 +118,6 @@ function getActiveGroup(nav: NavItem[], pathname: string): string | null {
     }
   }
   return null
-}
-
-const LABEL_ROL: Record<Rol, string> = {
-  master: 'Administrador',
-  empleado: 'Empleado',
-  comisionista: 'Comisionista',
-  consumidor_final: 'Consumidor Final',
-  distribuidor: 'Distribuidor',
-  local: 'Local',
-  mercha: 'Merchandising',
 }
 
 export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string; badges?: Record<string, number> }) {
@@ -249,7 +242,7 @@ export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string
             {nombre}
           </p>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {LABEL_ROL[rol]}
+            {rol === 'master' ? 'Administrador' : labelRol(rol)}
           </p>
         </div>
         <LogoutButton

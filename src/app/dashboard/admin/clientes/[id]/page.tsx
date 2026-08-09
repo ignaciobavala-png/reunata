@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle, XCircle, Clock, ShoppingCart } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
+import { esRolMayorista } from '@/lib/roles'
 
 const ESTADO_CREDITO: Record<string, { label: string; icon: React.ReactNode; bg: string; text: string }> = {
   pendiente:  { label: 'En revisión',  icon: <Clock size={13} />,        bg: '#fef9c322', text: '#854d0e' },
@@ -47,7 +48,7 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
   if (!perfil) notFound()
 
   const canal = Array.isArray(perfil.canales) ? (perfil.canales[0] ?? null) : perfil.canales
-  const esMayorista = ['distribuidor', 'local', 'mercha', 'fabricantes'].includes(perfil.rol)
+  const esMayorista = esRolMayorista(perfil.rol)
   const nombrePrincipal = esMayorista && perfil.razon_social ? perfil.razon_social : (perfil.nombre ?? perfil.email ?? '—')
   const creditoActivo = (creditos ?? []).find(c => c.estado === 'aprobado') ?? null
 

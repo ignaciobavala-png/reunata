@@ -3,10 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaForm } from './CuentaForm'
 import { CuentaNav } from '@/components/cuenta/CuentaNav'
+import { esRolMayorista } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Mi cuenta', robots: { index: false, follow: false } }
-
-const MAYORISTAS = ['distribuidor', 'local', 'mercha']
 
 export default async function MiCuentaPage({ searchParams }: { searchParams: Promise<{ guardado?: string }> }) {
   const { guardado } = await searchParams
@@ -20,7 +19,7 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
     .eq('id', user.id)
     .single()
 
-  const esMayorista = MAYORISTAS.includes(profile?.rol ?? '')
+  const esMayorista = esRolMayorista(profile?.rol)
 
   return (
     <main className="pt-36 pb-24 px-6 md:px-16 max-w-2xl mx-auto">

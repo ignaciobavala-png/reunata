@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { actualizarPerfil } from '@/app/actions/cuenta'
+import { esRolMayorista } from '@/lib/roles'
 
 interface Profile {
   nombre?: string | null
@@ -30,7 +31,7 @@ const CONDICION_FISCAL = [
 export function CuentaForm({ profile, userId }: { profile: Profile; userId: string }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
-  const esMayorista = ['distribuidor', 'local', 'mercha'].includes(profile.rol ?? '')
+  const esMayorista = esRolMayorista(profile.rol)
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {

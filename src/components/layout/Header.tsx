@@ -8,6 +8,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Search, Menu, X, ChevronDown, User, Heart } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { LogoutButton } from '@/components/LogoutButton'
+import { esRolMayorista } from '@/lib/roles'
 
 const ROLES_INTERNOS = ['master', 'empleado', 'comisionista']
 
@@ -394,7 +395,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                       >
                         Mis pedidos
                       </Link>
-                      {['distribuidor', 'local', 'mercha'].includes(user.rol) && (
+                      {esRolMayorista(user.rol) && (
                         <Link
                           href="/cuenta/financiacion"
                           onClick={() => setUserOpen(false)}
@@ -565,7 +566,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                 >
                   Mis pedidos
                 </Link>
-                {['distribuidor', 'local', 'mercha'].includes(user.rol) && (
+                {esRolMayorista(user.rol) && (
                   <Link
                     href="/cuenta/financiacion"
                     onClick={() => setOpen(false)}

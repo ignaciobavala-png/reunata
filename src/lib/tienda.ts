@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { esRolMayorista } from '@/lib/roles'
 
 export interface CanalUsuario {
   canalId: number
@@ -19,8 +20,6 @@ export interface UserSession {
  * Fallback para usuarios sin sesión: canal "consumidor_final" (mismos productos, sin precios).
  * El canal "publico" no tiene gestión UI y no se usa como filtro de productos en la tienda.
  */
-const ROLES_MAYORISTA = ['distribuidor', 'local', 'mercha', 'fabricantes']
-
 /**
  * El precio a cobrar y el desglose de IVA salen del canal asignado, no del rol:
  * un usuario puede tener rol mayorista pero canal minorista (o viceversa) si un
@@ -126,7 +125,7 @@ export async function resolverCanalTienda(): Promise<{
       userSession = { nombre: profile.nombre, rol: profile.rol, canal }
 
       // Mayorista que completó el formulario pero aún no fue aprobado
-      if (ROLES_MAYORISTA.includes(profile.rol) && !profile.aprobado) {
+      if (esRolMayorista(profile.rol) && !profile.aprobado) {
         pendienteAprobacion = true
       }
     }

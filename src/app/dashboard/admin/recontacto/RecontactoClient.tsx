@@ -3,12 +3,7 @@
 import { useState, useTransition } from 'react'
 import { MessageCircle, Calendar, CheckCheck, Loader2 } from 'lucide-react'
 import { marcarContactado } from '@/app/actions/recontacto'
-
-const ROL_LABEL: Record<string, string> = {
-  distribuidor: 'Distribuidor',
-  local: 'Local',
-  mercha: 'Merchandising',
-}
+import { labelRol } from '@/lib/roles'
 
 interface Cliente {
   id: string
@@ -63,7 +58,7 @@ function ClienteRow({ c }: { c: Cliente }) {
             className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
             style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)' }}
           >
-            {ROL_LABEL[c.rol] ?? c.rol}
+            {labelRol(c.rol)}
           </span>
         </div>
         <p className="text-xs truncate" style={{ color: 'var(--color-acero-oscuro)' }}>
