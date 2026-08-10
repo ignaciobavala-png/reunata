@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { MapPin, Plus, Pencil, Trash2, Star, Loader2, X } from 'lucide-react'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { MapPin, Plus, Pencil, Trash2, Star, Loader2, X, Check } from 'lucide-react'
 import { crearDireccion, actualizarDireccion, eliminarDireccion, marcarPredeterminada } from '@/app/actions/direcciones'
 
 interface Direccion {
@@ -125,11 +125,23 @@ function DireccionForm({
   )
 }
 
-export function DireccionesClient({ direcciones: inicial }: { direcciones: Direccion[] }) {
-  const [direcciones, setDirecciones] = useState(inicial)
+export function DireccionesClient({ direcciones }: { direcciones: Direccion[] }) {
+  // Ojo: nada de useState(direcciones). La lista viene del server component y se
+  // refresca sola con el revalidatePath de las actions; copiarla a estado local
+  // congela el snapshot del montaje y la dirección nueva nunca aparece.
   const [modo, setModo] = useState<'idle' | 'nueva' | string>('idle') // string = id editando
   const [isPending, startTransition] = useTransition()
   const [confirmEliminar, setConfirmEliminar] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (avisoTimer.current) clearTimeout(avisoTimer.current) }, [])
+
+  function mostrarAviso(texto: string) {
+    setAviso(texto)
+    if (avisoTimer.current) clearTimeout(avisoTimer.current)
+    avisoTimer.current = setTimeout(() => setAviso(null), 4000)
+  }
 
   function labelDireccion(d: Direccion) {
     const partes = [d.calle, d.numero, d.piso].filter(Boolean).join(' ')
@@ -138,6 +150,16 @@ export function DireccionesClient({ direcciones: inicial }: { direcciones: Direc
 
   return (
     <div className="flex flex-col gap-4">
+      {aviso && (
+        <p
+          role="status"
+          className="flex items-center gap-2 text-sm rounded-xl border px-4 py-3"
+          style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}
+        >
+          <Check size={15} strokeWidth={2} /> {aviso}
+        </p>
+      )}
+
       {/* Lista */}
       {direcciones.map(d => (
         <div key={d.id} className="rounded-xl border p-5"
@@ -149,7 +171,10 @@ export function DireccionesClient({ direcciones: inicial }: { direcciones: Direc
               onCancel={() => setModo('idle')}
               onSave={async (fd) => {
                 const res = await actualizarDireccion(d.id, fd)
-                if (res.ok) setModo('idle')
+                if (res.ok) {
+                  setModo('idle')
+                  mostrarAviso('Dirección actualizada.')
+                }
                 return res
               }}
             />
@@ -175,7 +200,10 @@ export function DireccionesClient({ direcciones: inicial }: { direcciones: Direc
               <div className="flex items-center gap-1 flex-shrink-0">
                 {!d.predeterminada && (
                   <button
-                    onClick={() => startTransition(async () => { await marcarPredeterminada(d.id) })}
+                    onClick={() => startTransition(async () => {
+                      const res = await marcarPredeterminada(d.id)
+                      if (res.ok) mostrarAviso('Dirección marcada como predeterminada.')
+                    })}
                     disabled={isPending}
                     className="p-2 rounded-lg hover:bg-[var(--color-acero-brillo)] transition-colors"
                     title="Marcar como predeterminada"
@@ -191,9 +219,9 @@ export function DireccionesClient({ direcciones: inicial }: { direcciones: Direc
                 {confirmEliminar === d.id ? (
                   <div className="flex items-center gap-1.5 ml-1">
                     <button onClick={() => startTransition(async () => {
-                        await eliminarDireccion(d.id)
-                        setDirecciones(prev => prev.filter(x => x.id !== d.id))
+                        const res = await eliminarDireccion(d.id)
                         setConfirmEliminar(null)
+                        if (res.ok) mostrarAviso('Dirección eliminada.')
                       })}
                       className="text-xs font-medium px-2 py-1 rounded"
                       style={{ background: '#fee2e2', color: '#ef4444' }}>
@@ -223,7 +251,10 @@ export function DireccionesClient({ direcciones: inicial }: { direcciones: Direc
           onCancel={() => setModo('idle')}
           onSave={async (fd) => {
             const res = await crearDireccion(fd)
-            if (res.ok) setModo('idle')
+            if (res.ok) {
+              setModo('idle')
+              mostrarAviso('Dirección guardada. Ya la podés usar en el carrito.')
+            }
             return res
           }}
         />
