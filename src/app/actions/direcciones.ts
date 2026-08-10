@@ -45,7 +45,10 @@ export async function crearDireccion(formData: FormData) {
     alias, calle, numero, piso, localidad, provincia, codigo_postal, predeterminada,
   })
 
-  if (error) return { error: 'Error al guardar la dirección.' }
+  if (error) {
+    console.error('[direcciones] crear:', error)
+    return { error: 'Error al guardar la dirección.' }
+  }
   revalidatePath('/cuenta/direcciones')
   return { ok: true }
 }
@@ -82,7 +85,10 @@ export async function actualizarDireccion(id: string, formData: FormData) {
     .eq('id', id)
     .eq('cliente_id', clienteId)
 
-  if (error) return { error: 'Error al actualizar la dirección.' }
+  if (error) {
+    console.error('[direcciones] actualizar:', error)
+    return { error: 'Error al actualizar la dirección.' }
+  }
   revalidatePath('/cuenta/direcciones')
   return { ok: true }
 }
