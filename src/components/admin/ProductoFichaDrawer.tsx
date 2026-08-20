@@ -199,12 +199,22 @@ export function ProductoFichaDrawer({
         .from('multimedia')
         .upload(path, blob, { contentType: 'image/webp', upsert: false })
       if (uploadError) { console.error(uploadError); continue }
-      const orden = fotosOrdenadas.length + nuevasFotos.length
-      const { data: fotoData } = await supabase
+      // El orden sale de max(orden) + 1 en la DB, no del largo de la lista: con
+      // fotos borradas quedan huecos y la posición calculada choca con una ya usada.
+      const { data: ultima } = await supabase
+        .from('producto_fotos')
+        .select('orden')
+        .eq('producto_id', producto.id)
+        .order('orden', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const orden = (ultima?.orden ?? -1) + 1
+      const { data: fotoData, error: dbError } = await supabase
         .from('producto_fotos')
         .insert({ producto_id: producto.id, url: path, orden })
         .select()
         .single()
+      if (dbError) { console.error(dbError); await supabase.storage.from('multimedia').remove([path]); continue }
       if (fotoData) nuevasFotos.push(fotoData)
     }
 
@@ -250,20 +260,32 @@ export function ProductoFichaDrawer({
 
   async function reordenarFoto(foto: FotoItem, direccion: 'up' | 'down') {
     const idx = fotosOrdenadas.findIndex(f => f.id === foto.id)
-    const otra = direccion === 'up' ? fotosOrdenadas[idx - 1] : fotosOrdenadas[idx + 1]
-    if (!otra) return
-    await fetch('/api/multimedia', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id: foto.id, orden: otra.orden }),
-    })
-    const actualizadas = fotos.map(f => {
-      if (f.id === foto.id) return { ...f, orden: otra.orden }
-      if (f.id === otra.id) return { ...f, orden: foto.orden }
-      return f
-    })
+    const destino = direccion === 'up' ? idx - 1 : idx + 1
+    if (idx < 0 || destino < 0 || destino >= fotosOrdenadas.length) return
+
+    // Se manda la lista completa y el server reasigna 0..n-1. Intercambiar solo
+    // los dos valores de `orden` no servía cuando venían empatados: el swap
+    // dejaba todo igual y cada consulta los desempataba a su manera.
+    const reordenadas = [...fotosOrdenadas]
+    const movida = reordenadas[idx]
+    reordenadas[idx] = reordenadas[destino]
+    reordenadas[destino] = movida
+    const actualizadas = reordenadas.map((f, i) => ({ ...f, orden: i }))
+
+    const previas = fotos
     setFotos(actualizadas)
     onFotosChange?.(producto.id, actualizadas)
+
+    const res = await fetch('/api/multimedia', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+      body: JSON.stringify({ producto_id: producto.id, ids: actualizadas.map(f => f.id) }),
+    })
+    if (!res.ok) {
+      setFotos(previas)
+      onFotosChange?.(producto.id, previas)
+      mostrarToast('No se pudo guardar el orden. Probá de nuevo.')
+    }
   }
 
   // ── Canales handlers ──────────────────────────────────────────────────────

@@ -96,7 +96,6 @@ export function ProductoFotosDrawer({ producto, fotosIniciales, supabaseUrl, isM
       fd.append('file', blob, 'foto.webp')
       fd.append('producto_id', String(producto.id))
       fd.append('codigo_interno', producto.codigo_interno)
-      fd.append('orden', String(fotosOrdenadas.length + nuevasFotos.length))
 
       const res = await fetch('/api/multimedia', { method: 'POST', body: fd })
       if (!res.ok) { fallidas++; continue }
@@ -151,20 +150,32 @@ export function ProductoFotosDrawer({ producto, fotosIniciales, supabaseUrl, isM
 
   async function reordenarFoto(foto: FotoItem, direccion: 'up' | 'down') {
     const idx = fotosOrdenadas.findIndex(f => f.id === foto.id)
-    const otra = direccion === 'up' ? fotosOrdenadas[idx - 1] : fotosOrdenadas[idx + 1]
-    if (!otra) return
-    await fetch('/api/multimedia', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
-      body: JSON.stringify({ id: foto.id, orden: otra.orden }),
-    })
-    const actualizadas = fotos.map(f => {
-      if (f.id === foto.id) return { ...f, orden: otra.orden }
-      if (f.id === otra.id) return { ...f, orden: foto.orden }
-      return f
-    })
+    const destino = direccion === 'up' ? idx - 1 : idx + 1
+    if (idx < 0 || destino < 0 || destino >= fotosOrdenadas.length) return
+
+    // Se manda la lista completa y el server reasigna 0..n-1. Intercambiar solo
+    // los dos valores de `orden` no servía cuando venían empatados: el swap
+    // dejaba todo igual y cada consulta los desempataba a su manera.
+    const reordenadas = [...fotosOrdenadas]
+    const movida = reordenadas[idx]
+    reordenadas[idx] = reordenadas[destino]
+    reordenadas[destino] = movida
+    const actualizadas = reordenadas.map((f, i) => ({ ...f, orden: i }))
+
+    const previas = fotos
     setFotos(actualizadas)
     onFotosChange?.(producto.id, actualizadas)
+
+    const res = await fetch('/api/multimedia', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
+      body: JSON.stringify({ producto_id: producto.id, ids: actualizadas.map(f => f.id) }),
+    })
+    if (!res.ok) {
+      setFotos(previas)
+      onFotosChange?.(producto.id, previas)
+      mostrarToast('No se pudo guardar el orden. Probá de nuevo.')
+    }
   }
 
   return (

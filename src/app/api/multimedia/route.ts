@@ -23,9 +23,21 @@ export async function POST(request: Request) {
   const file = form.get('file') as File | null
   const productoId = Number(form.get('producto_id'))
   const codigo = (form.get('codigo_interno') as string | null)?.trim()
-  const orden = Number(form.get('orden'))
 
   if (!file || !productoId || !codigo) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+
+  // El orden lo decide el server: max(orden) + 1 del producto. Calcularlo en el
+  // cliente a partir del largo de la lista chocaba con las posiciones ya usadas
+  // cuando había fotos borradas (huecos), y dos fotos con el mismo orden se
+  // desempatan distinto en cada consulta.
+  const { data: ultima } = await admin
+    .from('producto_fotos')
+    .select('orden')
+    .eq('producto_id', productoId)
+    .order('orden', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const orden = (ultima?.orden ?? -1) + 1
 
   const path = `productos/${codigo}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.webp`
 
@@ -36,7 +48,7 @@ export async function POST(request: Request) {
 
   const { data: foto, error: dbError } = await admin
     .from('producto_fotos')
-    .insert({ producto_id: productoId, url: path, orden: Number.isFinite(orden) ? orden : 0 })
+    .insert({ producto_id: productoId, url: path, orden })
     .select()
     .single()
   if (dbError) {
@@ -63,6 +75,19 @@ export async function PATCH(request: Request) {
 
   const body = await request.json()
   const { id } = body
+
+  // Reordenar: llega la lista completa de ids del producto en el orden deseado
+  // y se reasignan las posiciones 0..n-1 en un solo statement.
+  if (Array.isArray(body.ids)) {
+    const productoId = Number(body.producto_id)
+    const ids = body.ids.map(Number)
+    if (!productoId || ids.some((n: number) => !Number.isFinite(n))) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    }
+    const { error } = await admin.rpc('reordenar_fotos', { p_producto_id: productoId, p_ids: ids })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
 
   const update: Record<string, unknown> = {}
   if ('orden' in body) update.orden = body.orden
