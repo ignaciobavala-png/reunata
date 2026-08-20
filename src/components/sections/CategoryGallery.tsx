@@ -19,7 +19,7 @@ export interface CategoriaHome {
   foto_url: string | null
 }
 
-type Foto = { url: string }
+type Foto = { url: string; orden: number | null; destacada: boolean | null }
 
 interface Props {
   initialCategorias?: CategoriaHome[]
@@ -51,17 +51,28 @@ export function CategoryGallery({ initialCategorias }: Props) {
       const { data: productos } = allKeys.length > 0
         ? await supabase
             .from('productos')
-            .select('id, categoria, producto_fotos(url)')
+            .select('id, categoria, producto_fotos(url, orden, destacada)')
             .eq('activo', true)
             .in('categoria', allKeys)
+            .order('id')
         : { data: [] }
 
+      // Las miniaturas de cada tarjeta las elige el admin con la estrellita
+      // ("Mostrar en home") del drawer de fotos, igual que el slider de
+      // destacados: primero las marcadas, y dentro de cada grupo por el `orden`
+      // que se fija con las flechas. Antes salian sin ordenar, o sea que las
+      // decidia Postgres y cambiaban solas despues de cada sync.
       const fotosMap: Record<number, string[]> = {}
       for (const cat of cats) {
         const keys: string[] = cat.categoria_keys ?? []
         fotosMap[cat.id] = (productos ?? [])
           .filter(p => keys.includes(p.categoria ?? ''))
-          .flatMap(p => (p.producto_fotos as Foto[] ?? []).map(f => f.url))
+          .flatMap(p => (p.producto_fotos as Foto[] ?? []))
+          .sort((a, b) => {
+            if (!!a.destacada !== !!b.destacada) return a.destacada ? -1 : 1
+            return (a.orden ?? 0) - (b.orden ?? 0)
+          })
+          .map(f => f.url)
           .slice(0, 4)
       }
 
