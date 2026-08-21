@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle, XCircle, Clock, ShoppingCart } from 'lucide-rea
 import { formatPrecio } from '@/lib/utils'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { esRolMayorista } from '@/lib/roles'
+import { CambiarEmailForm } from './CambiarEmailForm'
 
 const ESTADO_CREDITO: Record<string, { label: string; icon: React.ReactNode; bg: string; text: string }> = {
   pendiente:  { label: 'En revisión',  icon: <Clock size={13} />,        bg: '#fef9c322', text: '#854d0e' },
@@ -46,6 +47,9 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
   ])
 
   if (!perfil) notFound()
+
+  const { data: authUser } = await service.auth.admin.getUserById(id)
+  const proveedores = (authUser?.user?.identities ?? []).map(i => i.provider)
 
   const canal = Array.isArray(perfil.canales) ? (perfil.canales[0] ?? null) : perfil.canales
   const esMayorista = esRolMayorista(perfil.rol)
@@ -116,6 +120,9 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
               <p style={{ color: 'var(--foreground)' }}>{f.value}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-5 pt-4 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
+          <CambiarEmailForm clienteId={id} emailActual={perfil.email} proveedores={proveedores} />
         </div>
       </section>
 
