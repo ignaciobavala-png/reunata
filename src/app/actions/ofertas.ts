@@ -130,6 +130,11 @@ export async function toggleOferta(
   return { ok: true }
 }
 
+/**
+ * La estrella es la foto de portada: una sola por producto (índice único
+ * parcial en producto_fotos). Antes de marcar hay que bajar la de las demás,
+ * o el UPDATE choca contra el índice.
+ */
 export async function toggleDestacada(productoId: number, activo: boolean) {
   const supabase = createServiceClient()
   if (activo) {
@@ -140,6 +145,13 @@ export async function toggleDestacada(productoId: number, activo: boolean) {
       .order('orden')
       .limit(1)
     if (!fotos?.length) return { ok: false, error: 'Sin fotos' }
+    const { error: errorLimpiar } = await supabase
+      .from('producto_fotos')
+      .update({ destacada: false })
+      .eq('producto_id', productoId)
+      .eq('destacada', true)
+      .neq('id', fotos[0].id)
+    if (errorLimpiar) return { ok: false, error: errorLimpiar.message }
     const { error } = await supabase
       .from('producto_fotos')
       .update({ destacada: true })

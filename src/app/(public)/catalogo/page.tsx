@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
+import { ordenarFotos } from '@/lib/fotos'
 import { CatalogoDescargas } from './CatalogoDescargas'
 import { CatalogoView } from './CatalogoView'
 import { esRolInterno, esRolMayorista } from '@/lib/roles'
@@ -83,8 +84,7 @@ export default async function CatalogoPage({
     : { data: [] }
 
   const productos = (productosRaw ?? []).map(p => {
-    const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
-      .sort((a, b) => (b.destacada ? 1 : 0) - (a.destacada ? 1 : 0) || a.orden - b.orden)
+    const fotos = ordenarFotos((p.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
     const precioRaw = listaPrecio
       ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
       : null

@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import { ordenarFotos } from '@/lib/fotos'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { TodosClient } from './TodosClient'
 
@@ -29,7 +30,7 @@ export default async function TodosProductosPage() {
 
   const { data: rawProductos } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, atributos, moneda, iva, variantes, stock, stock_visible, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, atributos, moneda, iva, variantes, stock, stock_visible, created_at, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)')
     .eq('activo', true)
     .in('id', filterCanal)
     .order('titulo')
@@ -37,7 +38,7 @@ export default async function TodosProductosPage() {
   const esMayorista = esMayoristaPorCanal(user)
 
   const productos = (rawProductos ?? []).map(p => {
-    const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+    const fotos = ordenarFotos((p.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
     const precioRaw = mostrarPrecios && listaPrecio
       ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
       : null

@@ -10,6 +10,7 @@ import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
 import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
+import { ordenarFotos } from '@/lib/fotos'
 
 function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
   if (!esMayorista) return null
@@ -65,7 +66,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: producto } = await supabase
     .from('productos')
-    .select('id, titulo, codigo_interno, categoria, descripcion, descripcion_tecnica, atributos, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, variantes, producto_fotos(url, orden)')
+    .select('id, titulo, codigo_interno, categoria, descripcion, descripcion_tecnica, atributos, moneda, iva, stock, stock_visible, mostrar_stock, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, variantes, producto_fotos(url, orden, destacada)')
     .eq('id', productoId)
     .eq('activo', true)
     .single()
@@ -73,8 +74,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   if (!producto) notFound()
   if (idsCanal.length > 0 && !idsCanal.includes(producto.id)) notFound()
 
-  const fotos = ((producto.producto_fotos ?? []) as { url: string; orden: number }[])
-    .sort((a, b) => a.orden - b.orden)
+  const fotos = ordenarFotos((producto.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
 
   const precioRaw: number | null = mostrarPrecios && listaPrecio
     ? ((producto as Record<string, unknown>)[listaPrecio] as number | null) ?? null

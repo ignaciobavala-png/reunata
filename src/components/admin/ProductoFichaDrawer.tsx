@@ -232,14 +232,19 @@ export function ProductoFichaDrawer({
     if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files)
   }, []) // eslint-disable-line
 
+  // La estrella es la foto de portada: una sola por producto. Marcar una baja
+  // la que estuviera marcada antes (el server hace lo mismo).
   async function toggleDestacada(foto: FotoItem) {
     const nuevoValor = !foto.destacada
-    await fetch('/api/multimedia', {
+    const res = await fetch('/api/multimedia', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Is-Master': isMaster ? 'true' : 'false' },
       body: JSON.stringify({ id: foto.id, destacada: nuevoValor }),
     })
-    const actualizadas = fotos.map(f => f.id === foto.id ? { ...f, destacada: nuevoValor } : f)
+    if (!res.ok) return
+    const actualizadas = fotos.map(f =>
+      f.id === foto.id ? { ...f, destacada: nuevoValor } : nuevoValor ? { ...f, destacada: false } : f
+    )
     setFotos(actualizadas)
     onFotosChange?.(producto.id, actualizadas)
   }

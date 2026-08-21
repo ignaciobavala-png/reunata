@@ -661,6 +661,8 @@ export function ProductosListaClient({
                           })()}
                         </td>
 
+                        {/* En un producto inactivo se puede desmarcar pero no marcar:
+                            si no, lo que quedó tildado antes de la baja no hay forma de sacarlo. */}
                         {TAGS_VISIBLES.map(t => {
                           if (t.key === 'elegidos') {
                             const activo = destacadas.has(p.id)
@@ -669,7 +671,7 @@ export function ProductosListaClient({
                               <td key={t.key} className="px-3 py-2.5 text-center">
                                 <button
                                   onClick={() => handleToggleDestacada(p)}
-                                  disabled={cargando || !p.activo}
+                                  disabled={cargando || (!p.activo && !activo)}
                                   title={activo ? 'Quitar de Más elegidos' : 'Agregar a Más elegidos'}
                                   className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
                                   style={{
@@ -692,7 +694,7 @@ export function ProductosListaClient({
                               <td key={t.key} className="px-3 py-2.5 text-center">
                                 <button
                                   onClick={() => handleToggleNovedad(p)}
-                                  disabled={cargando || !p.activo}
+                                  disabled={cargando || (!p.activo && !activo)}
                                   title={activo ? 'Quitar de Novedades' : 'Agregar a Novedades'}
                                   className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
                                   style={{
@@ -715,7 +717,7 @@ export function ProductosListaClient({
                             <td key={t.key} className="px-3 py-2.5 text-center">
                               <button
                                 onClick={() => handleToggleOferta(t.key, p)}
-                                disabled={cargando || !p.activo}
+                                disabled={cargando || (!p.activo && !activo)}
                                 title={activo ? `Quitar de ${t.label}` : `Agregar a ${t.label}`}
                                 className="w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-all duration-150 disabled:opacity-40"
                                 style={{

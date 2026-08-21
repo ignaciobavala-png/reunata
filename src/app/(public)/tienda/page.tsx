@@ -19,6 +19,7 @@ import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import { ordenarFotos } from '@/lib/fotos'
 
 export default async function TiendaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
@@ -42,7 +43,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   if (busqueda) {
     const { data: resultados } = await supabase
       .from('productos')
-      .select(`id, titulo, codigo_interno, moneda, iva, variantes, stock, stock_visible, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)`)
+      .select(`id, titulo, codigo_interno, moneda, iva, variantes, stock, stock_visible, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)`)
       .eq('activo', true)
       .in('id', idsCanal.length > 0 ? idsCanal : [-1])
       .or(`titulo.ilike.%${busqueda}%,codigo_interno.ilike.%${busqueda}%`)
@@ -52,7 +53,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
     const esMayoristaSearch = esMayoristaPorCanal(user)
 
     const productosGrid = (resultados ?? []).map(p => {
-      const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+      const fotos = ordenarFotos((p.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
       const precioRaw = mostrarPrecios && listaPrecio
         ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
         : null
@@ -101,8 +102,9 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
-    .select('id, url, producto_id, orden, productos(titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
+    .select('id, url, producto_id, orden, productos!inner(titulo, codigo_interno, moneda, precio_lista3, precio_lista5)')
     .eq('destacada', true)
+    .eq('productos.activo', true)
     .in('producto_id', idsCanal.length > 0 ? idsCanal : [-1])
     .order('orden')
 

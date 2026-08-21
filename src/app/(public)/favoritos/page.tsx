@@ -8,6 +8,7 @@ import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import { ordenarFotos } from '@/lib/fotos'
 
 export const metadata: Metadata = {
   title: 'Favoritos — Reunata',
@@ -75,13 +76,13 @@ export default async function FavoritosPage() {
   if (idsValidos.length > 0) {
     const { data: prods } = await service
       .from('productos')
-      .select('id, titulo, codigo_interno, moneda, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+      .select('id, titulo, codigo_interno, moneda, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)')
       .in('id', idsValidos)
       .eq('activo', true)
       .order('titulo')
 
     productos = (prods ?? []).map(p => {
-      const fotos = ((p.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+      const fotos = ordenarFotos((p.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
       const precioRaw = mostrarPrecios && listaPrecio
         ? ((p as Record<string, unknown>)[listaPrecio] as number | null) ?? null
         : null

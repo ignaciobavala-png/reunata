@@ -9,6 +9,7 @@ import { TodosClient } from '@/app/(public)/tienda/todos/TodosClient'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import { ordenarFotos } from '@/lib/fotos'
 
 const SLUGS_ESPECIALES: Record<string, { nombre: string; subtitulo: string }> = {
   novedades:      { nombre: 'Novedades',    subtitulo: 'Los últimos productos incorporados al catálogo.' },
@@ -70,7 +71,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
     [key: string]: unknown
     producto_fotos: { url: string; orden: number; destacada?: boolean }[] | null
   }) {
-    const fotos = (p.producto_fotos ?? []).sort((a, b) => a.orden - b.orden)
+    const fotos = ordenarFotos(p.producto_fotos ?? [])
     const { precio, moneda } = aplicarTipoCambio(extraerPrecio(p as Record<string, unknown>), p.moneda ?? null, tipoCambioUsd)
     return {
       id: p.id,
@@ -116,8 +117,9 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
         query = query.order('created_at', { ascending: false }).limit(48)
       }
     } else {
-      // Buscar IDs de productos que tienen al menos una foto destacada,
-      // pero traer TODAS sus fotos para que mapProducto elija la primera por orden.
+      // Buscar IDs de productos que tienen la foto destacada (la estrella es
+      // una sola por producto), pero traer TODAS sus fotos para que
+      // mapProducto elija la portada con la misma regla que el resto del sitio.
       const { data: conDestacada } = await supabase
         .from('producto_fotos')
         .select('producto_id')
@@ -171,7 +173,7 @@ export default async function CategoriaProductosPage({ params }: { params: Promi
 
   const { data: productos } = await supabase
     .from('productos')
-    .select(`id, titulo, codigo_interno, variantes, ${precioSelect}, producto_fotos(url, orden)`)
+    .select(`id, titulo, codigo_interno, variantes, ${precioSelect}, producto_fotos(url, orden, destacada)`)
     .eq('activo', true)
     .in('id', filterCanal)
     .in('categoria', categoriaKeys)

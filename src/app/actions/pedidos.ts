@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { supabaseImg } from '@/lib/images'
+import { ordenarFotos } from '@/lib/fotos'
 import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/lib/enviopack'
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 
@@ -568,7 +569,7 @@ export async function getItemsParaRecomprar(
   const [{ data: productos }, { data: pcRows }, { data: tcRow }] = await Promise.all([
     service
       .from('productos')
-      .select('id, titulo, codigo_interno, moneda, iva, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden)')
+      .select('id, titulo, codigo_interno, moneda, iva, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)')
       .in('id', ids)
       .eq('activo', true),
     service
@@ -606,7 +607,7 @@ export async function getItemsParaRecomprar(
     if (disponible !== null) cantidad = Math.min(cantidad, Math.floor(disponible / multiplo) * multiplo)
     if (cantidad <= 0) { omitidos++; continue }
 
-    const fotos = ((prod.producto_fotos ?? []) as { url: string; orden: number }[]).sort((a, b) => a.orden - b.orden)
+    const fotos = ordenarFotos((prod.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
     items.push({
       productoId: prod.id,
       itemKey: `${prod.id}:${linea.variante ?? ''}`,

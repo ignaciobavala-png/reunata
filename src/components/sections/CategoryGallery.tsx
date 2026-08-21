@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabaseImg } from '@/lib/images'
+import { ordenarFotos } from '@/lib/fotos'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
@@ -65,13 +66,11 @@ export function CategoryGallery({ initialCategorias }: Props) {
       const fotosMap: Record<number, string[]> = {}
       for (const cat of cats) {
         const keys: string[] = cat.categoria_keys ?? []
-        fotosMap[cat.id] = (productos ?? [])
-          .filter(p => keys.includes(p.categoria ?? ''))
-          .flatMap(p => (p.producto_fotos as Foto[] ?? []))
-          .sort((a, b) => {
-            if (!!a.destacada !== !!b.destacada) return a.destacada ? -1 : 1
-            return (a.orden ?? 0) - (b.orden ?? 0)
-          })
+        fotosMap[cat.id] = ordenarFotos(
+          (productos ?? [])
+            .filter(p => keys.includes(p.categoria ?? ''))
+            .flatMap(p => (p.producto_fotos as Foto[] ?? []))
+        )
           .map(f => f.url)
           .slice(0, 4)
       }

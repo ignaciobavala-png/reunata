@@ -93,7 +93,26 @@ export async function PATCH(request: Request) {
   if ('orden' in body) update.orden = body.orden
   if ('destacada' in body) update.destacada = body.destacada
 
-  await admin.from('producto_fotos').update(update).eq('id', id)
+  // La estrella es la foto de portada del producto: una sola (índice único
+  // parcial). Al marcar una hay que bajar la anterior, o el UPDATE choca.
+  if (body.destacada === true) {
+    const { data: foto } = await admin
+      .from('producto_fotos')
+      .select('producto_id')
+      .eq('id', id)
+      .maybeSingle()
+    if (!foto) return NextResponse.json({ error: 'Foto inexistente' }, { status: 404 })
+    const { error: errorLimpiar } = await admin
+      .from('producto_fotos')
+      .update({ destacada: false })
+      .eq('producto_id', foto.producto_id)
+      .eq('destacada', true)
+      .neq('id', id)
+    if (errorLimpiar) return NextResponse.json({ error: errorLimpiar.message }, { status: 500 })
+  }
+
+  const { error } = await admin.from('producto_fotos').update(update).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }
