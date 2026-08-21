@@ -51,7 +51,11 @@ export function ProductSlider({ fotos, esMayorista = false, precioIncluyeIva }: 
 
       <FadeIn delay={0.1}>
         <div ref={emblaRef} className="overflow-hidden">
-          <div className="flex gap-3 pl-6 md:pl-10 pr-6">
+          {/* items-start: la tarjeta es un <button>, y el UA stylesheet le centra
+              el contenido verticalmente. Estirado por el flex a la altura de la
+              tarjeta más alta, el que tiene título de una sola línea aparecía
+              con la foto ~8px más abajo que las otras. */}
+          <div className="flex items-start gap-3 pl-6 md:pl-10 pr-6">
             {fotos.map((foto) => {
               const imgUrl = supabaseImg(foto.supabaseUrl, foto.url, 240, { height: 320 })
               return (
@@ -81,7 +85,9 @@ export function ProductSlider({ fotos, esMayorista = false, precioIncluyeIva }: 
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] tracking-widest uppercase text-[var(--foreground)] mb-1">
+                  {/* min-h de dos líneas: sin esto un título corto sube el
+                      código y el precio y las tarjetas quedan escalonadas. */}
+                  <p className="text-[10px] tracking-widest uppercase text-[var(--foreground)] mb-1 min-h-8">
                     {foto.titulo}
                   </p>
                   <p className="text-[10px] tracking-wider text-[var(--color-acero-oscuro)]">
