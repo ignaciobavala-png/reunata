@@ -1,5 +1,11 @@
 @AGENTS.md
 
+## Pendientes — Resend (mails transaccionales)
+
+- Resend **instalado** (23/08): `resend@6.22.0` + `react-email@6.9.2`, `src/lib/resend.ts` con lazy init, script `pnpm email`, dir `emails/`.
+- **Falta `RESEND_API_KEY`** en `.env.local` (está vacía) y en Vercel. Se conecta esta semana.
+- Con la key: configurar SMTP en Supabase Auth (`smtp.resend.com`) para que el mail de recuperación llegue a clientes reales, y pasar el flujo a `token_hash` (hoy PKCE en `/auth/callback`, rompe si el link se abre en otro dispositivo).
+
 ## Brain-data — leer al inicio de cada sesión nueva
 
 Al comenzar una sesión de trabajo con este proyecto, leer estos archivos del vault personal antes de responder cualquier consulta técnica:
