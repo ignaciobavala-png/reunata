@@ -39,25 +39,31 @@ export async function registrarse(data: RegistroInput) {
     return { error: 'Elegí un tipo de cliente válido.' }
   }
 
-  const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+  // Alta sin mail de verificación (24/08). El SMTP nativo de Supabase solo entrega
+  // a las direcciones del equipo del proyecto y tiene un rate limit de un puñado de
+  // mails por hora, así que el link de confirmación no le llegaba a ningún cliente
+  // real: se registraban y quedaban colgados en "revisá tu email". Quien valida es
+  // el panel: el mayorista no opera hasta que un admin lo aprueba (`aprobado`) y el
+  // minorista valida su mail implícitamente cuando recibe la confirmación del pedido.
+  // Cuando el dominio esté verificado y Resend sea el SMTP, se puede volver a signUp().
+  const { error: createError, data: createData } = await serviceSupabase.auth.admin.createUser({
     email: data.email,
     password: data.password,
-    options: {
-      data: {
-        rol: data.rol,
-        nombre: data.nombre,
-      },
+    email_confirm: true,
+    user_metadata: {
+      rol: data.rol,
+      nombre: data.nombre,
     },
   })
 
-  if (signUpError) {
-    if (signUpError.message.includes('already')) {
+  if (createError) {
+    if (createError.message.includes('already') || createError.code === 'email_exists') {
       return { error: 'Este email ya está registrado.' }
     }
-    return { error: signUpError.message }
+    return { error: createError.message }
   }
 
-  const userId = signUpData.user?.id
+  const userId = createData.user?.id
   if (!userId) {
     return { error: 'Error al crear la cuenta. Intentalo de nuevo.' }
   }
@@ -93,10 +99,18 @@ export async function registrarse(data: RegistroInput) {
     return { error: 'Cuenta creada pero hubo un error al guardar los datos.' }
   }
 
-  if (signUpData.session) {
-    const destino = data.next?.startsWith('/') ? data.next : '/'
-    redirect(destino)
+  // createUser no deja sesión (es admin API), así que se loguea acá con el cliente
+  // normal para que escriba las cookies de sesión.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: data.email,
+    password: data.password,
+  })
+
+  if (signInError) {
+    // La cuenta quedó creada: que entre a mano en vez de reintentar el registro.
+    return { error: 'Cuenta creada. Ingresá con tu email y contraseña.' }
   }
 
-  redirect('/registro?confirmar=1')
+  const destino = data.next?.startsWith('/') ? data.next : '/'
+  redirect(destino)
 }
