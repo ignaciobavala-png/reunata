@@ -8,6 +8,7 @@ import { supabaseImg } from '@/lib/images'
 import { ordenarFotos } from '@/lib/fotos'
 import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/lib/enviopack'
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
+import { ajusteMetodoPago, pctAjusteMetodoPago } from '@/lib/iva'
 
 interface LineaPedido {
   productoId: number
@@ -106,10 +107,6 @@ export async function crearPedidoBorrador(
     .single()
 
   const listaPrecio = canal?.lista_precios ?? 'precio_lista3'
-  // precio_lista5 (Emprendedores, minorista) ya trae IVA incluido: el recargo "en
-  // blanco" (Factura A) NO aplica porque el IVA ya está en el precio; solo lista3
-  // (neto) suma ese recargo. Sin este gate, Emprendedores paga IVA dos veces.
-  const precioIncluyeIva = listaPrecio === 'precio_lista5'
   // El envío desde el carrito solo aplica al canal Emprendedores; ignorar el resto.
   const envioParams = canal?.slug === 'emprendedores' ? opciones?.envio : undefined
 
@@ -202,23 +199,15 @@ export async function crearPedidoBorrador(
   const ajusteVolumenCanal = tramoVol ? -Math.round(basePostAutogestion * tramoVol.pct / 100) : 0
   const basePostVolumenCanal = basePostAutogestion + ajusteVolumenCanal
 
-  // 3) Descuento / recargo por método de pago — sobre el precio ya descontado por
-  // web y volumen (mismo criterio que el cliente)
+  // 3) Descuento por método de pago — sobre el precio ya descontado por web y
+  // volumen. Mismo helper que usa el carrito: cuando cada lado tenía su propia
+  // cuenta, el carrito mostraba +21% en e-cheq/cheque y acá se guardaba sin él,
+  // así que el cliente veía un total y quedaba registrado otro.
   const medioPagoOriginal = opciones?.medioPago
-  let ajusteMetodoPago = 0
-  let pctMetodoPago = 0
-  if (medioPagoOriginal === 'efectivo' && (canalConfig?.desc_efectivo_pct ?? 0) > 0) {
-    pctMetodoPago = canalConfig!.desc_efectivo_pct!
-    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
-  } else if (medioPagoOriginal === 'transferencia_negro' && (canalConfig?.desc_transferencia_pct ?? 0) > 0) {
-    pctMetodoPago = canalConfig!.desc_transferencia_pct!
-    ajusteMetodoPago = -Math.round(basePostVolumenCanal * pctMetodoPago / 100)
-  } else if (medioPagoOriginal === 'transferencia_blanco' && !precioIncluyeIva && (canalConfig?.recargo_transf_blanco_pct ?? 0) > 0) {
-    pctMetodoPago = canalConfig!.recargo_transf_blanco_pct!
-    ajusteMetodoPago = Math.round(basePostVolumenCanal * pctMetodoPago / 100)
-  }
+  const pctMetodoPago = Math.abs(pctAjusteMetodoPago(medioPagoOriginal, canalConfig))
+  const ajusteMedioPago = ajusteMetodoPago(basePostVolumenCanal, medioPagoOriginal, canalConfig)
 
-  const totalMercaderia = basePostVolumenCanal + ajusteMetodoPago
+  const totalMercaderia = basePostVolumenCanal + ajusteMedioPago
 
   // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
   // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
@@ -248,8 +237,8 @@ export async function crearPedidoBorrador(
   const notaPartes: string[] = []
   if (pctAutogestion > 0) notaPartes.push(`Desc. Web ${pctAutogestion}%`)
   if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`Desc. Vol ${tramoVol.pct}%`)
-  if (ajusteMetodoPago !== 0) {
-    notaPartes.push(`${ajusteMetodoPago < 0 ? 'Desc.' : 'Recargo'} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal} ${pctMetodoPago}%`)
+  if (ajusteMedioPago !== 0) {
+    notaPartes.push(`${ajusteMedioPago < 0 ? 'Desc.' : 'Recargo'} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal} ${pctMetodoPago}%`)
   }
   const descuento_sugerido = pctAutogestion > 0 ? pctAutogestion : null
   const descuento_nota = notaPartes.length > 0 ? notaPartes.join(', ') : null

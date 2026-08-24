@@ -10,6 +10,7 @@ import { formatPrecio } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toggleFavorito } from '@/app/actions/favoritos'
+import { netoDesdeBruto } from '@/lib/iva'
 
 interface ProductoPublico {
   id: number
@@ -38,18 +39,15 @@ export function ProductGridPublic({
   mostrarPrecios = false,
   estaLogueado = false,
   esMayorista = false,
-  precioIncluyeIva,
 }: {
   productos: ProductoPublico[]
   nombreCategoria: string
   mostrarPrecios?: boolean
   estaLogueado?: boolean
   esMayorista?: boolean
-  precioIncluyeIva?: boolean
 }) {
   // Si no se pasa, se asume el comportamiento viejo (minorista con IVA, mayorista neto).
   // Emprendedores es mayorista pero cobra lista5 (con IVA) → el caller lo pasa explícito.
-  const incluyeIva = precioIncluyeIva ?? !esMayorista
   const { add, items } = useCartStore()
   const [agregados, setAgregados] = useState<Set<number>>(new Set())
   const [favoritos, setFavoritos] = useState<Set<number>>(new Set())
@@ -227,11 +225,12 @@ export function ProductGridPublic({
                   {p.codigo_interno}
                 </p>
                 {p.precio != null && (() => {
-                  // incluyeIva (lista): lista5 ya trae IVA → neto=precio/f, conIva=precio.
-                  // esMayorista (presentación): neto en grande + "IVA incluido" vs. final + "sin impuestos".
-                  const f = 1 + (p.iva ?? 21) / 100
-                  const neto = incluyeIva ? Math.round(p.precio / f) : p.precio
-                  const conIva = incluyeIva ? p.precio : Math.round(p.precio * f)
+                  // El precio de lista SIEMPRE trae el IVA incluido (ver lib/iva.ts):
+                  // el neto se despeja dividiendo, nunca se multiplica.
+                  // esMayorista es solo presentación: neto en grande + "IVA incluido"
+                  // vs. final + "sin impuestos".
+                  const conIva = p.precio
+                  const neto = netoDesdeBruto(p.precio, p.iva)
                   return esMayorista ? (
                     <>
                       <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>

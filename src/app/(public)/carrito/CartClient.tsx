@@ -16,6 +16,7 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
 import { resolverTramoVolumen, tramosPendientes } from '@/lib/descuento-volumen'
 import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
+import { netoDesdeBruto, ajusteMetodoPago } from '@/lib/iva'
 
 
 function WhatsAppIcon() {
@@ -329,10 +330,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // minorista. Gastón cobra siempre el envío — para este canal NO hay envío gratis
   // (pedido del tester 2026-07-20).
   const esEmprendedor = esMayorista && user?.canalSlug === 'emprendedores'
-  // ¿El precio del carrito ya incluye IVA? lista5 (minorista, guest, Emprendedores) sí;
-  // lista3 (mayoristas reales) es neto. Emprendedores es el único mayorista con IVA
-  // incluido: sin este flag el desglose y el recargo Factura A cuentan el IVA dos veces.
-  const precioIncluyeIva = !esMayorista || esEmprendedor
 
   // Cargar direcciones — solo mayoristas
   useEffect(() => {
@@ -559,14 +556,12 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   const totalGeneral = total()
 
-  // Desglose IVA — para minoristas y guests el precio del carrito ya incluye IVA;
-  // para mayoristas el precio es neto, así que el Precio Bruto ES el total
-  const totalSinIVA = (!esMayorista)
-    ? items.reduce((acc, i) => {
-        const rate = ivaRates[i.productoId] ?? 0.21
-        return acc + Math.round(i.precio / (1 + rate)) * i.cantidad
-      }, 0)
-    : totalGeneral
+  // Desglose IVA — el precio de lista SIEMPRE incluye IVA (ver lib/iva.ts), tanto
+  // para minoristas como para mayoristas. El neto se despeja dividiendo.
+  const totalSinIVA = items.reduce(
+    (acc, i) => acc + netoDesdeBruto(i.precio, ivaRates[i.productoId] * 100) * i.cantidad,
+    0,
+  )
 
   // ── Cascada de descuentos (orden del tester): 1) WEB, 2) Volumen, 3) forma de pago ──
   // El total final no depende del orden (dos descuentos multiplicativos dan lo mismo),
@@ -635,55 +630,19 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     ? METODOS_SIN_IVA.filter(k => (reglas.pagos_habilitados ?? {})[k]?.activo)
     : []
 
-  // Recargo IVA (Factura A) por método — los pagos "con IVA" suman este % al total.
-  // transferencia_blanco default 21 por retrocompat; el resto arranca en 0 hasta
-  // que el canal lo configure.
-  // Si el precio de la lista ya incluye IVA (Emprendedores/lista5), el recargo "en
-  // blanco" no suma nada: el IVA ya está en el precio. Solo lista3 (neto) lo aplica.
-  const recargoConIvaPct: Record<string, number> = precioIncluyeIva
-    ? { transferencia_blanco: 0, echeq_al_dia: 0, cheque_fisico_al_dia: 0, echeq_propio: 0 }
-    : {
-        transferencia_blanco: reglas?.recargo_transf_blanco_pct ?? 21,
-        echeq_al_dia:         reglas?.recargo_echeq_al_dia_pct ?? 0,
-        cheque_fisico_al_dia: reglas?.recargo_cheque_al_dia_pct ?? 0,
-        echeq_propio:         reglas?.recargo_echeq_propio_pct ?? 0,
-      }
-
-  // Descuento/recargo por método de pago — se aplica sobre el precio ya descontado por web
-  const ajustePct = metodoPago && reglas
-    ? metodoPago === 'efectivo'
-      ? (reglas.desc_efectivo_pct ?? 0)
-      : metodoPago === 'transferencia_negro'
-        ? (reglas.desc_transferencia_pct ?? 0)
-        : (recargoConIvaPct[metodoPago] ?? 0)
-    : 0
-  const ajuste = metodoPago && reglas
-    ? (metodoPago === 'efectivo' || metodoPago === 'transferencia_negro')
-      ? -Math.round(basePostDescuentos * ajustePct / 100)
-      : metodoPago in recargoConIvaPct
-        ? Math.round(basePostDescuentos * ajustePct / 100)
-        : 0
-    : 0
+  // Ajuste por forma de pago — mismo helper que usa el server, para que el total
+  // que se muestra sea exactamente el que se guarda en el pedido.
+  // Los métodos "con Factura A" no llevan recargo: su 21% era el IVA, y el IVA ya
+  // está en el precio de lista. Si el negocio quiere que pagar sin factura salga
+  // más barato, se carga como descuento en los métodos sin factura.
+  const ajuste = ajusteMetodoPago(basePostDescuentos, metodoPago, reglas)
 
   // ── Presentación mayorista: "Total Bruto" (neto) + "Total IVA incluido" ───
-  // Cada ítem puede traer el precio con IVA (lista5: Emprendedores) o neto (lista3),
-  // y distinta alícuota, así que la mezcla se resuelve por ítem y el resultado se
-  // reescala sobre basePostDescuentos (que está en la misma unidad que totalGeneral).
-  // Los montos cobrados no cambian: es solo cómo se muestra el desglose.
-  const sumaNetaMayorista = esMayorista
-    ? items.reduce((acc, i) => {
-        const rate = ivaRates[i.productoId] ?? 0.21
-        const neto = precioIncluyeIva ? Math.round(i.precio / (1 + rate)) : i.precio
-        return acc + neto * i.cantidad
-      }, 0)
-    : 0
-  const sumaConIvaMayorista = esMayorista
-    ? items.reduce((acc, i) => {
-        const rate = ivaRates[i.productoId] ?? 0.21
-        const conIva = precioIncluyeIva ? i.precio : Math.round(i.precio * (1 + rate))
-        return acc + conIva * i.cantidad
-      }, 0)
-    : 0
+  // El precio de lista ya es el "IVA incluido"; el neto se despeja por ítem (cada
+  // uno puede tener distinta alícuota) y se reescala sobre basePostDescuentos, que
+  // está en la misma unidad que totalGeneral.
+  const sumaNetaMayorista = esMayorista ? totalSinIVA : 0
+  const sumaConIvaMayorista = esMayorista ? totalGeneral : 0
   // El envío del emprendedor se suma como monto plano sobre la mercadería (no lleva IVA).
   const totalBrutoMayorista = (totalGeneral > 0
     ? Math.round(basePostDescuentos * (sumaNetaMayorista / totalGeneral))
@@ -695,12 +654,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón.
   // Incluye el envío del emprendedor (costoEnvio es 0 para el resto de los mayoristas).
   function totalMayoristaConMetodo(k: string): number {
-    if (!reglas) return basePostDescuentos + costoEnvio
-    if (k === 'efectivo')            return basePostDescuentos - Math.round(basePostDescuentos * (reglas.desc_efectivo_pct ?? 0) / 100) + costoEnvio
-    if (k === 'transferencia_negro') return basePostDescuentos - Math.round(basePostDescuentos * (reglas.desc_transferencia_pct ?? 0) / 100) + costoEnvio
-    if (k in recargoConIvaPct)       return basePostDescuentos + Math.round(basePostDescuentos * recargoConIvaPct[k] / 100) + costoEnvio
-    return basePostDescuentos + costoEnvio
+    return basePostDescuentos + ajusteMetodoPago(basePostDescuentos, k, reglas) + costoEnvio
   }
+  // Referencia para pintar en verde los métodos más baratos que el de Factura A.
+  // Los métodos con factura no llevan ajuste, así que esto es la base pelada.
   const totalBtnConIva = totalMayoristaConMetodo('transferencia_blanco')
 
   // % de descuento a mostrar junto al nombre de cada método mayorista
@@ -709,16 +666,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     transferencia_negro: reglas?.desc_transferencia_pct ?? 0,
   }
 
-  // Ajuste a reflejar en el Total: si todavía no eligió forma de pago, usar el ajuste
-  // representativo del tipo de facturación (Con IVA / Sin IVA) ya seleccionado, para
-  // que el Total cambie sin necesidad de marcar una forma de pago primero.
-  // Se resta costoEnvio porque totalBtnConIva ya lo incluye; el envío se vuelve a
-  // sumar en totalFinal, así que acá ajusteEfectivo debe quedar solo con el recargo.
-  const ajusteEfectivo = metodoPago
-    ? ajuste
-    : facturaIva === 'con'
-      ? totalBtnConIva - basePostDescuentos - costoEnvio
-      : 0
+  // Ajuste a reflejar en el Total. Sin forma de pago elegida no hay ajuste que
+  // mostrar: elegir "con Factura A" ya no cambia el precio, porque el IVA viene
+  // en el precio de lista (antes acá se sumaba el 21% por segunda vez).
+  const ajusteEfectivo = metodoPago ? ajuste : 0
 
   // Base para evaluar mínimo de compra / envío gratis: subtotal − desc web/volumen,
   // SIN el ajuste por forma de pago (pedido del tester 2026-07, alineado con el server).
@@ -753,8 +704,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   // Total final si el minorista eligiera ese método — se muestra en $ dentro de cada botón
   function totalMinoristaConMetodo(metodo: string): number {
-    const pct = metodo === 'transferencia' ? (reglas?.desc_transferencia_pct ?? 0) : 0
-    const base = basePostDescuentos - Math.round(basePostDescuentos * pct / 100)
+    const base = basePostDescuentos + ajusteMetodoPago(basePostDescuentos, metodo, reglas)
     // El envío gratis se evalúa sobre la base SIN el descuento por forma de pago,
     // igual que el server — así el umbral no cambia según el método elegido
     const gratis = envioSeleccionado !== null && (

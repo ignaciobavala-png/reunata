@@ -11,6 +11,7 @@ import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
 import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 import { ordenarFotos } from '@/lib/fotos'
+import { netoDesdeBruto } from '@/lib/iva'
 
 function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
   if (!esMayorista) return null
@@ -59,7 +60,6 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = await resolverCanalTienda()
   const esMayorista = esMayoristaPorCanal(user)
   // lista5 (Emprendedores/minorista) ya incluye IVA; lista3 (mayorista) es neto.
-  const precioIncluyeIva = listaPrecio === 'precio_lista5'
   if (pendienteAprobacion) return <PendingApproval nombre={user?.nombre} />
 
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
@@ -126,14 +126,12 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             </h1>
 
             {precio != null && (() => {
-              // Dos ejes independientes:
-              //  - precioIncluyeIva (lista): lista5 ya trae IVA → neto = precio/f, conIva = precio.
-              //    lista3 es neto → neto = precio, conIva = precio×f.
-              //  - esMayorista (presentación): mayorista ve el neto en grande + "IVA incluido";
-              //    minorista ve el precio final con IVA + "sin impuestos".
-              const f = 1 + ((producto.iva as number | null) ?? 21) / 100
-              const neto = precioIncluyeIva ? Math.round(precio / f) : precio
-              const conIva = precioIncluyeIva ? precio : Math.round(precio * f)
+              // El precio de lista SIEMPRE trae el IVA incluido (ver lib/iva.ts):
+              // el neto se despeja dividiendo, nunca se multiplica. esMayorista es
+              // solo presentación: mayorista ve el neto en grande + "IVA incluido";
+              // minorista ve el precio final con IVA + "sin impuestos".
+              const conIva = precio
+              const neto = netoDesdeBruto(precio, producto.iva as number | null)
               return (
                 <div className="mb-2">
                   <p

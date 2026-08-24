@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseImg } from '@/lib/images'
 import { formatPrecio } from '@/lib/utils'
+import { netoDesdeBruto } from '@/lib/iva'
 
 export interface FotoDestacada {
   id: number
@@ -20,9 +21,8 @@ export interface FotoDestacada {
   supabaseUrl: string
 }
 
-export function ProductSlider({ fotos, esMayorista = false, precioIncluyeIva }: { fotos: FotoDestacada[]; esMayorista?: boolean; precioIncluyeIva?: boolean }) {
+export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDestacada[]; esMayorista?: boolean }) {
   // Sin prop → comportamiento viejo (minorista con IVA, mayorista neto).
-  const incluyeIva = precioIncluyeIva ?? !esMayorista
   const [emblaRef] = useEmblaCarousel({
     align: 'start',
     containScroll: 'trimSnaps',
@@ -94,11 +94,10 @@ export function ProductSlider({ fotos, esMayorista = false, precioIncluyeIva }: 
                     {foto.codigo_interno}
                   </p>
                   {foto.precio != null && (() => {
-                    // incluyeIva (lista): lista5 ya trae IVA → neto=precio/f, conIva=precio.
-                    // esMayorista (presentación): neto + "IVA incluido" vs. final + "sin impuestos".
-                    const f = 1 + (foto.iva ?? 21) / 100
-                    const neto = incluyeIva ? Math.round(foto.precio / f) : foto.precio
-                    const conIva = incluyeIva ? foto.precio : Math.round(foto.precio * f)
+                    // El precio de lista SIEMPRE trae el IVA incluido (ver lib/iva.ts):
+                    // el neto se despeja dividiendo, nunca se multiplica.
+                    const conIva = foto.precio
+                    const neto = netoDesdeBruto(foto.precio, foto.iva)
                     return esMayorista ? (
                       <>
                         <p className="text-sm font-medium mt-1" style={{ color: 'var(--foreground)' }}>

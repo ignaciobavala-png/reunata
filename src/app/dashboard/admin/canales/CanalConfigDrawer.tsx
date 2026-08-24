@@ -298,36 +298,6 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
             />
           </div>
         )}
-        {m.key === 'transferencia_blanco' && pagos['transferencia_blanco']?.activo && (
-          <div className="ml-12 mt-1">
-            <NumField
-              label="IVA incluido"
-              value={form.recargo_transf_blanco_pct}
-              onChange={v => set('recargo_transf_blanco_pct', v ?? 21)}
-              suffix="%"
-            />
-          </div>
-        )}
-        {m.key === 'echeq_al_dia' && pagos['echeq_al_dia']?.activo && (
-          <div className="ml-12 mt-1">
-            <NumField
-              label="IVA incluido"
-              value={form.recargo_echeq_al_dia_pct}
-              onChange={v => set('recargo_echeq_al_dia_pct', v ?? 0)}
-              suffix="%"
-            />
-          </div>
-        )}
-        {m.key === 'cheque_fisico_al_dia' && pagos['cheque_fisico_al_dia']?.activo && (
-          <div className="ml-12 mt-1">
-            <NumField
-              label="IVA incluido"
-              value={form.recargo_cheque_al_dia_pct}
-              onChange={v => set('recargo_cheque_al_dia_pct', v ?? 0)}
-              suffix="%"
-            />
-          </div>
-        )}
       </div>
     )
   }
@@ -426,6 +396,11 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
                 <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Formas de pago con IVA (Factura A)
                 </p>
+                <p className="text-[11px] leading-snug mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Se cobran al precio de lista, que ya viene con el IVA incluido desde Gesu.
+                  Si querés que pagar sin factura salga más barato, cargá ese descuento
+                  abajo, en las formas de pago sin IVA.
+                </p>
                 {PAGOS_MAYORISTA_CONTADO_CON_IVA.map(renderPagoContado)}
                 <p className="text-xs font-medium mt-3" style={{ color: 'var(--color-acero-oscuro)' }}>
                   Formas de pago sin IVA
@@ -442,16 +417,6 @@ const isMayorista = canal.categoria_comercial !== 'minorista'
                       activo={pagos[m.key]?.activo ?? false}
                       onChange={v => togglePago(m.key, v)}
                     />
-                    {m.key === 'echeq_propio' && pagos['echeq_propio']?.activo && (
-                      <div className="ml-12 mt-1">
-                        <NumField
-                          label="IVA incluido"
-                          value={form.recargo_echeq_propio_pct}
-                          onChange={v => set('recargo_echeq_propio_pct', v ?? 0)}
-                          suffix="%"
-                        />
-                      </div>
-                    )}
                   </div>
                 ))}
 
