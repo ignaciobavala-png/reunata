@@ -10,6 +10,7 @@ import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
+import { whatsappLink } from '@/lib/whatsapp'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 
@@ -70,9 +71,9 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
     })
   )
 
-  const waNumber = cfg['whatsapp_numero'] || '5491132720974'
-  const waTexto = encodeURIComponent(
-    `Hola, acabo de enviar el pedido #${pedido.numero} por ${formatPrecio(Number(pedido.total_usd))}. ¿Pueden confirmarlo?`
+  const waPedidoLink = whatsappLink(
+    `Hola, acabo de enviar el pedido #${pedido.numero} por ${formatPrecio(Number(pedido.total_usd))}. ¿Pueden confirmarlo?`,
+    cfg['whatsapp_ventas'],
   )
 
   return (
@@ -214,7 +215,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
           <div className="h-px" style={{ background: 'var(--color-acero-claro)' }} />
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href={`https://wa.me/${waNumber}?text=${waTexto}`}
+              href={waPedidoLink}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"

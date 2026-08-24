@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CuentasBancariasManager } from './CuentasBancariasManager'
 import { crearCuentaSinIva, actualizarCuentaSinIva, eliminarCuentaSinIva } from '@/app/actions/cuentas-sin-iva'
 import { crearCuentaConIva, actualizarCuentaConIva, eliminarCuentaConIva } from '@/app/actions/cuentas-con-iva'
+import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -52,6 +53,7 @@ export default async function ConfiguracionPage({
             'pedido_monto_minimo', 'pedido_dias_vencimiento',
             'banco_imagenes_drive_url',
             'tipo_cambio_usd',
+            'whatsapp_ventas',
           ]
           const rows = claves.map(clave => ({ clave, valor: (formData.get(clave) as string) ?? '' }))
           const { error } = await sb.from('configuracion').upsert(rows, { onConflict: 'clave' })
@@ -87,6 +89,27 @@ export default async function ConfiguracionPage({
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Contacto */}
+        <section
+          className="rounded-xl border p-6 mb-6"
+          style={{ background: 'white', borderColor: 'var(--color-acero-claro)' }}
+        >
+          <h2 className="text-base font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            WhatsApp de ventas
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Número al que llegan las consultas y los avisos de pago desde la web.
+            Si queda vacío se usa el oficial ({WHATSAPP_NUMERO.replace(/^549(\d{2})(\d{4})(\d{4})$/, '+54 9 $1 $2-$3')}).
+          </p>
+          <input
+            name="whatsapp_ventas"
+            defaultValue={cfg['whatsapp_ventas'] ?? ''}
+            placeholder="11 3272-0974"
+            className="w-full md:w-1/2 px-3 py-2 text-sm rounded-lg border outline-none"
+            style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
+          />
         </section>
 
         {/* Parámetros de pedido */}

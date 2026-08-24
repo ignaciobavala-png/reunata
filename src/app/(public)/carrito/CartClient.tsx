@@ -15,8 +15,8 @@ import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/Env
 import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
 import { resolverTramoVolumen, tramosPendientes } from '@/lib/descuento-volumen'
+import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
 
-const WA_NUMBER = '5491132720974'
 
 function WhatsAppIcon() {
   return (
@@ -1238,7 +1238,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Botón WhatsApp — igual que en mayoristas */}
               <a
-                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPagoMinorista, mostrarPrecios && totalConEnvio > 0 ? (metodoPagoMinorista ? totalMinoristaConMetodo(metodoPagoMinorista) : totalConEnvio) : undefined, null, reglas?.whatsapp_tipo ?? 'bot')}`}
+                href={`https://wa.me/${WHATSAPP_NUMERO}?text=${buildWhatsAppMsg(items, metodoPagoMinorista, mostrarPrecios && totalConEnvio > 0 ? (metodoPagoMinorista ? totalMinoristaConMetodo(metodoPagoMinorista) : totalConEnvio) : undefined, null, reglas?.whatsapp_tipo ?? 'bot')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 transition-opacity border"
@@ -1434,7 +1434,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Botón WhatsApp — alternativa siempre disponible */}
               <a
-                href={`https://wa.me/${WA_NUMBER}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null, reglas?.whatsapp_tipo ?? 'bot')}`}
+                href={`https://wa.me/${WHATSAPP_NUMERO}?text=${buildWhatsAppMsg(items, metodoPago, mostrarPrecios && totalFinal > 0 ? totalFinal : undefined, direccionId ? direcciones.find(d => d.id === direccionId) : null, reglas?.whatsapp_tipo ?? 'bot')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-disabled={minimoInsuficiente || hayProblemaStock}

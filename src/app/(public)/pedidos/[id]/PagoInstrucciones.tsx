@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Copy, Check, MessageCircle } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
+import { whatsappLink } from '@/lib/whatsapp'
 
 // Bloques de instrucciones por medio de pago del pedido (valores de pedidos.medio_pago)
 type Bloque = 'banco' | 'cuenta_sin_iva' | 'efectivo' | 'echeq' | 'cheque' | 'mercadopago'
@@ -85,10 +86,12 @@ export function PagoInstrucciones({
   const bloque = bloqueElegido ?? metodoManual
 
   const ref = String(numero)
-  const waText = encodeURIComponent(
-    `Hola Reunata! Quiero avisar que pagué el pedido #${ref} por ${formatPrecio(total)}. Medio: ${BLOQUE_LABEL[bloque].toLowerCase()}.`
+  // whatsappLink normaliza el número de config y cae al oficial si está vacío:
+  // antes se concatenaba `549` + config vacía y salía `wa.me/549`, que no abre chat.
+  const waLink = whatsappLink(
+    `Hola Reunata! Quiero avisar que pagué el pedido #${ref} por ${formatPrecio(total)}. Medio: ${BLOQUE_LABEL[bloque].toLowerCase()}.`,
+    cfg['whatsapp_ventas'],
   )
-  const waLink = `https://wa.me/549${cfg['whatsapp_ventas'] ?? ''}?text=${waText}`
 
   const montos = costoEnvio && costoEnvio > 0 ? (
     <>

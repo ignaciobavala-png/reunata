@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useCartStore, CartItem } from '@/stores/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import { ShoppingCart, ShoppingBag, X, Loader2, Trash2 } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useRouter, usePathname } from 'next/navigation'
@@ -14,14 +14,6 @@ import { tramosPendientes, type ConfigVolumen } from '@/lib/descuento-volumen'
 // Solo lo que el drawer necesita para los avisos de mínimo y volumen; el detalle
 // fino (base post-descuentos) vive en la página /carrito, acá es un adelanto.
 type ReglasDrawer = ConfigVolumen & { minimo_compra: number | null }
-
-const WHATSAPP = '5491132720974'
-
-function buildWhatsAppLink(items: CartItem[]) {
-  const lineas = items.map(i => `• ${i.titulo}${i.variante ? ` (${i.variante})` : ''} x${i.cantidad}`)
-  const texto = `Hola! Me gustaría hacer un pedido:\n\n${lineas.join('\n')}\n\nQuedo a la espera, gracias!`
-  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
-}
 
 export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'mayorista' | 'minorista'; aprobado?: boolean }) {
   const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()

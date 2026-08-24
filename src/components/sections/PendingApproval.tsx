@@ -1,6 +1,7 @@
+import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
 import { Clock } from 'lucide-react'
 
-const WA_NUMBER = '5491132720974'
+const WA_NUMBER = WHATSAPP_NUMERO
 const WA_MSG = encodeURIComponent('Hola, me registré como mayorista y quiero saber el estado de mi solicitud.')
 
 export function PendingApproval({ nombre }: { nombre?: string | null }) {
