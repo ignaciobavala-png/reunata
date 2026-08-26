@@ -5,6 +5,7 @@ import { FloatingActions } from '@/components/sections/FloatingActions'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { SupabaseAuthListener } from '@/components/SupabaseAuthListener'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getSiteMeta } from '@/lib/site-meta'
 import './globals.css'
 
 const CSS_VAR_MAP: Record<string, string> = {
@@ -39,35 +40,40 @@ const dmMono = DM_Mono({
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reunata.vercel.app'
 
-export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
-  title: {
-    default: 'Reunata — El mate que te une',
-    template: '%s | Reunata',
-  },
-  applicationName: 'Reunata',
-  description:
-    'Reunata importa los mejores mates, termos y accesorios. Productos seleccionados, diseño renovado, entrega en todo el país.',
-  keywords: ['mate', 'mates', 'termos', 'yerbas', 'accesorios mate', 'reunata', 'argentina'],
-  openGraph: {
-    title: 'Reunata — El mate que te une',
-    description: 'Los mejores mates, termos y accesorios importados. Entrega en todo el país.',
-    siteName: 'Reunata',
-    locale: 'es_AR',
-    type: 'website',
-    url: BASE_URL,
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Reunata — El mate que te une',
-    description: 'Los mejores mates, termos y accesorios importados.',
-  },
-  verification: {
-    google: 'TR3zjqW_qNkWaGtgrn8JiqEQIHJ8flbPeWJhN8Oia2Y',
-  },
-  alternates: {
-    canonical: BASE_URL,
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const { titulo } = await getSiteMeta()
+  const tituloCompleto = `Reunata — ${titulo}`
+
+  return {
+    metadataBase: new URL(BASE_URL),
+    title: {
+      default: tituloCompleto,
+      template: '%s | Reunata',
+    },
+    applicationName: 'Reunata',
+    description:
+      'Reunata importa los mejores mates, termos y accesorios. Productos seleccionados, diseño renovado, entrega en todo el país.',
+    keywords: ['mate', 'mates', 'termos', 'yerbas', 'accesorios mate', 'reunata', 'argentina'],
+    openGraph: {
+      title: tituloCompleto,
+      description: 'Los mejores mates, termos y accesorios importados. Entrega en todo el país.',
+      siteName: 'Reunata',
+      locale: 'es_AR',
+      type: 'website',
+      url: BASE_URL,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: tituloCompleto,
+      description: 'Los mejores mates, termos y accesorios importados.',
+    },
+    verification: {
+      google: 'TR3zjqW_qNkWaGtgrn8JiqEQIHJ8flbPeWJhN8Oia2Y',
+    },
+    alternates: {
+      canonical: BASE_URL,
+    },
+  }
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

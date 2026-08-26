@@ -1,11 +1,16 @@
 import { ImageResponse } from 'next/og'
+import { getSiteMeta } from '@/lib/site-meta'
 
-export const runtime = 'edge'
-export const alt = 'Reunata — El mate que te une'
+// el título sale de la DB: si se prerenderiza, el PNG queda congelado con el
+// valor que había al momento del deploy
+export const dynamic = 'force-dynamic'
+export const alt = 'Reunata'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default function OgImage() {
+export default async function OgImage() {
+  const { titulo } = await getSiteMeta()
+
   return new ImageResponse(
     (
       <div
@@ -43,9 +48,11 @@ export default function OgImage() {
             color: '#8faa9c',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
+            maxWidth: 1000,
+            textAlign: 'center',
           }}
         >
-          El mate que te une
+          {titulo}
         </div>
 
         {/* Línea decorativa inferior */}
