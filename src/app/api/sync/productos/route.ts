@@ -119,15 +119,15 @@ async function verificarAuth(request: Request): Promise<boolean> {
 
 export async function GET(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
+  return syncProductos()
 }
 
 export async function POST(request: Request) {
   if (!await verificarAuth(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  return syncProductos(request.headers.get('X-Desactivar-No-Reunata') === 'true')
+  return syncProductos()
 }
 
-async function syncProductos(desactivarNoReunata = false) {
+async function syncProductos() {
 
   if (!GESU_TOKEN) {
     return NextResponse.json(
@@ -146,6 +146,7 @@ async function syncProductos(desactivarNoReunata = false) {
   const inicio = Date.now()
   let totalUpserted = 0
   let totalDesactivados = 0
+  const avisos: string[] = []
   let error: string | null = null
 
   try {
@@ -179,6 +180,11 @@ async function syncProductos(desactivarNoReunata = false) {
     )
 
     // Transformar y hacer upsert por lotes de 100
+    // Una sola marca de tiempo para toda la corrida: las filas que queden con
+    // ultima_sync anterior a esta marca son las que Gesu ya no manda (o que
+    // dejaron de pasar el filtro) y hay que desactivar.
+    const marcaSync = new Date().toISOString()
+
     const num = (v: unknown) => { const n = Number(v); return isNaN(n) || v === '' ? null : n }
     const int = (v: unknown) => { const n = parseInt(String(v)); return isNaN(n) ? null : n }
 
@@ -207,7 +213,7 @@ async function syncProductos(desactivarNoReunata = false) {
       // intacto lo cargado a mano.)
       palabras_clave:  item.palabrasClave || null,
       variantes:       parseStockVariante(item.StockVariante),
-      ultima_sync:     new Date().toISOString(),
+      ultima_sync:     marcaSync,
       activo:          true,
     }))
 
@@ -221,15 +227,65 @@ async function syncProductos(desactivarNoReunata = false) {
       totalUpserted += Math.min(BATCH, rows.length - i)
     }
 
-    // Desactivar productos que ya no son de Reunata (opcional, controlado desde el panel)
-    if (desactivarNoReunata) {
-      const codigosReunata = soloReunata.map(item => item.codigoInterno).filter(Boolean) as string[]
-      if (codigosReunata.length > 0) {
-        const { count } = await supabase
+    // Desactivar lo que esta corrida NO trajo.
+    //
+    // El filtro de arriba (marca Reunata + categoria no interna) decide qué entra
+    // al upsert, pero antes NO había nada que sacara de la web lo que dejaba de
+    // entrar: la fila vieja quedaba congelada con el título y la categoría de la
+    // última vez que sí pasó, y activo = true. Ese era el bug reportado el 27/08
+    // (item pasado a "Preventa" en Gesu que seguía publicado en Mates y Yerberas
+    // con el nombre viejo).
+    //
+    // Se compara contra ultima_sync en vez de mandar la lista de códigos: una sola
+    // query, sin armar un IN con miles de valores sin escapar. Las filas con
+    // ultima_sync null quedan afuera a propósito — nunca vinieron de Gesu.
+    if (rows.length > 0) {
+      // count exacto aparte de la muestra: el select de PostgREST viene topeado por
+      // Max Rows y con >1000 filas el largo del array mentiría (ver skill
+      // supabase-max-rows-limit).
+      const { count: cuantos } = await supabase
+        .from('productos')
+        .select('id', { count: 'exact', head: true })
+        .eq('activo', true)
+        .lt('ultima_sync', marcaSync)
+
+      const aDesactivarCount = cuantos ?? 0
+
+      const { data: muestra } = await supabase
+        .from('productos')
+        .select('codigo_interno, titulo')
+        .eq('activo', true)
+        .lt('ultima_sync', marcaSync)
+        .limit(30)
+
+      const candidatos = muestra ?? []
+
+      // Guarda: si Gesu devuelve un catálogo parcial sin tirar error, esto vaciaría
+      // la tienda. Si hay que desactivar más de la mitad de lo activo, no se toca
+      // nada y queda registrado para revisarlo a mano.
+      const totalActivos = aDesactivarCount + rows.length
+      if (aDesactivarCount > totalActivos / 2) {
+        avisos.push(`Desactivación omitida: ${aDesactivarCount} de ${totalActivos} productos activos quedaron fuera del sync (posible catálogo parcial de Gesu). Revisar a mano.`)
+        console.error('[sync/productos] Desactivación omitida por volumen sospechoso:', aDesactivarCount, 'de', totalActivos)
+      } else if (aDesactivarCount > 0) {
+        const { error: desactivarError } = await supabase
           .from('productos')
-          .update({ activo: false }, { count: 'exact' })
-          .not('codigo_interno', 'in', `(${codigosReunata.join(',')})`)
-        totalDesactivados = count ?? 0
+          .update({ activo: false })
+          .eq('activo', true)
+          .lt('ultima_sync', marcaSync)
+
+        if (desactivarError) throw new Error(desactivarError.message)
+        totalDesactivados = aDesactivarCount
+
+        console.warn(
+          '[sync/productos] Desactivados por no venir en el sync:',
+          candidatos.map(p => `${p.codigo_interno} (${p.titulo})`).join(', ')
+        )
+        avisos.push(
+          `Desactivados ${totalDesactivados}: ` +
+          candidatos.map(p => p.codigo_interno).join(', ') +
+          (aDesactivarCount > candidatos.length ? `, +${aDesactivarCount - candidatos.length} más` : '')
+        )
       }
     }
 
@@ -264,12 +320,12 @@ async function syncProductos(desactivarNoReunata = false) {
     tipo: 'productos',
     estado: error ? 'error' : 'ok',
     registros: totalUpserted,
-    mensaje: error ?? `Sync OK en ${Date.now() - inicio}ms`,
+    mensaje: error ?? [`Sync OK en ${Date.now() - inicio}ms`, ...avisos].join(' | ').slice(0, 4000),
   })
 
   if (error) {
     return NextResponse.json({ error }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, registros: totalUpserted, desactivados: totalDesactivados, ms: Date.now() - inicio })
+  return NextResponse.json({ ok: true, registros: totalUpserted, desactivados: totalDesactivados, avisos, ms: Date.now() - inicio })
 }
