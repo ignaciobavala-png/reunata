@@ -42,6 +42,11 @@ export function desglosarAjustePedido(
     return [{ label: 'Ajuste', monto: ajusteReal, esIva: false }]
   }
 
+  // Métodos sin factura: el precio se cotiza sobre el neto, así que el IVA que no
+  // se cobra sale como línea propia (negativa) y no como "descuento".
+  const mSinFactura = descuentoNota.match(/Sin factura\s+([\d.,]+)%/)
+  const pctSinFactura = mSinFactura ? parseFloat(mSinFactura[1].replace(',', '.')) : 0
+
   const partes = descuentoNota.split(',').map(p => p.trim())
   type Parte = { esRecargo: boolean; middle: string; pct: number }
   const parseadas: Partial<Record<'web' | 'vol' | 'metodo', Parte>> = {}
@@ -58,7 +63,7 @@ export function desglosarAjustePedido(
     else parseadas.metodo = p
   }
 
-  if (!parseadas.web && !parseadas.vol && !parseadas.metodo) {
+  if (!parseadas.web && !parseadas.vol && !parseadas.metodo && !pctSinFactura) {
     return [{ label: 'Ajuste', monto: ajusteReal, esIva: false }]
   }
 
@@ -72,8 +77,14 @@ export function desglosarAjustePedido(
     lineas.push({ label: `IVA (${formatPct(parteIva!.pct)}%)`, monto: iva, esIva: true })
   }
 
-  // Descuento consolidado: lo que falta para llegar del (subtotal + IVA) al total real.
-  const descuentoTotal = iva - ajusteReal
+  const sinFactura = pctSinFactura > 0 ? Math.round(subtotalItems * pctSinFactura / 100) : 0
+  if (sinFactura !== 0) {
+    lineas.push({ label: `Sin factura — IVA no cobrado (${formatPct(pctSinFactura)}%)`, monto: -sinFactura, esIva: true })
+  }
+
+  // Descuento consolidado: lo que falta para llegar del (subtotal + IVA − sin factura)
+  // al total real.
+  const descuentoTotal = iva - sinFactura - ajusteReal
   if (descuentoTotal > 0) {
     const componentes = [
       parseadas.web && `Desc. Web ${formatPct(parseadas.web.pct)}%`,
@@ -83,7 +94,7 @@ export function desglosarAjustePedido(
         : null,
     ].filter(Boolean) as string[]
 
-    const base = subtotalItems + iva
+    const base = subtotalItems + iva - sinFactura
     const pctEfectivo = base > 0 ? (descuentoTotal / base) * 100 : 0
     const detalle = componentes.length ? ` (${componentes.join(', ')})` : ''
 

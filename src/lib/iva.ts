@@ -70,3 +70,43 @@ export function ajusteMetodoPago(base: number, metodo: string | null | undefined
   const pct = pctAjusteMetodoPago(metodo, cfg)
   return pct === 0 ? 0 : Math.round(base * pct / 100)
 }
+
+/**
+ * ¿El método de pago se cobra SIN factura? Esos precios se cotizan sobre el
+ * neto (el "Total Bruto" del carrito), no sobre el precio de lista con IVA:
+ * si no hay factura, no hay IVA que cobrar.
+ *
+ * Ojo: esto NO es el bug del doble IVA al revés. Acá tampoco se suma nada —
+ * se despeja el neto de un precio que ya lo incluye, que es la única operación
+ * de IVA permitida (ver el encabezado de este archivo).
+ */
+export function esMetodoSinFactura(metodo: string | null | undefined): boolean {
+  return metodo === 'efectivo' || metodo === 'transferencia_negro'
+}
+
+/**
+ * Total de mercadería para un método de pago, partiendo de la base ya
+ * descontada por web + volumen (que está en unidades "con IVA incluido").
+ *
+ * - Métodos CON factura: la base queda como está (el IVA va en la factura).
+ * - Métodos SIN factura: la base pasa a neto multiplicándola por `factorNeto`
+ *   (= Total Bruto / Total IVA incluido; 1/1,21 si todo el carrito está al 21%,
+ *   pero se calcula por ítem para tolerar alícuotas mixtas).
+ *
+ * Sobre esa base ya en la unidad correcta se aplica el % del método. Pedido del
+ * tester 2026-08-27: "Efectivo = (Precio IVA / 1,21) − 3%".
+ *
+ * Lo llaman el carrito y el server para no divergir: si un lado netea y el otro
+ * no, el cliente ve un total y el pedido se guarda con otro.
+ */
+export function totalMercaderiaConMetodo(
+  basePostDescuentos: number,
+  metodo: string | null | undefined,
+  cfg: ConfigAjustePago | null | undefined,
+  factorNeto: number,
+): number {
+  const base = esMetodoSinFactura(metodo)
+    ? Math.round(basePostDescuentos * factorNeto)
+    : basePostDescuentos
+  return base + ajusteMetodoPago(base, metodo, cfg)
+}

@@ -16,7 +16,7 @@ import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
 import { resolverTramoVolumen, tramosPendientes } from '@/lib/descuento-volumen'
 import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
-import { netoDesdeBruto, ajusteMetodoPago } from '@/lib/iva'
+import { netoDesdeBruto, ajusteMetodoPago, totalMercaderiaConMetodo } from '@/lib/iva'
 
 
 function WhatsAppIcon() {
@@ -651,10 +651,15 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     ? Math.round(basePostDescuentos * (sumaConIvaMayorista / totalGeneral))
     : 0) + costoEnvio
 
+  // Proporción neto/bruto del carrito — pasa cualquier monto "con IVA incluido"
+  // a su equivalente sin IVA. Es 1/1,21 cuando todo está al 21%, pero se calcula
+  // por ítem para tolerar alícuotas mixtas (10,5%, exentos).
+  const factorNeto = totalGeneral > 0 ? totalSinIVA / totalGeneral : 1
+
   // Total final si el mayorista eligiera ese método — se muestra en $ dentro de cada botón.
   // Incluye el envío del emprendedor (costoEnvio es 0 para el resto de los mayoristas).
   function totalMayoristaConMetodo(k: string): number {
-    return basePostDescuentos + ajusteMetodoPago(basePostDescuentos, k, reglas) + costoEnvio
+    return totalMercaderiaConMetodo(basePostDescuentos, k, reglas, factorNeto) + costoEnvio
   }
   // Referencia para pintar en verde los métodos más baratos que el de Factura A.
   // Los métodos con factura no llevan ajuste, así que esto es la base pelada.
@@ -679,7 +684,9 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
   // Total minorista mostrado en el resumen — sin el descuento por forma de pago:
   // ese descuento se ve solo en la opción de pago (confirmado por el tester 2026-07-07)
   const totalConEnvio = basePostDescuentos + costoEnvio
-  const totalFinal = basePostDescuentos + ajusteEfectivo + costoEnvio
+  const totalFinal = esMayorista && metodoPago
+    ? totalMayoristaConMetodo(metodoPago)
+    : basePostDescuentos + ajusteEfectivo + costoEnvio
 
   // "Precio sin impuestos nacionales" a mostrar chico bajo el Total — solo minorista,
   // sin incluir el envío (pedido del tester)

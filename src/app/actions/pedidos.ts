@@ -8,7 +8,7 @@ import { supabaseImg } from '@/lib/images'
 import { ordenarFotos } from '@/lib/fotos'
 import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/lib/enviopack'
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
-import { ajusteMetodoPago, pctAjusteMetodoPago } from '@/lib/iva'
+import { ajusteMetodoPago, pctAjusteMetodoPago, netoDesdeBruto, totalMercaderiaConMetodo, esMetodoSinFactura } from '@/lib/iva'
 
 interface LineaPedido {
   productoId: number
@@ -113,7 +113,7 @@ export async function crearPedidoBorrador(
   const [{ data: productos }, { data: tcRow }, { data: canalConfig }, { count: pedidosCount }] = await Promise.all([
     service
       .from('productos')
-      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock, variantes')
+      .select('id, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, moneda, stock_visible, stock, variantes, iva')
       .in('id', lineas.map(l => l.productoId))
       .eq('activo', true),
     service
@@ -170,7 +170,7 @@ export async function crearPedidoBorrador(
     if (!precioRaw) return []
     const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs, variante: l.variante ?? null }]
+    return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs, ivaPct: (prod.iva as number | null) ?? null, variante: l.variante ?? null }]
   })
 
   if (lineasResueltas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
@@ -181,6 +181,13 @@ export async function crearPedidoBorrador(
   }
 
   const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+  // Proporción neto/bruto del pedido — los precios de lista YA incluyen IVA
+  // (ver lib/iva.ts). Sirve para cotizar los métodos sin factura sobre el neto.
+  const subtotalNeto = lineasResueltas.reduce(
+    (acc, l) => acc + netoDesdeBruto(l.precioUnit, l.ivaPct) * l.cantidad, 0,
+  )
+  const factorNeto = subtotal > 0 ? subtotalNeto / subtotal : 1
 
   // Orden de descuentos (pedido del tester): 1) WEB (autogestión), 2) Volumen,
   // 3) forma de pago. Cada paso se aplica sobre el saldo del anterior.
@@ -205,9 +212,15 @@ export async function crearPedidoBorrador(
   // así que el cliente veía un total y quedaba registrado otro.
   const medioPagoOriginal = opciones?.medioPago
   const pctMetodoPago = Math.abs(pctAjusteMetodoPago(medioPagoOriginal, canalConfig))
-  const ajusteMedioPago = ajusteMetodoPago(basePostVolumenCanal, medioPagoOriginal, canalConfig)
+  // Los métodos sin factura se cotizan sobre el neto (Total Bruto): sin factura
+  // no hay IVA que cobrar. Mismo helper que el carrito, para no divergir.
+  const ajusteMedioPago = ajusteMetodoPago(
+    esMetodoSinFactura(medioPagoOriginal) ? Math.round(basePostVolumenCanal * factorNeto) : basePostVolumenCanal,
+    medioPagoOriginal,
+    canalConfig,
+  )
 
-  const totalMercaderia = basePostVolumenCanal + ajusteMedioPago
+  const totalMercaderia = totalMercaderiaConMetodo(basePostVolumenCanal, medioPagoOriginal, canalConfig, factorNeto)
 
   // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
   // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
@@ -237,6 +250,12 @@ export async function crearPedidoBorrador(
   const notaPartes: string[] = []
   if (pctAutogestion > 0) notaPartes.push(`Desc. Web ${pctAutogestion}%`)
   if (ajusteVolumenCanal !== 0 && tramoVol) notaPartes.push(`Desc. Vol ${tramoVol.pct}%`)
+  // El IVA que NO se cobra por ir sin factura se anota con su % efectivo sobre el
+  // subtotal, para que el desglose del pedido lo muestre como línea propia y no
+  // quede escondido dentro del "Descuento total" (ver lib/desglose-pedido.ts).
+  if (esMetodoSinFactura(medioPagoOriginal) && factorNeto < 1) {
+    notaPartes.push(`Sin factura ${((1 - factorNeto) * 100).toFixed(2)}%`)
+  }
   if (ajusteMedioPago !== 0) {
     notaPartes.push(`${ajusteMedioPago < 0 ? 'Desc.' : 'Recargo'} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal} ${pctMetodoPago}%`)
   }
