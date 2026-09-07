@@ -41,7 +41,13 @@ function RecuperarContrasena() {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo })
 
     if (error) {
-      setErrorMsg('No se pudo enviar el email. Verificá la dirección e intentá de nuevo.')
+      // 429 = cuota de mails del proyecto, no un problema del mail que puso.
+      // Decirle "verificá la dirección" lo manda a buscar un error que no existe.
+      setErrorMsg(
+        error.status === 429
+          ? 'Ya se pidieron varios links en la última hora. Esperá unos minutos y probá de nuevo.'
+          : 'No se pudo enviar el email. Verificá la dirección e intentá de nuevo.'
+      )
       setEstado('error')
     } else {
       setEstado('sent')
