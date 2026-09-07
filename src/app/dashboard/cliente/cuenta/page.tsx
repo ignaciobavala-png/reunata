@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CuentaForm } from './CuentaForm'
 
-export default async function MiCuentaPage({ searchParams }: { searchParams: Promise<{ guardado?: string }> }) {
-  const { guardado } = await searchParams
+export default async function MiCuentaPage({ searchParams }: { searchParams: Promise<{ guardado?: string; email?: string }> }) {
+  const { guardado, email } = await searchParams
+  const emailPendiente = email === 'pendiente'
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -26,6 +27,12 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
       {guardado && (
         <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>
           Datos actualizados correctamente.
+        </div>
+      )}
+      {emailPendiente && (
+        <div className="rounded-lg px-4 py-3 mb-6 text-sm leading-relaxed" style={{ background: '#f59e0b22', color: '#b45309' }}>
+          Para cambiar el email con el que entrás te mandamos un mensaje a la dirección
+          nueva y otro a la actual. El cambio se aplica cuando confirmás los dos.
         </div>
       )}
 

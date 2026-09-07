@@ -35,8 +35,8 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      await actualizarPerfil(userId, formData)
-      router.push('/dashboard/cliente/cuenta?guardado=1')
+      const res = await actualizarPerfil(userId, formData)
+      router.push(`/dashboard/cliente/cuenta?guardado=1${res?.emailPendiente ? '&email=pendiente' : ''}`)
     })
   }
 

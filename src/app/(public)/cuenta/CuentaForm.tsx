@@ -38,8 +38,8 @@ export function CuentaForm({ profile, userId }: { profile: Profile; userId: stri
     setErrorGuardado(null)
     startTransition(async () => {
       try {
-        await actualizarPerfil(userId, formData)
-        router.push('/cuenta?guardado=1')
+        const res = await actualizarPerfil(userId, formData)
+        router.push(`/cuenta?guardado=1${res?.emailPendiente ? '&email=pendiente' : ''}`)
       } catch {
         setErrorGuardado('No se pudieron guardar los cambios. Intentá de nuevo.')
       }

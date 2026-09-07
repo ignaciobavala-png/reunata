@@ -42,13 +42,17 @@ export async function registrarse(data: RegistroInput) {
     return { error: 'Elegí un tipo de cliente válido.' }
   }
 
-  // Alta sin mail de verificación (24/08). El SMTP nativo de Supabase solo entrega
-  // a las direcciones del equipo del proyecto y tiene un rate limit de un puñado de
-  // mails por hora, así que el link de confirmación no le llegaba a ningún cliente
-  // real: se registraban y quedaban colgados en "revisá tu email". Quien valida es
-  // el panel: el mayorista no opera hasta que un admin lo aprueba (`aprobado`) y el
-  // minorista valida su mail implícitamente cuando recibe la confirmación del pedido.
-  // Cuando el dominio esté verificado y Resend sea el SMTP, se puede volver a signUp().
+  // Alta sin mail de verificación, y así se queda (revisado el 07/09/2026, ya con
+  // Resend como SMTP propio).
+  //
+  // El motivo original era que el mailer incluido de Supabase no entregaba a
+  // clientes reales; ese motivo desapareció, pero volver a signUp() sigue sin
+  // convenir: agregaría un bloqueo sin agregar control. Quien valida al mayorista
+  // es una persona en el panel (`aprobado`), el minorista valida su mail al
+  // recibir la confirmación del pedido, y el mail de "recibimos tu solicitud" que
+  // sale acá abajo ya prueba la entrega —si rebota, queda registrado en Resend—
+  // sin dejar a nadie esperando. Con signUp(), un mail demorado o en spam se
+  // convierte en una venta perdida.
   const { error: createError, data: createData } = await serviceSupabase.auth.admin.createUser({
     email: data.email,
     password: data.password,
