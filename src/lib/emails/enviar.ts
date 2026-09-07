@@ -34,7 +34,9 @@ export async function enviarMail(opciones: {
       to: opciones.to,
       subject: opciones.subject,
       react: opciones.react,
-      ...(opciones.replyTo ? { replyTo: opciones.replyTo } : {}),
+      // Por defecto contesta a la casilla real: el remitente es no-responder@,
+      // así que sin esto cualquier respuesta de un cliente se pierde.
+      replyTo: opciones.replyTo ?? CASILLA_INTERNA,
     })
 
     if (error) {

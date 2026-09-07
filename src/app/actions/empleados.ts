@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
+import { SITIO } from '@/lib/emails/enviar'
 
 type RolInterno = 'empleado' | 'comisionista'
 
@@ -14,8 +15,12 @@ export async function invitarEmpleado(formData: FormData) {
 
   const supabase = createServiceClient()
 
+  // Sin redirectTo, GoTrue manda al Site URL y el link de invitación no llega
+  // a la ruta que lo verifica. Va sin query string: la plantilla le agrega
+  // `?token_hash=...&type=invite`.
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { rol, nombre },
+    redirectTo: `${SITIO}/auth/confirm`,
   })
 
   if (error) return { error: error.message }

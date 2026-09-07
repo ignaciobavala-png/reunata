@@ -34,11 +34,12 @@ type Pieza = {
  * porque la manda GoTrue y no la app. Se lee del archivo que la refleja y se
  * reemplazan las variables del motor de plantillas por valores de muestra.
  */
-function plantillaSupabase(): string {
-  const ruta = join(process.cwd(), 'docs', 'emails', 'supabase-recovery.html')
+function plantillaSupabase(archivo: string): string {
+  const ruta = join(process.cwd(), 'docs', 'emails', `supabase-${archivo}.html`)
   return readFileSync(ruta, 'utf8')
     .replaceAll('{{ .RedirectTo }}', `${SITIO}/auth/confirm`)
-    .replaceAll('{{ .TokenHash }}', 'pkce_5f3a9c2e8b1d4f7a6c0e9b2d5a8f1c4e')
+    .replaceAll('{{ .TokenHash }}', '5f3a9c2e8b1d4f7a6c0e9b2d5a8f1c4e')
+    .replaceAll('{{ .NewEmail }}', 'nuevo@sucomercio.com.ar')
 }
 
 const piezas: Pieza[] = [
@@ -47,7 +48,14 @@ const piezas: Pieza[] = [
     para: 'Cliente',
     cuando: 'Cuando pide "olvidé mi contraseña" desde el login.',
     asunto: 'cambiar contraseña Reunata',
-    html: plantillaSupabase(),
+    html: plantillaSupabase('recovery'),
+  },
+  {
+    titulo: 'Invitación al panel',
+    para: 'Empleado o comisionista',
+    cuando: 'Cuando lo invitan desde el panel de empleados. Elige su contraseña con este link.',
+    asunto: 'Te invitamos a Reunata',
+    html: plantillaSupabase('invite'),
   },
   {
     titulo: 'Recibimos tu solicitud',
@@ -194,6 +202,27 @@ const piezas: Pieza[] = [
         urlPanel: `${SITIO}/dashboard/admin/financiacion`,
       }),
     ),
+  },
+  {
+    titulo: 'Confirmar cuenta',
+    para: 'Cliente que se registra',
+    cuando: 'Preparado, pero hoy no se usa: el registro ya crea la cuenta confirmada.',
+    asunto: 'Confirmá tu cuenta de Reunata',
+    html: plantillaSupabase('confirmation'),
+  },
+  {
+    titulo: 'Cambio de email',
+    para: 'Cliente que cambia su mail',
+    cuando: 'Preparado para cuando la cuenta permita cambiar el mail de acceso.',
+    asunto: 'Confirmá tu nuevo email',
+    html: plantillaSupabase('email-change'),
+  },
+  {
+    titulo: 'Link de acceso',
+    para: 'Cliente',
+    cuando: 'Preparado por si se habilita entrar sin contraseña. Hoy no se usa.',
+    asunto: 'Tu link de acceso a Reunata',
+    html: plantillaSupabase('magic-link'),
   },
 ]
 

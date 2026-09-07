@@ -23,7 +23,18 @@ export async function GET(request: NextRequest) {
   const next =
     rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null
 
-  const destino = next ?? (type === 'recovery' ? '/nueva-contrasena' : '/')
+  // A dónde va la persona una vez verificado el link. `recovery` e `invite`
+  // caen en el mismo lado: los dos terminan con alguien eligiendo su contraseña
+  // (al invitado se la crearon, todavía no tiene).
+  const DESTINOS: Partial<Record<EmailOtpType, string>> = {
+    recovery: '/nueva-contrasena',
+    invite: '/nueva-contrasena',
+    email: '/cuenta',
+    email_change: '/cuenta',
+    magiclink: '/cuenta',
+  }
+
+  const destino = next ?? (type ? DESTINOS[type] ?? '/' : '/')
   const fallo = `${origin}/recuperar-contrasena?error=link_invalido`
 
   if (!tokenHash && !code) {
