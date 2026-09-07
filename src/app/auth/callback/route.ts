@@ -12,6 +12,14 @@ export async function GET(request: NextRequest) {
   }
 
   const destino = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+
+  // Los links de recuperación viejos (plantilla PKCE) todavía caen acá.
+  // Si el canje falla —típico al abrir el mail en otro dispositivo— el error
+  // de OAuth no dice nada: mandarlo a pedir un link nuevo.
+  const destinoError =
+    destino === '/nueva-contrasena'
+      ? `${origin}/recuperar-contrasena?error=link_invalido`
+      : `${origin}/login?error=oauth_error`
   const response = NextResponse.redirect(`${origin}${destino}`)
 
   // En route handlers las cookies son read-only vía cookies().
@@ -36,7 +44,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login?error=oauth_error`)
+    return NextResponse.redirect(destinoError)
   }
 
   const userId = data.user.id

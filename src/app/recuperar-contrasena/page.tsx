@@ -1,14 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
 
 export default function RecuperarContrasenaPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecuperarContrasena />
+    </Suspense>
+  )
+}
+
+function RecuperarContrasena() {
   const [email, setEmail] = useState('')
   const [estado, setEstado] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+
+  // El link del mail rebota acá cuando venció o ya fue usado.
+  const linkInvalido = useSearchParams().get('error') === 'link_invalido'
+  const aviso =
+    errorMsg ||
+    (linkInvalido && estado === 'idle'
+      ? 'El link no es válido o ya venció. Pedí uno nuevo y usalo dentro de la hora.'
+      : '')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,7 +34,9 @@ export default function RecuperarContrasenaPage() {
     setErrorMsg('')
 
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/nueva-contrasena`
+    // Sin query string: la plantilla del mail le agrega `?token_hash=...&type=recovery`
+    // sobre `{{ .RedirectTo }}`, y el destino final lo resuelve /auth/confirm.
+    const redirectTo = `${window.location.origin}/auth/confirm`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo })
 
@@ -74,8 +93,8 @@ export default function RecuperarContrasenaPage() {
                 />
               </div>
 
-              {estado === 'error' && (
-                <p className="text-xs" style={{ color: '#f87171' }}>{errorMsg}</p>
+              {aviso && (
+                <p className="text-xs" style={{ color: '#f87171' }}>{aviso}</p>
               )}
 
               <button

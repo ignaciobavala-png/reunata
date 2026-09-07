@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Header } from '@/components/layout/Header'
@@ -12,6 +12,14 @@ export default function NuevaContrasenaPage() {
   const [confirmar, setConfirmar] = useState('')
   const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+
+  // verifyOtp deja la sesión abierta: si no hay, el link no sirvió y no tiene
+  // sentido dejarlo escribir la contraseña para fallar recién al guardar.
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (!data.user) router.replace('/recuperar-contrasena?error=link_invalido')
+    })
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
