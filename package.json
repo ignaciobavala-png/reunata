@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "seed:test-users": "tsx scripts/seed-test-users.ts",
-    "email": "email dev --dir emails"
+    "email": "email dev --dir src/emails",
+    "mails:preview": "tsx scripts/preview-mails.tsx"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

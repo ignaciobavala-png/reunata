@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { enviarMail, SITIO } from '@/lib/emails/enviar'
+import CuentaActivada from '@/emails/cuenta-activada'
 
 export async function aprobarCliente(clienteId: string, aprobado: boolean) {
   const supabase = createServiceClient()
@@ -29,6 +31,24 @@ export async function aprobarCliente(clienteId: string, aprobado: boolean) {
 
   const { error } = await supabase.from('profiles').update(update).eq('id', clienteId)
   if (error) throw new Error(`Error al ${aprobado ? 'aprobar' : 'revocar'}: ${error.message}`)
+
+  // Solo al aprobar: revocar un acceso no se anuncia por mail.
+  if (aprobado) {
+    const { data: cliente } = await supabase
+      .from('profiles')
+      .select('email, nombre')
+      .eq('id', clienteId)
+      .single()
+
+    if (cliente?.email) {
+      await enviarMail({
+        to: cliente.email,
+        subject: 'Tu cuenta de Reunata ya está activa',
+        react: CuentaActivada({ nombre: cliente.nombre?.split(' ')[0] ?? 'Hola', sitio: SITIO }),
+      })
+    }
+  }
+
   revalidatePath('/dashboard/admin/clientes')
 }
 

@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { enviarMail, CASILLA_INTERNA, SITIO } from '@/lib/emails/enviar'
+import AvisoInterno from '@/emails/aviso-interno'
 
 const MAX_LENGTHS: Record<string, number> = {
   nombre: 100,
@@ -132,6 +134,30 @@ export async function crearPostulacion(formData: FormData) {
   })
 
   if (error) return { error: `Error al guardar: ${error.message}` }
+
+  const TIPO_LABEL: Record<string, string> = {
+    fulltime: 'Puesto full time',
+    comisionista: 'Comisionista',
+    proveedor: 'Proveedor',
+  }
+
+  await enviarMail({
+    to: CASILLA_INTERNA,
+    subject: `Postulación — ${TIPO_LABEL[tipo] ?? tipo}: ${campos.nombre} ${campos.apellido}`,
+    replyTo: email,
+    react: AvisoInterno({
+      titulo: 'Postulación nueva',
+      resumen: `${campos.nombre} ${campos.apellido} se postuló como ${TIPO_LABEL[tipo] ?? tipo}.`,
+      filas: [
+        ['Tipo', TIPO_LABEL[tipo] ?? tipo],
+        ['Nombre', `${campos.nombre} ${campos.apellido}`],
+        ['Email', email],
+        ['Empresa', (campos.empresa as string) || null],
+        ['CV', cvUrl ? 'Adjuntó archivo' : null],
+      ],
+      urlPanel: `${SITIO}/dashboard/admin/postulaciones`,
+    }),
+  })
 
   return { ok: true }
 }

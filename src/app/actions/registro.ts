@@ -3,6 +3,9 @@
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { ROL_MINORISTA } from '@/lib/roles'
+import { enviarMail, CASILLA_INTERNA, SITIO } from '@/lib/emails/enviar'
+import AvisoInterno from '@/emails/aviso-interno'
+import RegistroRecibido from '@/emails/registro-recibido'
 
 interface RegistroInput {
   email: string
@@ -97,6 +100,37 @@ export async function registrarse(data: RegistroInput) {
   if (updateError) {
     console.error('[registro] upsert profiles error:', updateError)
     return { error: 'Cuenta creada pero hubo un error al guardar los datos.' }
+  }
+
+  // Solo el mayorista queda esperando aprobación, y esa espera es invisible si
+  // nadie avisa: entra, no ve precios y cree que el registro falló. Va antes
+  // del redirect() de abajo, que corta la ejecución lanzando una excepción.
+  if (!esMinorista) {
+    await enviarMail({
+      to: data.email,
+      subject: 'Recibimos tu solicitud de cuenta',
+      react: RegistroRecibido({ nombre: data.nombre?.split(' ')[0] ?? 'Hola' }),
+    })
+
+    await enviarMail({
+      to: CASILLA_INTERNA,
+      subject: `Alta mayorista pendiente — ${data.razon_social || data.nombre}`,
+      replyTo: data.email,
+      react: AvisoInterno({
+        titulo: 'Alta de mayorista para aprobar',
+        resumen: `${data.razon_social || data.nombre} se registró y espera aprobación para operar.`,
+        filas: [
+          ['Razón social', data.razon_social ?? null],
+          ['Contacto', data.nombre],
+          ['Email', data.email],
+          ['Teléfono', data.telefono ?? null],
+          ['CUIT / DNI', data.cuit_dni ?? null],
+          ['Localidad', data.localidad ?? null],
+          ['Rol', data.rol],
+        ],
+        urlPanel: `${SITIO}/dashboard/admin/clientes`,
+      }),
+    })
   }
 
   // createUser no deja sesión (es admin API), así que se loguea acá con el cliente

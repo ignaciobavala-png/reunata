@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getMPPayment } from '@/lib/mercadopago'
+import { notificarEstadoPedido } from '@/lib/emails/pedidos'
 
 const MP_ESTADO: Record<string, string> = {
   approved:  'pago_confirmado',
@@ -102,6 +103,12 @@ export async function POST(req: NextRequest) {
         .from('profiles')
         .update({ ultima_compra_en: new Date().toISOString(), requiere_recontacto: false })
         .eq('id', pedidoActualizado.cliente_id)
+    }
+
+    // `!yaConfirmado` es la condición de idempotencia: MP reintenta las
+    // notificaciones, y sin esto el cliente recibe el mismo mail varias veces.
+    if (status === 'approved' && !yaConfirmado) {
+      await notificarEstadoPedido(pedidoId, 'pago_confirmado')
     }
 
     return NextResponse.json({ ok: true })

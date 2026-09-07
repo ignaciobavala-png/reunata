@@ -9,6 +9,7 @@ import { ordenarFotos } from '@/lib/fotos'
 import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/lib/enviopack'
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 import { ajusteMetodoPago, pctAjusteMetodoPago, netoDesdeBruto, totalMercaderiaConMetodo, esMetodoSinFactura } from '@/lib/iva'
+import { notificarEstadoPedido } from '@/lib/emails/pedidos'
 
 interface LineaPedido {
   productoId: number
@@ -515,6 +516,8 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
       .update({ ultima_compra_en: new Date().toISOString(), requiere_recontacto: false })
       .eq('id', pedido.cliente_id)
   }
+
+  await notificarEstadoPedido(pedidoId, estado)
 
   revalidatePath('/dashboard/admin/pedidos')
   revalidatePath(`/dashboard/admin/pedidos/${pedidoId}`)

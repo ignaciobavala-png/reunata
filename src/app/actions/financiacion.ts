@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { esRolMayorista } from '@/lib/roles'
+import { enviarMail, CASILLA_INTERNA, SITIO } from '@/lib/emails/enviar'
+import AvisoInterno from '@/emails/aviso-interno'
 
 async function getMayoristaId(): Promise<string | null> {
   const supabase = await createClient()
@@ -58,6 +60,32 @@ export async function crearSolicitudCredito(formData: FormData) {
   })
 
   if (error) return { error: 'Error al enviar la solicitud.' }
+
+  const { data: solicitante } = await createServiceClient()
+    .from('profiles')
+    .select('nombre, razon_social, email')
+    .eq('id', clienteId)
+    .single()
+
+  const quien = solicitante?.razon_social || solicitante?.nombre || 'Un mayorista'
+
+  await enviarMail({
+    to: CASILLA_INTERNA,
+    subject: `Solicitud de crédito — ${quien}`,
+    react: AvisoInterno({
+      titulo: 'Solicitud de crédito nueva',
+      resumen: `${quien} pidió una línea de crédito.`,
+      filas: [
+        ['Cliente', quien],
+        ['Email', solicitante?.email],
+        ['Monto', monto.toLocaleString('es-AR')],
+        ['Referencias', `${refs.length} cargadas`],
+        ['Garantías', garantias],
+      ],
+      urlPanel: `${SITIO}/dashboard/admin/financiacion`,
+    }),
+  })
+
   revalidatePath('/cuenta/financiacion')
   return { ok: true }
 }

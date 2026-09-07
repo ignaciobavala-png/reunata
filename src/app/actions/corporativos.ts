@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { enviarMail, CASILLA_INTERNA, SITIO } from '@/lib/emails/enviar'
+import AvisoInterno from '@/emails/aviso-interno'
 
 const MAX_LENGTHS: Record<string, number> = {
   nombre: 100,
@@ -120,6 +122,28 @@ export async function crearCorporativo(formData: FormData) {
   })
 
   if (error) return { error: `Error al guardar: ${error.message}` }
+
+  // Después del insert: la consulta ya está guardada, el mail es un extra que
+  // no puede tumbarla (enviarMail se traga sus propios errores).
+  await enviarMail({
+    to: CASILLA_INTERNA,
+    subject: `Consulta corporativa — ${empresa.trim()}`,
+    replyTo: email,
+    react: AvisoInterno({
+      titulo: 'Consulta corporativa nueva',
+      resumen: `${nombre.trim()} escribió por ${empresa.trim()}.`,
+      filas: [
+        ['Empresa', empresa.trim()],
+        ['Contacto', nombre.trim()],
+        ['Email', email],
+        ['Teléfono', telefono?.trim() || null],
+        ['Ocasión', ocasion || null],
+        ['Cantidades', cantidades ? String(cantidades) : null],
+        ['Fecha límite', fechaLimiteDate],
+      ],
+      urlPanel: `${SITIO}/dashboard/admin/corporativos`,
+    }),
+  })
 
   return { ok: true }
 }
