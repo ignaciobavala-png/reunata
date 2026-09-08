@@ -97,6 +97,48 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Print modes ─────────────────────────────────────────────────────────── */
 @media print {
+  /* El dashboard usa h-screen + overflow para el scroll interno; al imprimir eso
+     recorta el contenido a una sola página. Liberar la altura y el overflow para
+     que el flujo pagine normalmente. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  [data-dashboard] {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  [data-dashboard] > main {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  /* El contenedor de items recorta las esquinas redondeadas: en papel estorba */
+  .pedido-items {
+    overflow: visible !important;
+  }
+
+  /* Cortes de página razonables */
+  @page {
+    margin: 1.5cm;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  .pedido-envio,
+  .pedido-pago {
+    break-inside: avoid;
+  }
+
   /* Modo logística: ocultar artículos y pago, solo envío */
   body.print-envio .pedido-items,
   body.print-envio .pedido-pago {
