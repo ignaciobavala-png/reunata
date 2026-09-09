@@ -164,4 +164,34 @@ h1, h2, h3, h4, h5, h6 {
     color: #000 !important;
     line-height: 1.6 !important;
   }
+  /* ── Modo armado: la lista que se le da a Tony para preparar y despachar ──
+     Whitelist, no blacklist: se oculta TODO lo que cuelga de .pedido-page y se
+     muestra solo .pedido-armado. Hacerlo al revés (ir tapando las columnas de
+     precio de la tabla normal) es un precio filtrado esperando a pasar — el
+     papel va a manos de logística y no tiene que tener ni un número de plata.
+     Con esta regla, un bloque nuevo en la página nace oculto en este modo. */
+  body.print-armado .pedido-page > *:not(.pedido-armado) {
+    display: none !important;
+  }
+
+  body.print-armado .pedido-armado {
+    display: block !important;
+  }
+
+  body.print-armado .pedido-armado .armado-destino {
+    border: 2px solid #000 !important;
+    padding: 1rem 1.25rem !important;
+  }
+
+  body.print-armado .pedido-armado table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  body.print-armado .pedido-armado th,
+  body.print-armado .pedido-armado td {
+    border-bottom: 1px solid #999 !important;
+    padding: 0.5rem 0.35rem !important;
+    color: #000 !important;
+  }
 }

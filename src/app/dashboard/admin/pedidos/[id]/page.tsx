@@ -21,7 +21,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
     .select(`
       id, numero, estado, medio_pago, referencia_pago, total_usd, costo_envio, envio_descripcion,
       descuento_sugerido, descuento_nota,
-      envio_calle, envio_numero, envio_piso, envio_referencia, envio_codigo_postal, envio_provincia,
+      envio_calle, envio_numero, envio_piso, envio_referencia, envio_codigo_postal, envio_provincia, envio_localidad,
       envio_servicio, enviopack_envio_id, enviopack_estado, tracking, metodo_envio,
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       cliente_id, guest_nombre, guest_email, guest_telefono,
@@ -69,8 +69,19 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   const telCliente    = cliente?.telefono ?? (pedido as any).guest_telefono ?? ''
   const esMayorista = esRolMayorista(cliente?.rol)
 
+  // Derivados para la orden de armado (Tony). Sin importes: ver el bloque .pedido-armado.
+  const items = pedido.pedido_items ?? []
+  const totalUnidades = items.reduce((acc, i) => acc + i.cantidad, 0)
+  const cantLineas = items.length
+  const env = pedido as unknown as Record<string, string | null | undefined>
+  const direccionEnvio = env.envio_calle
+    ? [`${env.envio_calle} ${env.envio_numero ?? ''}`.trim(), env.envio_piso].filter(Boolean).join(', ')
+    : ''
+  const cpProvincia = [env.envio_localidad, env.envio_provincia, env.envio_codigo_postal && `CP ${env.envio_codigo_postal}`]
+    .filter(Boolean).join(' · ')
+
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="pedido-page p-8 max-w-3xl">
       {/* Back + header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -421,6 +432,90 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
           </div>
         </div>
       )}
+
+      {/* ── Orden de armado (Tony) ──────────────────────────────────────────
+          Solo se ve al imprimir con el modo "armado". SIN PRECIOS: este papel
+          va a logística. No agregar acá ningún importe, ni el costo de envío.
+          Lo que necesita: qué buscar, cuánto, y a dónde va. */}
+      <div className="pedido-armado hidden">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <p className="text-xs uppercase tracking-wider" style={{ color: '#666' }}>Reunata · Orden de armado</p>
+            <p className="text-3xl font-bold" style={{ color: '#000' }}>Pedido #{pedido.numero}</p>
+          </div>
+          <p className="text-xs text-right" style={{ color: '#666' }}>
+            {new Date(pedido.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            <br />
+            {totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'} · {cantLineas} {cantLineas === 1 ? 'ítem' : 'ítems'}
+          </p>
+        </div>
+
+        <div className="armado-destino mb-6">
+          <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#666' }}>Enviar a</p>
+          <p className="text-lg font-bold" style={{ color: '#000' }}>
+            {esMayorista && cliente?.razon_social ? cliente.razon_social : nombreCliente}
+          </p>
+          {direccionEnvio ? (
+            <>
+              <p className="text-base" style={{ color: '#000' }}>{direccionEnvio}</p>
+              {envioReferencia && (
+                <p className="text-sm" style={{ color: '#000' }}>Referencia: {envioReferencia}</p>
+              )}
+              {cpProvincia && <p className="text-base" style={{ color: '#000' }}>{cpProvincia}</p>}
+            </>
+          ) : (
+            <p className="text-base font-bold" style={{ color: '#000' }}>
+              RETIRA EN LOCAL — no despachar
+            </p>
+          )}
+          {telCliente && <p className="text-sm mt-1" style={{ color: '#000' }}>Tel: {telCliente}</p>}
+          {env.envio_descripcion && (
+            <p className="text-sm mt-1" style={{ color: '#000' }}>Servicio: {env.envio_descripcion}</p>
+          )}
+          {env.tracking && (
+            <p className="text-sm" style={{ color: '#000' }}>Seguimiento: {env.tracking}</p>
+          )}
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className="text-left" style={{ color: '#000', borderBottom: '2px solid #000' }}>Código</th>
+              <th className="text-left" style={{ color: '#000', borderBottom: '2px solid #000' }}>Producto</th>
+              <th className="text-right" style={{ color: '#000', borderBottom: '2px solid #000' }}>Cant.</th>
+              <th className="text-center" style={{ color: '#000', borderBottom: '2px solid #000', width: '3rem' }}>OK</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(pedido.pedido_items ?? []).map(item => {
+              const prod = item.producto as unknown as { codigo_interno: string; titulo: string } | null
+              return (
+                <tr key={`armado-${item.id}`}>
+                  <td className="font-mono" style={{ color: '#000' }}>{prod?.codigo_interno ?? '—'}</td>
+                  <td style={{ color: '#000' }}>
+                    {prod?.titulo ?? '—'}
+                    {item.variante && <> · {item.variante}</>}
+                  </td>
+                  <td className="text-right font-bold text-base" style={{ color: '#000' }}>{item.cantidad}</td>
+                  <td style={{ borderLeft: '1px solid #999' }}></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        {pedido.notas && (
+          <div className="mt-5">
+            <p className="text-xs uppercase tracking-wider" style={{ color: '#666' }}>Notas del pedido</p>
+            <p className="text-sm" style={{ color: '#000' }}>{pedido.notas}</p>
+          </div>
+        )}
+
+        <div className="mt-10 flex gap-10 text-xs" style={{ color: '#666' }}>
+          <span>Armado por: ______________________</span>
+          <span>Fecha: ____ / ____ / ______</span>
+        </div>
+      </div>
 
       {/* Pie solo visible al imprimir */}
       <div className="hidden print:block mt-10 pt-6 text-xs" style={{ borderTop: '1px solid #ccc', color: '#888' }}>
