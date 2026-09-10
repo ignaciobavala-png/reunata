@@ -42,9 +42,11 @@ const navMaster: NavItem[] = [
       { label: 'Pedidos',       href: '/dashboard/admin/pedidos',      icon: ShoppingCart },
       { label: 'Financiación',  href: '/dashboard/admin/financiacion', icon: CreditCard },
       { label: 'Corporativos',  href: '/dashboard/admin/corporativos', icon: Building2 },
-      { label: 'Containers',    href: '/dashboard/admin/containers',   icon: Ship },
     ],
   },
+  // Primer nivel y no dentro de Ventas: se usa en varios momentos del viaje y a un
+  // solo click. Va pegado a Ventas porque es de lo que habla, pero sin plegarse.
+  { label: 'Containers', href: '/dashboard/admin/containers', icon: Ship },
   {
     label: 'Clientes',
     icon: Users,
