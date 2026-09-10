@@ -3,7 +3,7 @@
 import { Ship, FileText, PackageCheck, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { formatPrecio } from '@/lib/utils'
-import { capitalizeVariante, getSwatchStyle } from '@/components/sections/ColorPicker'
+import { capitalizeVariante, getSwatchStyle } from '@/lib/variantes'
 import {
   ETAPA_LABEL,
   ETAPA_COLOR,

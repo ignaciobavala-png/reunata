@@ -5,6 +5,7 @@ import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { netoDesdeBruto } from '@/lib/iva'
 import { descuentoVigente, precioConDescuento, type EtapaContainer } from '@/lib/containers'
+import { notificarReservaNueva } from '@/lib/emails/containers'
 
 export interface ItemReserva {
   itemId: number
@@ -141,6 +142,11 @@ export async function reservarContainer(
     .select('numero')
     .eq('id', reservaId as string)
     .single()
+
+  // Después de que la reserva quedó escrita, nunca antes: ya descontó el
+  // comprometido y es un hecho consumado. Si el mail falla, se loguea y la
+  // reserva sigue estando.
+  await notificarReservaNueva(reservaId as string)
 
   return { ok: true, reservaId: reservaId as string, numero: creada?.numero as number | undefined }
 }

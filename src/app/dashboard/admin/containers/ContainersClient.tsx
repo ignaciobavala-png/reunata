@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Ship, Plus, Trash2, ChevronDown, ChevronRight, Check, AlertCircle, Search } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { labelRol } from '@/lib/roles'
-import { getSwatchStyle, capitalizeVariante } from '@/components/sections/ColorPicker'
+import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 import {
   ETAPA_LABEL,
   ETAPA_AYUDA,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Ship, X, Minus, Plus, Check } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
-import { getSwatchStyle, capitalizeVariante } from '@/components/sections/ColorPicker'
+import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 import { reservarContainer } from '@/app/actions/containers'
 import {
   ETAPA_LABEL,
