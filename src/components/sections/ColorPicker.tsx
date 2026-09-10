@@ -56,7 +56,7 @@ const COLOR_MAP: Record<string, string> = {
   'NYLON BLANCO PBT': '#f0f0f0',
 }
 
-function getSwatchStyle(nombre: string): React.CSSProperties {
+export function getSwatchStyle(nombre: string): React.CSSProperties {
   const upper = nombre.toUpperCase()
   if (upper.includes('SURTIDO')) {
     return {
@@ -74,7 +74,7 @@ function resolveByPrefix(upper: string): string | null {
   return null
 }
 
-function capitalize(s: string) {
+export function capitalizeVariante(s: string) {
   if (s.toUpperCase().includes('SURTIDO')) return 'Varios colores'
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
@@ -96,7 +96,7 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
         {label}:{' '}
         {selected && (
           <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>
-            {capitalize(selected)}
+            {capitalizeVariante(selected)}
           </span>
         )}
       </p>
@@ -110,7 +110,7 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
                 key={v.nombre}
                 onClick={() => !sinStock && onSelect(v.nombre)}
                 disabled={sinStock}
-                title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
+                title={`${capitalizeVariante(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
                 aria-pressed={isSelected}
                 className="rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed"
                 style={{
@@ -121,7 +121,7 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
                   textDecoration: sinStock ? 'line-through' : 'none',
                 }}
               >
-                {capitalize(v.nombre)}
+                {capitalizeVariante(v.nombre)}
               </button>
             )
           }
@@ -130,8 +130,8 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
               key={v.nombre}
               onClick={() => !sinStock && onSelect(v.nombre)}
               disabled={sinStock}
-              title={`${capitalize(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
-              aria-label={`${capitalize(v.nombre)}${sinStock ? ', sin stock' : ''}`}
+              title={`${capitalizeVariante(v.nombre)}${sinStock ? ' — Sin stock' : ''}`}
+              aria-label={`${capitalizeVariante(v.nombre)}${sinStock ? ', sin stock' : ''}`}
               aria-pressed={isSelected}
               className="relative rounded transition-transform disabled:cursor-not-allowed"
               style={{

@@ -13,9 +13,16 @@ const LINKS_MINORISTA = [
   { href: '/cuenta', label: 'Mi cuenta' },
 ]
 
-export function CuentaNav({ esMayorista }: { esMayorista: boolean }) {
+/**
+ * `mostrarReservas` solo lo pasa en true quien tiene acceso a preventa: para el
+ * resto la solapa no existe, igual que el badge en las cards.
+ */
+export function CuentaNav({ esMayorista, mostrarReservas = false }: { esMayorista: boolean; mostrarReservas?: boolean }) {
   const pathname = usePathname()
-  const links = esMayorista ? LINKS_MAYORISTA : LINKS_MINORISTA
+  const links = [
+    ...(esMayorista ? LINKS_MAYORISTA : LINKS_MINORISTA),
+    ...(mostrarReservas ? [{ href: '/cuenta/reservas', label: 'Preventa' }] : []),
+  ]
   if (links.length === 1) return null
 
   return (
