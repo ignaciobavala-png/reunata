@@ -61,8 +61,13 @@ export function ProductGridPublic({
   const router = useRouter()
 
   // Preventa de importados. El endpoint chequea el permiso, así que para el que no
-  // lo tiene esto vuelve vacío y ninguna card muestra el badge.
-  const disponibilidad = useDisponibilidadContainers(productos.map(p => p.codigo_interno))
+  // lo tiene esto vuelve vacío y ninguna card muestra el badge. Sin sesión ni se
+  // pregunta: el anónimo nunca tiene preventa y el catálogo público es casi todo
+  // tráfico anónimo.
+  const disponibilidad = useDisponibilidadContainers(
+    productos.map(p => p.codigo_interno),
+    estaLogueado,
+  )
   const [cuandoViene, setCuandoViene] = useState<ProductoPublico | null>(null)
 
   function getSupabase() {

@@ -15,19 +15,27 @@ import {
   type ViajeDisponible,
 } from '@/lib/containers'
 
+const VACIO: DisponibilidadPorCodigo = {}
+
 /**
  * Disponibilidad de preventa para los códigos que hay en pantalla.
  *
  * El permiso lo resuelve el endpoint, no el caller: una grilla nueva que use este
  * hook queda protegida sola. Si el usuario no tiene acceso, vuelve vacío y el
  * badge no se dibuja en ninguna card.
+ *
+ * `activo` NO es una segunda barrera de permiso — es para no gastar un request por
+ * grilla en el visitante anónimo, que es la mayoría del tráfico del catálogo
+ * público y nunca va a tener preventa. Default true a propósito: una grilla que se
+ * olvide de pasarlo funciona igual, solo pega de más. Quien decide sigue siendo el
+ * endpoint.
  */
-export function useDisponibilidadContainers(codigos: string[]) {
+export function useDisponibilidadContainers(codigos: string[], activo = true) {
   const [porCodigo, setPorCodigo] = useState<DisponibilidadPorCodigo>({})
   const clave = codigos.filter(Boolean).sort().join(',')
 
   useEffect(() => {
-    if (!clave) return
+    if (!activo || !clave) return
     let vivo = true
     fetch('/api/containers/disponibilidad', {
       method: 'POST',
@@ -38,9 +46,12 @@ export function useDisponibilidadContainers(codigos: string[]) {
       .then(json => { if (vivo && json?.porCodigo) setPorCodigo(json.porCodigo) })
       .catch(() => {})
     return () => { vivo = false }
-  }, [clave])
+  }, [clave, activo])
 
-  return porCodigo
+  // Derivado, no un reset por efecto: si `activo` se apaga (logout sin recargar),
+  // el badge desaparece en el mismo render en vez de quedar un tick con los datos
+  // de la sesión anterior.
+  return activo ? porCodigo : VACIO
 }
 
 /** Badge fijo sobre la foto. Solo aparece si el producto viene en algún viaje. */
