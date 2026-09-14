@@ -274,14 +274,22 @@ function FichaViaje({
 
   async function handleImportar() {
     const res = await importarItems(viaje.id, pegado)
+
+    // Lo descartado se muestra siempre, haya salido bien o mal: una importación
+    // que dice "listo" y en silencio se comió 40 filas es peor que una que falla.
+    const ignoradas = res.invalidas?.length
+      ? ` · ${res.invalidas.length} ${res.invalidas.length === 1 ? 'fila ignorada' : 'filas ignoradas'} (no se entendió la cantidad): ${res.invalidas.slice(0, 3).join(' | ')}${res.invalidas.length > 3 ? '…' : ''}`
+      : ''
+
     if (!res.ok) {
-      setResultadoImport(res.error ?? 'No se pudo importar.')
+      setResultadoImport(`${res.error ?? 'No se pudo importar.'}${ignoradas}`)
       return
     }
+
     const faltantes = res.sinProducto?.length
       ? ` · Sin producto en el catálogo: ${res.sinProducto.slice(0, 8).join(', ')}${res.sinProducto.length > 8 ? '…' : ''}`
       : ''
-    setResultadoImport(`Importados ${res.importados} ítems.${faltantes}`)
+    setResultadoImport(`Importados ${res.importados} ítems.${faltantes}${ignoradas}`)
     setPegado('')
   }
 
@@ -507,7 +515,10 @@ function FichaViaje({
               <label className="text-xs block mb-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Una línea por color:{' '}
                 <span className="font-mono">código · color · cantidad</span> (o{' '}
-                <span className="font-mono">código · cantidad</span> si no tiene colores)
+                <span className="font-mono">código · cantidad</span> si no tiene colores).{' '}
+                <strong>La cantidad va en la última columna.</strong> Se aceptan{' '}
+                <span className="font-mono">1200</span>, <span className="font-mono">1.200</span> y{' '}
+                <span className="font-mono">1,200</span>.
               </label>
               <textarea
                 value={pegado}

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import type { EtapaContainer } from '@/lib/containers'
+import { parsearPlanilla } from '@/lib/planilla'
 
 const RUTA = '/dashboard/admin/containers'
 
@@ -74,32 +75,48 @@ export async function cambiarEtapa(id: string, etapa: EtapaContainer): Promise<{
  * Carga de ítems pegando la planilla del proveedor.
  *
  * La proforma de China ya viene en Excel, así que la carga real es pegar columnas,
- * no tipear 200 filas a mano. Formato por línea, separado por tabs o punto y coma:
+ * no tipear 200 filas a mano. Formato por línea:
  *
  *     codigo   color   cantidad
  *
  * El color es opcional (producto sin variantes). El título y el producto_id salen
  * de `productos` por codigo_interno — es la misma mercadería que la tienda ya
  * conoce, con el mismo código.
+ *
+ * El parseo del texto vive en `lib/planilla.ts`: es donde estaban los dos bugs
+ * silenciosos (el separador que partía `1,200` en dos columnas y el `parseInt`
+ * que convertía un CBM en cantidad 0) y conviene poder razonarlo sin base.
+ *
+ * Lo que no se pudo leer vuelve en `invalidas` en vez de descartarse callado. Que
+ * el usuario vea qué se ignoró es la mitad del valor de un importador.
  */
 export async function importarItems(
   containerId: string,
   texto: string,
-): Promise<{ ok: boolean; importados?: number; sinProducto?: string[]; error?: string }> {
+): Promise<{
+  ok: boolean
+  importados?: number
+  sinProducto?: string[]
+  invalidas?: string[]
+  error?: string
+}> {
   const { ok, error } = await exigirInterno()
   if (!ok) return { ok: false, error }
 
-  const filas = texto
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => l.split(/\t|;|,(?=\s*\S)/).map(c => c.trim()))
-    .filter(cols => cols.length >= 2)
+  const { filas, invalidas } = parsearPlanilla(texto)
 
-  if (filas.length === 0) return { ok: false, error: 'No se reconoció ninguna fila.' }
+  if (filas.length === 0) {
+    return {
+      ok: false,
+      error: invalidas.length
+        ? 'No se pudo leer ninguna fila. Revisá que la última columna sea la cantidad.'
+        : 'No se reconoció ninguna fila.',
+      invalidas,
+    }
+  }
 
   const service = createServiceClient()
-  const codigos = [...new Set(filas.map(c => c[0]).filter(Boolean))]
+  const codigos = [...new Set(filas.map(f => f.codigo).filter(Boolean))]
 
   const { data: productos } = await service
     .from('productos')
@@ -110,28 +127,20 @@ export async function importarItems(
   const sinProducto: string[] = []
   const rows = []
 
-  for (const cols of filas) {
-    const codigo = cols[0]
-    // Dos columnas = codigo + cantidad (sin color). Tres o más = codigo + color + cantidad.
-    const conColor = cols.length >= 3
-    const variante = conColor ? (cols[1] || null) : null
-    const cantidad = parseInt(conColor ? cols[2] : cols[1], 10)
-
-    if (!codigo || isNaN(cantidad) || cantidad < 0) continue
-
-    const prod = porCodigo.get(codigo)
+  for (const fila of filas) {
+    const prod = porCodigo.get(fila.codigo)
     if (!prod) {
-      sinProducto.push(codigo)
+      sinProducto.push(fila.codigo)
       continue
     }
 
     rows.push({
       container_id: containerId,
       producto_id: prod.id,
-      codigo_interno: codigo,
+      codigo_interno: fila.codigo,
       titulo: prod.titulo,
-      variante: variante ? variante.toUpperCase() : null,
-      cantidad,
+      variante: fila.variante,
+      cantidad: fila.cantidad,
     })
   }
 
@@ -156,7 +165,12 @@ export async function importarItems(
   if (errIns) return { ok: false, error: errIns.message }
 
   revalidatePath(RUTA)
-  return { ok: true, importados: rows.length, sinProducto: [...new Set(sinProducto)] }
+  return {
+    ok: true,
+    importados: rows.length,
+    sinProducto: [...new Set(sinProducto)],
+    invalidas,
+  }
 }
 
 /**
