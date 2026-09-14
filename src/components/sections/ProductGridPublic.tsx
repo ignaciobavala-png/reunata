@@ -11,6 +11,11 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toggleFavorito } from '@/app/actions/favoritos'
 import { netoDesdeBruto } from '@/lib/iva'
+import {
+  useDisponibilidadContainers,
+  BadgeCuandoViene,
+  CuandoVieneDrawer,
+} from '@/components/sections/CuandoViene'
 
 interface ProductoPublico {
   id: number
@@ -54,6 +59,16 @@ export function ProductGridPublic({
   const [loginHint, setLoginHint] = useState<number | null>(null)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const router = useRouter()
+
+  // Preventa de importados. El endpoint chequea el permiso, así que para el que no
+  // lo tiene esto vuelve vacío y ninguna card muestra el badge. Sin sesión ni se
+  // pregunta: el anónimo nunca tiene preventa y el catálogo público es casi todo
+  // tráfico anónimo.
+  const disponibilidad = useDisponibilidadContainers(
+    productos.map(p => p.codigo_interno),
+    estaLogueado,
+  )
+  const [cuandoViene, setCuandoViene] = useState<ProductoPublico | null>(null)
 
   function getSupabase() {
     if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -134,6 +149,7 @@ export function ProductGridPublic({
           const agregado = agregados.has(p.id)
           const yaEsta = enCarrito(p.id)
           const agotado = sinStock(p)
+          const viajes = disponibilidad[p.codigo_interno] ?? []
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -168,13 +184,19 @@ export function ProductGridPublic({
                     </div>
                   )}
 
-                  {/* Badge "en carrito" esquina superior derecha */}
+                  {/* Badge "en carrito" esquina superior derecha — baja un renglón
+                      cuando el producto también tiene badge de preventa, para no
+                      quedar uno encima del otro. */}
                   {yaEsta && !agregado && (
-                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
+                    <span className={`absolute ${viajes.length > 0 ? 'top-10' : 'top-2'} right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center`}>
                       <Check size={11} className="text-white" strokeWidth={3} />
                     </span>
                   )}
                 </Link>
+
+                {/* Preventa — "¿Cuándo viene?". Fuera del Link para que el click
+                    abra el panel en vez de navegar a la ficha. */}
+                <BadgeCuandoViene viajes={viajes} onClick={() => setCuandoViene(p)} />
 
                 {/* Corazón favorito — esquina superior izquierda */}
                 <button
@@ -269,6 +291,15 @@ export function ProductGridPublic({
           )
         })}
       </div>
+
+      {/* Un solo panel para toda la grilla: el producto abierto lo define el estado. */}
+      <CuandoVieneDrawer
+        abierto={cuandoViene !== null}
+        onCerrar={() => setCuandoViene(null)}
+        titulo={cuandoViene?.titulo ?? ''}
+        viajes={cuandoViene ? (disponibilidad[cuandoViene.codigo_interno] ?? []) : []}
+        esMayorista={esMayorista}
+      />
 
       {/* CTA — solo para usuarios sin precios asignados */}
       {!mostrarPrecios && (

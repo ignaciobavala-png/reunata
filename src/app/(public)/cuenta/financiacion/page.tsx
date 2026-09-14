@@ -32,6 +32,9 @@ export default async function FinanciacionPage({
 
   if (!esRolMayorista(profile?.rol)) redirect('/cuenta')
 
+  // La solapa de preventa solo existe para quien tiene acceso a containers.
+  const { data: puedeContainers } = await supabase.rpc('puede_containers')
+
   const { data: solicitudes } = await supabase
     .from('solicitudes_credito')
     .select('id, monto, plazo_dias, garantias, notas, estado, respuesta, created_at')
@@ -47,7 +50,7 @@ export default async function FinanciacionPage({
         Solicitá una línea de crédito para operar en cuenta corriente.
       </p>
 
-      <CuentaNav esMayorista />
+      <CuentaNav esMayorista mostrarReservas={!!puedeContainers} />
 
       <FinanciacionClient
         solicitudes={solicitudes ?? []}

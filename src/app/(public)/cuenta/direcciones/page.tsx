@@ -26,6 +26,9 @@ export default async function DireccionesPage({
 
   if (!esRolMayorista(profile?.rol)) redirect('/cuenta')
 
+  // La solapa de preventa solo existe para quien tiene acceso a containers.
+  const { data: puedeContainers } = await supabase.rpc('puede_containers')
+
   const { data: direcciones } = await supabase
     .from('direcciones_entrega')
     .select('id, alias, calle, numero, piso, localidad, provincia, codigo_postal, predeterminada')
@@ -43,7 +46,7 @@ export default async function DireccionesPage({
         Guardá tus domicilios de entrega para agilizar tus pedidos.
       </p>
 
-      <CuentaNav esMayorista />
+      <CuentaNav esMayorista mostrarReservas={!!puedeContainers} />
 
       {from === 'carrito' && (
         <Link

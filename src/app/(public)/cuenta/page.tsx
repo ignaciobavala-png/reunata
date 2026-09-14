@@ -22,6 +22,9 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
 
   const esMayorista = esRolMayorista(profile?.rol)
 
+  // La solapa de preventa solo existe para quien tiene acceso a containers.
+  const { data: puedeContainers } = await supabase.rpc('puede_containers')
+
   return (
     <main className="pt-36 pb-24 px-6 md:px-16 max-w-2xl mx-auto">
       <h1 className="text-3xl mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
@@ -31,7 +34,7 @@ export default async function MiCuentaPage({ searchParams }: { searchParams: Pro
         Tus datos de contacto y facturación.
       </p>
 
-      <CuentaNav esMayorista={esMayorista} />
+      <CuentaNav esMayorista={esMayorista} mostrarReservas={!!puedeContainers} />
 
       {guardado && (
         <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: '#10b98122', color: '#10b981' }}>

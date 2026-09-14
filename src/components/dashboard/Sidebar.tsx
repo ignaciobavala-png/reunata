@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
   Sparkles, ClipboardList, Megaphone, Building2, Camera,
-  ChevronDown, TrendingUp, FileText, Mail, CreditCard, PhoneCall,
+  ChevronDown, TrendingUp, FileText, Mail, CreditCard, PhoneCall, Ship,
 } from 'lucide-react'
 
 // El rol de un cliente es el slug de su canal, y los canales se crean desde el
@@ -44,6 +44,9 @@ const navMaster: NavItem[] = [
       { label: 'Corporativos',  href: '/dashboard/admin/corporativos', icon: Building2 },
     ],
   },
+  // Primer nivel y no dentro de Ventas: se usa en varios momentos del viaje y a un
+  // solo click. Va pegado a Ventas porque es de lo que habla, pero sin plegarse.
+  { label: 'Containers', href: '/dashboard/admin/containers', icon: Ship },
   {
     label: 'Clientes',
     icon: Users,
@@ -86,6 +89,9 @@ const navEmpleado: NavItem[] = [
   { label: 'Pedidos',   href: '/dashboard/admin/pedidos',  icon: ShoppingCart },
   { label: 'Clientes',  href: '/dashboard/admin/clientes', icon: Users },
   { label: 'Catálogo',  href: '/dashboard/admin/productos',icon: Package },
+  // Containers también va acá: la página deja entrar a master y a empleado, y quien
+  // mueve la mercadería de la cuenta del viaje a la principal es una empleada.
+  { label: 'Containers', href: '/dashboard/admin/containers', icon: Ship },
 ]
 
 const navComisionista: NavItem[] = [
