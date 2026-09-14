@@ -50,7 +50,7 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
     setEnviando(true)
     setErrorEnvio(null)
     const result = await crearPedidoBorrador(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante }))
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId }))
     )
     if (result.ok && result.pedidoId) {
       clear()

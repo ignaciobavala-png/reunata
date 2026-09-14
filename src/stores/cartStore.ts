@@ -3,7 +3,11 @@ import { persist } from 'zustand/middleware'
 
 export interface CartItem {
   productoId: number
-  itemKey: string       // `${productoId}:${variante ?? ''}` — clave única compuesta
+  // `${productoId}:${variante ?? ''}`, y para preventa `${productoId}:${variante}:c${containerItemId}`.
+  // El viaje ENTRA en la clave a propósito: el mismo mate de stock y el mismo mate
+  // del Contenedor 3 son dos líneas distintas del carrito, con precio y fecha
+  // distintos. Si compartieran clave, agregar uno pisaría el precio del otro.
+  itemKey: string
   codigo_interno: string
   titulo: string
   precio: number
@@ -12,6 +16,17 @@ export interface CartItem {
   foto_url?: string | null
   variante?: string     // color/variante elegida, ej: "NEGRO", "VERDE"
   stock?: number | null // stock disponible para limitar el stepper del drawer
+
+  // ── Preventa de containers ──────────────────────────────────────────────
+  // Presentes solo si la línea sale de un viaje. Ausentes = mercadería de stock,
+  // se despacha ya. Ninguno de estos valores se le cree al confirmar: el server
+  // recalcula precio y disponibilidad contra la base (ver pedidos.ts). Viajan en
+  // el store para que el carrito pueda MOSTRAR la demora sin pedirla de nuevo.
+  containerItemId?: number
+  containerNombre?: string   // "Contenedor 3", para agrupar en el carrito
+  fechaEstimada?: string     // ISO date del arribo estimado
+  descuentoEtapaPct?: number
+  precioLista?: number       // sin el descuento de etapa, para el tachado
 }
 
 // Maneja ítems viejos (sin itemKey) del localStorage
@@ -88,9 +103,17 @@ export const useCartStore = create<CartStore>()(
         }
       }),
 
+      // Refresca el precio de lista de las líneas de stock. Las de preventa quedan
+      // afuera a propósito: su precio es lista − descuento de etapa, y este mapa
+      // viene indexado por productoId con el precio de tienda. Sin esta guarda,
+      // refrescar el carrito le borra el descuento del viaje a la línea de
+      // preventa y el cliente ve el precio de stock en una línea que llega en 60
+      // días. El precio real de la preventa lo revalida el server al confirmar.
       updatePrecios: (precios) => set(state => ({
         items: state.items.map(i =>
-          i.productoId in precios ? { ...i, precio: precios[i.productoId] } : i
+          i.containerItemId == null && i.productoId in precios
+            ? { ...i, precio: precios[i.productoId] }
+            : i
         ),
       })),
 

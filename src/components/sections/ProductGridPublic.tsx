@@ -299,6 +299,7 @@ export function ProductGridPublic({
         titulo={cuandoViene?.titulo ?? ''}
         viajes={cuandoViene ? (disponibilidad[cuandoViene.codigo_interno] ?? []) : []}
         esMayorista={esMayorista}
+        fotoUrl={cuandoViene?.foto_url ? supabaseImg(cuandoViene.supabaseUrl, cuandoViene.foto_url, 200) : null}
       />
 
       {/* CTA — solo para usuarios sin precios asignados */}

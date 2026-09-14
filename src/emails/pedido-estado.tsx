@@ -26,6 +26,13 @@ const TEXTOS: Record<EstadoNotificable, { titulo: string; cuerpo: string }> = {
   },
 }
 
+/** Una línea del pedido que viene en barco: qué es y cuándo llega. */
+export interface LineaPreventa {
+  titulo: string
+  cantidad: number
+  demora: string
+}
+
 export default function PedidoEstado({
   estado = 'pago_confirmado',
   nombre = 'Hola',
@@ -34,6 +41,7 @@ export default function PedidoEstado({
   envio,
   tracking,
   urlPedido,
+  preventa = [],
 }: {
   estado?: EstadoNotificable
   nombre?: string
@@ -42,6 +50,7 @@ export default function PedidoEstado({
   envio?: string | null
   tracking?: string | null
   urlPedido?: string
+  preventa?: LineaPreventa[]
 }) {
   const { titulo, cuerpo } = TEXTOS[estado] ?? TEXTOS.pago_confirmado
 
@@ -58,6 +67,22 @@ export default function PedidoEstado({
           ['Seguimiento', tracking],
         ]}
       />
+
+      {/* La demora va en el mail y no solo en la web: es el único lugar al que el
+          cliente vuelve a mirar sin que le pidamos que entre a ningún lado, y si
+          no está acá el reclamo por "¿dónde está mi pedido?" llega igual. */}
+      {preventa.length > 0 ? (
+        <>
+          <Parrafo>
+            <strong>Parte de tu pedido viene en camino desde el exterior.</strong> Eso
+            no frena el resto: cada producto llega en su fecha aproximada.
+          </Parrafo>
+          <Datos
+            filas={preventa.map(l => [`${l.cantidad} × ${l.titulo}`, l.demora] as [string, string])}
+          />
+        </>
+      ) : null}
+
       {urlPedido ? <Boton href={urlPedido}>Ver mi pedido</Boton> : null}
     </Layout>
   )

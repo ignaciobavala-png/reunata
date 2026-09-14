@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Ship, X, Minus, Plus, Check } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
-import { reservarContainer } from '@/app/actions/containers'
+import { useCartStore } from '@/stores/cartStore'
 import {
   ETAPA_LABEL,
   ETAPA_AYUDA,
@@ -90,13 +90,16 @@ interface DrawerProps {
   viajes: ViajeDisponible[]
   /** Mayorista ve neto en grande; minorista ve el final. */
   esMayorista?: boolean
+  /** Foto de la card, para que la línea del carrito no salga en blanco. */
+  fotoUrl?: string | null
 }
 
-export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayorista = false }: DrawerProps) {
+export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayorista = false, fotoUrl = null }: DrawerProps) {
   const [cantidades, setCantidades] = useState<Record<number, number>>({})
-  const [enviando, setEnviando] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [listo, setListo] = useState<{ containerId: string; numero?: number } | null>(null)
+  const [listo, setListo] = useState<{ containerId: string; unidades: number } | null>(null)
+  const addAlCarrito = useCartStore(s => s.add)
+  const abrirCarrito = useCartStore(s => s.setCartOpen)
 
   // Al abrir otro producto (o al reabrir el panel) se limpia todo: si no, la
   // cantidad elegida para un mate queda puesta al abrir el siguiente.
@@ -131,27 +134,62 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
     setCantidades(prev => ({ ...prev, [itemId]: Math.max(0, Math.min(ajustado, tope)) }))
   }, [])
 
-  async function handleReservar(viaje: ViajeDisponible) {
-    const items = viaje.colores
-      .map(c => ({ itemId: c.itemId, cantidad: cantidades[c.itemId] ?? 0 }))
-      .filter(i => i.cantidad > 0)
+  /**
+   * Agrega al carrito, no reserva.
+   *
+   * Decisión de Gastón (14/09/2026): un solo carrito y un solo pago, como un
+   * pedido normal. La mercadería del viaje NO se bloquea acá — se bloquea recién
+   * al confirmar el pedido, en la misma transacción que lo escribe
+   * (`preventa_comprometer`). Mientras está en el carrito de alguien sigue
+   * disponible para todos, igual que el stock de la tienda: bloquear al agregar
+   * dejaría el barco vendido por carritos abandonados.
+   *
+   * `add` suma un bulto cuando el itemKey ya existe, así que N bultos se agregan
+   * llamando N veces. Es la misma puerta que usa la card del catálogo y no hay
+   * motivo para abrirle una segunda.
+   */
+  function handleAgregar(viaje: ViajeDisponible) {
+    const elegidos = viaje.colores
+      .map(c => ({ color: c, cantidad: cantidades[c.itemId] ?? 0 }))
+      .filter(x => x.cantidad > 0)
 
-    if (items.length === 0) {
-      setError('Elegí una cantidad antes de reservar.')
+    if (elegidos.length === 0) {
+      setError('Elegí una cantidad antes de agregar.')
       return
     }
 
-    setEnviando(viaje.containerId)
     setError(null)
-    const res = await reservarContainer(viaje.containerId, items)
-    setEnviando(null)
+    const paso = Math.max(1, viaje.multiplo ?? 1)
+    let unidades = 0
 
-    if (res.ok) {
-      setListo({ containerId: viaje.containerId, numero: res.numero })
-      setCantidades({})
-    } else {
-      setError(res.error ?? 'No se pudo registrar la reserva.')
+    for (const { color, cantidad } of elegidos) {
+      const item = {
+        productoId: viaje.productoId,
+        // El viaje va en la clave: el mismo mate de stock y el del Contenedor 3
+        // son dos líneas, con precio y fecha distintos.
+        itemKey: `${viaje.productoId}:${color.variante ?? ''}:c${color.itemId}`,
+        codigo_interno: viaje.codigoInterno,
+        titulo,
+        precio: color.precio,
+        multiplo: paso,
+        foto_url: fotoUrl ?? null,
+        variante: color.variante ?? undefined,
+        // Tope del stepper del carrito: lo que queda en el barco, no el stock
+        // de la tienda.
+        stock: color.disponible,
+        containerItemId: color.itemId,
+        containerNombre: viaje.nombre,
+        fechaEstimada: viaje.fechaArribo ?? undefined,
+        descuentoEtapaPct: viaje.descuentoPct,
+        precioLista: color.precioLista,
+      }
+      for (let i = 0; i < Math.floor(cantidad / paso); i++) addAlCarrito(item)
+      unidades += cantidad
     }
+
+    setListo({ containerId: viaje.containerId, unidades })
+    setCantidades({})
+    abrirCarrito(true)
   }
 
   return (
@@ -331,26 +369,24 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
                   <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
                     <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <span>
-                      {listo.numero ? <>Reserva <strong>#{listo.numero}</strong> registrada. </> : 'Reserva registrada. '}
-                      Te vamos a contactar para confirmarla.
+                      <strong>{listo.unidades} u.</strong> agregadas al carrito
+                      {fecha ? <> · llegan aprox. el {fecha}</> : null}.
                     </span>
                   </p>
                 ) : viaje.aceptaReservas && !sinNada ? (
                   <button
-                    onClick={() => handleReservar(viaje)}
-                    disabled={enviando === viaje.containerId || elegido === 0}
+                    onClick={() => handleAgregar(viaje)}
+                    disabled={elegido === 0}
                     className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
                   >
-                    {enviando === viaje.containerId
-                      ? 'Reservando…'
-                      : elegido === 0
-                        ? 'Elegí una cantidad'
-                        : `Reservar ${elegido} u. · ${formatPrecio(totalViaje, viaje.moneda)}`}
+                    {elegido === 0
+                      ? 'Elegí una cantidad'
+                      : `Agregar ${elegido} u. · ${formatPrecio(totalViaje, viaje.moneda)}`}
                   </button>
                 ) : (
                   <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando reservas.'}
+                    {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando pedidos.'}
                   </p>
                 )}
               </div>
@@ -366,8 +402,9 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
 
         <div className="px-5 py-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-acero-oscuro)' }}>
-            Las fechas son estimadas y dependen del barco. Reservar no genera cobro
-            automático: el equipo te contacta para confirmar la operación.
+            Se paga junto con el resto del carrito, en un solo pedido. Las fechas
+            son estimadas y dependen del barco: cada producto muestra la suya y se
+            despacha cuando llega.
           </p>
         </div>
       </div>

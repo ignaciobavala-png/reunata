@@ -136,6 +136,8 @@ export async function POST(req: NextRequest) {
       viaje = {
         containerId: c.id,
         nombre: c.nombre,
+        productoId: fila.producto_id,
+        codigoInterno: fila.codigo_interno,
         etapa: c.etapa,
         fechaArribo: c.fecha_arribo_est,
         descuentoPct,

@@ -12,6 +12,8 @@
  * decir "llegó" por su cuenta.
  */
 
+import { aplicarDescuento } from '@/lib/precio-efectivo'
+
 export type EtapaContainer =
   | 'borrador'
   | 'china'
@@ -80,11 +82,13 @@ export function descuentoVigente(c: ContainerDescuentos): number {
  *
  * Se aplica sobre el precio de lista del canal del cliente, que YA incluye IVA
  * (ver src/lib/iva.ts). Acá no se suma ni se despeja nada: solo se descuenta.
+ *
+ * Delega en `aplicarDescuento` para que el redondeo viva en un solo lugar: desde
+ * que la preventa entra al carrito, el mismo descuento se calcula también en
+ * pedidos.ts, y dos redondeos distintos harían que el carrito muestre un precio
+ * y el pedido guarde otro.
  */
-export function precioConDescuento(precioLista: number, descuentoPct: number): number {
-  if (!descuentoPct) return Math.round(precioLista)
-  return Math.round(precioLista * (1 - descuentoPct / 100))
-}
+export const precioConDescuento = aplicarDescuento
 
 /** Días que faltan para una fecha estimada. Negativo = ya pasó. */
 export function diasHasta(fecha: string | null | undefined): number | null {
@@ -133,6 +137,9 @@ export interface ColorDisponible {
 export interface ViajeDisponible {
   containerId: string
   nombre: string
+  /** Producto de la tienda con el que se muestra. Lo necesita el carrito. */
+  productoId: number
+  codigoInterno: string
   etapa: EtapaContainer
   fechaArribo: string | null
   descuentoPct: number
@@ -145,3 +152,17 @@ export interface ViajeDisponible {
 
 /** codigo_interno → viajes que lo traen. */
 export type DisponibilidadPorCodigo = Record<string, ViajeDisponible[]>
+
+/**
+ * Cómo se le anuncia la demora al cliente en una línea del carrito o del pedido.
+ *
+ * Pedido explícito de Gastón (14/09/2026): "lo único que tenemos que diferenciar
+ * es la demora en cada producto" y "que quede claro que le va a llegar
+ * aproximadamente en la fecha de llegada". Por eso la palabra "aproximadamente"
+ * está siempre y la fecha nunca se muestra sola: una fecha pelada se lee como
+ * compromiso, y el barco no la firma.
+ */
+export function textoDemora(fechaEstimada: string | null | undefined): string {
+  const fecha = formatFechaEstimada(fechaEstimada)
+  return fecha ? `Llega aprox. el ${fecha}` : 'Llega con el barco — fecha a confirmar'
+}

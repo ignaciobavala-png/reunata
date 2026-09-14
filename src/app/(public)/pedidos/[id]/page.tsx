@@ -8,6 +8,7 @@ import { VolverAPedirButton } from '../VolverAPedirButton'
 import { EditarBorradorButton } from '../EditarBorradorButton'
 import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
+import { textoDemora } from '@/lib/containers'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { whatsappLink } from '@/lib/whatsapp'
@@ -25,7 +26,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
     .select(`
       id, numero, estado, editable, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en, descuento_nota,
       pedido_items (
-        id, cantidad, precio_unit,
+        id, cantidad, precio_unit, fecha_estimada, container_item_id,
         producto:producto_id ( id, codigo_interno, titulo )
       )
     `)
@@ -118,6 +119,13 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                       {prod?.codigo_interno}
                     </span>
                     <span style={{ color: 'var(--foreground)' }}>{prod?.titulo}</span>
+                    {/* La demora se muestra por línea: un pedido puede mezclar
+                        mercadería que sale hoy con mercadería del barco. */}
+                    {item.container_item_id != null && (
+                      <span className="block text-xs mt-0.5" style={{ color: 'var(--color-granito)' }}>
+                        ⛴ {textoDemora(item.fecha_estimada)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--foreground)' }}>{item.cantidad}</td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>

@@ -10,11 +10,22 @@ import { crearEnvioEnviopack, consultarEnvioEnviopack, cotizarEnvio } from '@/li
 import { resolverTramoVolumen, type ConfigVolumen } from '@/lib/descuento-volumen'
 import { ajusteMetodoPago, pctAjusteMetodoPago, netoDesdeBruto, totalMercaderiaConMetodo, esMetodoSinFactura } from '@/lib/iva'
 import { notificarEstadoPedido } from '@/lib/emails/pedidos'
+import { descuentoVigente, ETAPAS_VISIBLES, aceptaReservas, type EtapaContainer } from '@/lib/containers'
+import { aplicarDescuento, combinarDescuentos, descuentoEtapaConPiso } from '@/lib/precio-efectivo'
 
 interface LineaPedido {
   productoId: number
   cantidad: number
   variante?: string
+  /**
+   * Ítem del viaje del que sale la línea. Presente = preventa: no descuenta
+   * stock de la tienda, lleva descuento de etapa y fecha estimada de arribo.
+   * Ausente = mercadería de stock, se despacha ya.
+   *
+   * El precio NO viaja desde el navegador ni acá ni en la tienda: lo que se
+   * acepta es qué ítem y cuánto.
+   */
+  containerItemId?: number
 }
 
 // Envío a domicilio para el canal Emprendedores — cotiza y se cobra siempre (sin
@@ -124,7 +135,7 @@ export async function crearPedidoBorrador(
       .maybeSingle(),
     service
       .from('canales_config')
-      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra, desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3')
+      .select('desc_autogestion_primera_pct, desc_autogestion_siguientes_pct, desc_efectivo_pct, desc_transferencia_pct, recargo_transf_blanco_pct, minimo_compra, piso_descuento_pct, desc_volumen_monto_min, desc_volumen_pct, desc_volumen_monto_min_2, desc_volumen_pct_2, desc_volumen_monto_min_3, desc_volumen_pct_3')
       .eq('canal_id', perfil.canal_id)
       .maybeSingle(),
     service
@@ -151,8 +162,11 @@ export async function crearPedidoBorrador(
     }
   }
 
-  // Validar stock disponible
+  // Validar stock disponible — solo para las líneas de stock. La preventa no sale
+  // del depósito: su disponibilidad es la del barco y se valida más abajo contra
+  // container_items.
   for (const linea of lineas) {
+    if (linea.containerItemId != null) continue
     const prod = productos.find(p => p.id === linea.productoId)
     if (prod) {
       const disponible = stockDisponible(prod, linea.variante)
@@ -162,66 +176,204 @@ export async function crearPedidoBorrador(
     }
   }
 
+  // ── Preventa ────────────────────────────────────────────────────────────
+  // Las líneas que vienen de un viaje se revalidan enteras acá: permiso, etapa,
+  // pertenencia del ítem al producto y disponibilidad. Lo del navegador es solo
+  // "este ítem, esta cantidad".
+  const idsPreventa = [...new Set(
+    lineas.map(l => l.containerItemId).filter((id): id is number => Number.isInteger(id)),
+  )]
+
+  type ItemViaje = {
+    id: number
+    producto_id: number | null
+    variante: string | null
+    cantidad: number
+    comprometido: number
+    precio_base: number | null
+    containers: {
+      id: string
+      nombre: string
+      etapa: EtapaContainer
+      descuento_china: number
+      descuento_oceano: number
+      fecha_arribo_est: string | null
+    }
+  }
+  const itemsViaje = new Map<number, ItemViaje>()
+
+  if (idsPreventa.length > 0) {
+    const { data: permiso } = await supabase.rpc('puede_containers')
+    if (!permiso) {
+      return { ok: false, error: 'Tu cuenta no tiene acceso a preventa de importados.' }
+    }
+
+    const { data: filas } = await service
+      .from('container_items')
+      .select(`
+        id, producto_id, variante, cantidad, comprometido, precio_base,
+        containers!inner ( id, nombre, etapa, descuento_china, descuento_oceano, fecha_arribo_est )
+      `)
+      .in('id', idsPreventa)
+      .in('containers.etapa', ETAPAS_VISIBLES)
+
+    for (const f of (filas ?? []) as unknown as ItemViaje[]) itemsViaje.set(f.id, f)
+
+    if (itemsViaje.size !== idsPreventa.length) {
+      return { ok: false, error: 'Alguno de los productos en preventa ya no está disponible. Actualizá el carrito.' }
+    }
+
+    // Lo pedido por ítem, sumado: dos líneas del mismo color (no debería pasar,
+    // pero el carrito vive en localStorage) tienen que competir contra el mismo
+    // disponible, no cada una por su lado.
+    const pedidoPorItem = new Map<number, number>()
+    for (const l of lineas) {
+      if (l.containerItemId == null) continue
+      pedidoPorItem.set(l.containerItemId, (pedidoPorItem.get(l.containerItemId) ?? 0) + l.cantidad)
+    }
+
+    for (const l of lineas) {
+      if (l.containerItemId == null) continue
+      const item = itemsViaje.get(l.containerItemId)!
+
+      // Puerto son los 10 días de aduana: se ve, no se compra.
+      if (!aceptaReservas(item.containers.etapa)) {
+        return { ok: false, error: `"${item.containers.nombre}" ya no está tomando pedidos.` }
+      }
+      // El ítem tiene que ser del producto que dice la línea: si no, alguien
+      // podría pagar el precio de un producto barato y llevarse otro.
+      if (item.producto_id !== l.productoId) {
+        return { ok: false, error: 'Los productos en preventa del carrito no coinciden. Actualizá el carrito.' }
+      }
+      const disponible = Math.max(item.cantidad - item.comprometido, 0)
+      if (disponible < (pedidoPorItem.get(l.containerItemId) ?? 0)) {
+        return { ok: false, error: `No queda suficiente de uno de los productos en preventa. Disponible: ${disponible}.` }
+      }
+    }
+  }
+
   const tipoCambioUsd = parseFloat(tcRow?.valor ?? '1') || 1
 
-  const lineasResueltas = lineas.flatMap(l => {
+  // Precio de lista del canal, en pesos. Es la misma base para stock y preventa:
+  // el producto es el mismo, lo que cambia es cuándo llega y el descuento de etapa.
+  const base = lineas.flatMap(l => {
     const prod = productos.find(p => p.id === l.productoId)
     if (!prod) return []
-    const precioRaw = prod[listaPrecio as keyof typeof prod] as number | null
+    const item = l.containerItemId != null ? itemsViaje.get(l.containerItemId) : undefined
+    // El override de precio del viaje pisa la lista del canal cuando está cargado.
+    const precioRaw = item?.precio_base != null
+      ? Number(item.precio_base)
+      : (prod[listaPrecio as keyof typeof prod] as number | null)
     if (!precioRaw) return []
     const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) return []
-    return [{ productoId: l.productoId, cantidad: l.cantidad, precioUnit: precioArs, ivaPct: (prod.iva as number | null) ?? null, variante: l.variante ?? null }]
+    return [{
+      productoId: l.productoId,
+      cantidad: l.cantidad,
+      precioLista: precioArs,
+      ivaPct: (prod.iva as number | null) ?? null,
+      variante: l.variante ?? null,
+      containerItemId: l.containerItemId ?? null,
+      // Bruto: todavía sin el piso del canal, que depende de la cascada y por eso
+      // se resuelve abajo.
+      descEtapaBruto: item ? descuentoVigente(item.containers) : 0,
+      fechaEstimada: item?.containers.fecha_arribo_est ?? null,
+    }]
   })
 
-  if (lineasResueltas.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
-  // Nunca crear el pedido con menos ítems de los que el usuario ve en su carrito:
-  // si un producto se desactivó o quedó sin precio para su lista, se rechaza todo.
-  if (lineasResueltas.length !== lineas.length) {
+  if (base.length === 0) return { ok: false, error: 'Ningún producto tiene precio configurado.' }
+  if (base.length !== lineas.length) {
     return { ok: false, error: 'Algunos productos de tu carrito ya no están disponibles. Quitalos del carrito para continuar.' }
   }
 
-  const subtotal = lineasResueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
-
-  // Proporción neto/bruto del pedido — los precios de lista YA incluyen IVA
-  // (ver lib/iva.ts). Sirve para cotizar los métodos sin factura sobre el neto.
-  const subtotalNeto = lineasResueltas.reduce(
-    (acc, l) => acc + netoDesdeBruto(l.precioUnit, l.ivaPct) * l.cantidad, 0,
-  )
-  const factorNeto = subtotal > 0 ? subtotalNeto / subtotal : 1
+  // Resolver el precio de cada línea con el descuento de etapa ya recortado por el
+  // piso del canal.
+  //
+  // Hay una circularidad real: el piso se mide contra la cascada del pedido, la
+  // cascada depende del tramo de volumen, y el tramo depende del subtotal, que
+  // depende del precio. Se corta con dos pasadas: la primera calcula la cascada
+  // con el descuento de etapa entero, la segunda recorta y recalcula. Con el piso
+  // en null (el default que pidió Gastón) la segunda pasada es idéntica a la
+  // primera y esto no cambia ningún número.
+  function resolverCon(pctCascada: number) {
+    return base.map(b => {
+      const descEtapa = b.containerItemId == null
+        ? 0
+        : descuentoEtapaConPiso(b.descEtapaBruto, pctCascada, canalConfig)
+      return { ...b, descEtapa, precioUnit: aplicarDescuento(b.precioLista, descEtapa) }
+    })
+  }
 
   // Orden de descuentos (pedido del tester): 1) WEB (autogestión), 2) Volumen,
   // 3) forma de pago. Cada paso se aplica sobre el saldo del anterior.
-
-  // 1) Descuento web (autogestión) — sobre el bruto, para que sea el más alto posible
   const esPrimeraCompra = (pedidosCount ?? 0) === 0
   const pctAutogestion = esPrimeraCompra
     ? (canalConfig?.desc_autogestion_primera_pct ?? 0)
     : (canalConfig?.desc_autogestion_siguientes_pct ?? 0)
-  const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
-  const basePostAutogestion = subtotal + ajusteAutogestion
-
-  // 2) Descuento por volumen — el umbral se evalúa sobre el bruto (calificás por lo
-  // que comprás), pero el % se aplica sobre la base ya descontada por web
-  const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
-  const ajusteVolumenCanal = tramoVol ? -Math.round(basePostAutogestion * tramoVol.pct / 100) : 0
-  const basePostVolumenCanal = basePostAutogestion + ajusteVolumenCanal
-
-  // 3) Descuento por método de pago — sobre el precio ya descontado por web y
-  // volumen. Mismo helper que usa el carrito: cuando cada lado tenía su propia
-  // cuenta, el carrito mostraba +21% en e-cheq/cheque y acá se guardaba sin él,
-  // así que el cliente veía un total y quedaba registrado otro.
   const medioPagoOriginal = opciones?.medioPago
   const pctMetodoPago = Math.abs(pctAjusteMetodoPago(medioPagoOriginal, canalConfig))
-  // Los métodos sin factura se cotizan sobre el neto (Total Bruto): sin factura
-  // no hay IVA que cobrar. Mismo helper que el carrito, para no divergir.
-  const ajusteMedioPago = ajusteMetodoPago(
-    esMetodoSinFactura(medioPagoOriginal) ? Math.round(basePostVolumenCanal * factorNeto) : basePostVolumenCanal,
-    medioPagoOriginal,
-    canalConfig,
-  )
 
-  const totalMercaderia = totalMercaderiaConMetodo(basePostVolumenCanal, medioPagoOriginal, canalConfig, factorNeto)
+  type Resueltas = ReturnType<typeof resolverCon>
+  function cascada(resueltas: Resueltas) {
+    const subtotal = resueltas.reduce((acc, l) => acc + l.precioUnit * l.cantidad, 0)
+
+    // Proporción neto/bruto del pedido — los precios de lista YA incluyen IVA
+    // (ver lib/iva.ts). Sirve para cotizar los métodos sin factura sobre el neto.
+    const subtotalNeto = resueltas.reduce(
+      (acc, l) => acc + netoDesdeBruto(l.precioUnit, l.ivaPct) * l.cantidad, 0,
+    )
+    const factorNeto = subtotal > 0 ? subtotalNeto / subtotal : 1
+
+    // 1) Descuento web (autogestión) — sobre el bruto, para que sea el más alto posible
+    const ajusteAutogestion = pctAutogestion > 0 ? -Math.round(subtotal * pctAutogestion / 100) : 0
+    const basePostAutogestion = subtotal + ajusteAutogestion
+
+    // 2) Descuento por volumen — el umbral se evalúa sobre el bruto (calificás por lo
+    // que comprás), pero el % se aplica sobre la base ya descontada por web.
+    //
+    // Decisión de Gastón (14/09/2026): la preventa SUMA para el umbral. El cliente
+    // califica para el tramo con mercadería que llega en 60 días y se lleva el %
+    // también sobre lo que se despacha hoy. Por eso `subtotal` es el del pedido
+    // entero y no el de las líneas de stock.
+    const tramoVol = resolverTramoVolumen(canalConfig as ConfigVolumen | null, subtotal)
+    const ajusteVolumenCanal = tramoVol ? -Math.round(basePostAutogestion * tramoVol.pct / 100) : 0
+    const basePostVolumenCanal = basePostAutogestion + ajusteVolumenCanal
+
+    // 3) Descuento por método de pago — sobre el precio ya descontado por web y
+    // volumen. Mismo helper que usa el carrito: cuando cada lado tenía su propia
+    // cuenta, el carrito mostraba +21% en e-cheq/cheque y acá se guardaba sin él,
+    // así que el cliente veía un total y quedaba registrado otro.
+    //
+    // Los métodos sin factura se cotizan sobre el neto (Total Bruto): sin factura
+    // no hay IVA que cobrar.
+    const ajusteMedioPago = ajusteMetodoPago(
+      esMetodoSinFactura(medioPagoOriginal) ? Math.round(basePostVolumenCanal * factorNeto) : basePostVolumenCanal,
+      medioPagoOriginal,
+      canalConfig,
+    )
+    const totalMercaderia = totalMercaderiaConMetodo(basePostVolumenCanal, medioPagoOriginal, canalConfig, factorNeto)
+
+    // El % combinado de la cascada, que es contra lo que se mide el piso de la
+    // preventa. El método de pago entra solo si descuenta: el recargo de factura A
+    // es IVA y sube el precio, no lo baja.
+    const pctCascada = combinarDescuentos(
+      pctAutogestion,
+      tramoVol?.pct ?? 0,
+      ajusteMedioPago < 0 ? pctMetodoPago : 0,
+    )
+
+    return { subtotal, factorNeto, ajusteVolumenCanal, tramoVol, ajusteMedioPago,
+             basePostVolumenCanal, totalMercaderia, pctCascada }
+  }
+
+  // Pasada 1 con el descuento de etapa entero, pasada 2 con el piso ya aplicado.
+  let lineasResueltas = resolverCon(0)
+  let c = cascada(lineasResueltas)
+  lineasResueltas = resolverCon(c.pctCascada)
+  c = cascada(lineasResueltas)
+
+  const { factorNeto, ajusteVolumenCanal, tramoVol,
+          ajusteMedioPago, basePostVolumenCanal, totalMercaderia } = c
 
   // Validar mínimo de compra — sobre el Total Bruto (post desc. web/volumen),
   // sin el ajuste por forma de pago (pedido del tester, mismo criterio que el carrito)
@@ -297,6 +449,11 @@ export async function crearPedidoBorrador(
     pedidoId = opciones.pedidoIdToEdit
     const { error } = await service.from('pedidos').update(camposPedido).eq('id', pedidoId)
     if (error) return { ok: false, error: error.message }
+    // Devolver al barco lo que este borrador tenía tomado ANTES de borrar sus
+    // líneas: si no, editar un borrador dos veces deja el viaje bloqueado el
+    // doble de lo que el cliente pidió, y nadie se entera hasta que el container
+    // parece vendido sin estarlo.
+    await service.rpc('preventa_liberar', { p_pedido_id: pedidoId })
     await service.from('pedido_items').delete().eq('pedido_id', pedidoId)
   } else {
     const { data: pedido, error } = await service
@@ -315,11 +472,32 @@ export async function crearPedidoBorrador(
       cantidad: l.cantidad,
       precio_unit: l.precioUnit,
       variante: l.variante,
+      container_item_id: l.containerItemId,
+      // Copia congelada, no un join: si el barco se demora, el cliente tiene que
+      // poder ver qué fecha le prometimos cuando compró.
+      fecha_estimada: l.fechaEstimada,
+      descuento_etapa_pct: l.descEtapa,
     }))
   )
   if (itemsError) {
     if (!opciones?.pedidoIdToEdit) await service.from('pedidos').delete().eq('id', pedidoId)
     return { ok: false, error: 'Error al registrar los ítems del pedido. Intentá de nuevo.' }
+  }
+
+  // Recién acá se bloquea la mercadería del barco, y en una sola transacción.
+  // La validación de disponibilidad de más arriba es para dar un mensaje decente;
+  // la que manda es esta, que toma el lock. Entre una y otra puede entrar otro
+  // cliente, y si entró, este pedido se cae entero en vez de sobrevender.
+  if (idsPreventa.length > 0) {
+    const { error: comprometerError } = await service.rpc('preventa_comprometer', { p_pedido_id: pedidoId })
+    if (comprometerError) {
+      if (opciones?.pedidoIdToEdit) {
+        await service.from('pedido_items').delete().eq('pedido_id', pedidoId)
+      } else {
+        await service.from('pedidos').delete().eq('id', pedidoId)
+      }
+      return { ok: false, error: comprometerError.message }
+    }
   }
 
   if (tieneComprobante) {
@@ -501,6 +679,13 @@ export async function actualizarEstadoPedido(pedidoId: string, estado: string) {
     .eq('id', pedidoId)
     .select('cliente_id')
     .single()
+
+  // Cancelar devuelve al barco lo que el pedido tenía tomado. Sin esto, cada
+  // pedido cancelado deja mercadería bloqueada para siempre y el viaje aparece
+  // vendido sin estarlo — mismo criterio que container_cancelar_reserva.
+  if (estado === 'cancelado') {
+    await service.rpc('preventa_liberar', { p_pedido_id: pedidoId })
+  }
 
   await service.from('pedido_estado_historial').insert({
     pedido_id: pedidoId,

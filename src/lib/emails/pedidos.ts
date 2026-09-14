@@ -1,7 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { formatPrecio } from '@/lib/utils'
 import { enviarMail, SITIO } from './enviar'
-import PedidoEstado, { type EstadoNotificable } from '@/emails/pedido-estado'
+import PedidoEstado, { type EstadoNotificable, type LineaPreventa } from '@/emails/pedido-estado'
+import { textoDemora } from '@/lib/containers'
 
 const NOTIFICABLES: EstadoNotificable[] = ['pago_confirmado', 'en_preparacion', 'enviado']
 
@@ -50,6 +51,21 @@ export async function notificarEstadoPedido(pedidoId: string, estado: string) {
 
   if (!email) return
 
+  // Las líneas que vienen del barco se listan aparte con su fecha. Es el pedido
+  // textual de Gastón (14/09/2026): "que quede claro que le va a llegar
+  // aproximadamente en la fecha de llegada".
+  const { data: itemsPreventa } = await service
+    .from('pedido_items')
+    .select('cantidad, fecha_estimada, producto:producto_id ( titulo )')
+    .eq('pedido_id', pedidoId)
+    .not('container_item_id', 'is', null)
+
+  const preventa: LineaPreventa[] = (itemsPreventa ?? []).map(i => ({
+    titulo: (i.producto as unknown as { titulo: string } | null)?.titulo ?? 'Producto',
+    cantidad: i.cantidad as number,
+    demora: textoDemora(i.fecha_estimada as string | null),
+  }))
+
   await enviarMail({
     to: email,
     subject:
@@ -64,6 +80,7 @@ export async function notificarEstadoPedido(pedidoId: string, estado: string) {
       envio: pedido.envio_descripcion,
       tracking: pedido.tracking,
       urlPedido: `${SITIO}/pedidos/${pedidoId}`,
+      preventa,
     }),
   })
 }

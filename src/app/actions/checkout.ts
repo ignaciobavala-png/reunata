@@ -15,6 +15,30 @@ interface CheckoutItem {
   productoId: number
   cantidad: number
   variante?: string
+  /**
+   * Ítem del viaje, si la línea viene de la preventa de containers.
+   *
+   * Estas dos rutas (Mercado Pago y transferencia con comprobante) NO saben de
+   * preventa: cobran precio de tienda y no descuentan del barco. Por eso el campo
+   * existe solo para poder RECHAZAR el pedido, no para procesarlo — ver
+   * `rechazarSiHayPreventa`. La preventa se paga por la ruta mayorista
+   * (`crearPedidoBorrador`), que es la que tiene las formas de pago del canal.
+   */
+  containerItemId?: number
+}
+
+/**
+ * Corta el checkout si el carrito trae líneas de preventa.
+ *
+ * Sin esto, una cuenta con permiso de containers que caiga en la ruta minorista
+ * pagaría mercadería que llega en 60 días a precio de stock, y el viaje nunca se
+ * enteraría: `container_items.comprometido` quedaría igual y la misma unidad se
+ * vendería de nuevo.
+ */
+function rechazarSiHayPreventa(items: CheckoutItem[]): string | null {
+  return items.some(i => i.containerItemId != null)
+    ? 'Tu carrito tiene productos en preventa. Confirmalos desde el carrito para pagarlos con las formas de pago de tu cuenta.'
+    : null
 }
 
 interface GuestData {
@@ -45,6 +69,9 @@ export async function iniciarCheckoutMP(
   envioParams?: EnvioParams,
   telefono?: string,
 ): Promise<{ ok: boolean; init_point?: string; error?: string }> {
+  const bloqueo = rechazarSiHayPreventa(items)
+  if (bloqueo) return { ok: false, error: bloqueo }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -381,6 +408,9 @@ export async function iniciarCheckoutTransferencia(
   telefono?: string,
   guestData?: GuestData,
 ): Promise<{ ok: boolean; pedidoId?: string; numero?: number; error?: string }> {
+  const bloqueo = rechazarSiHayPreventa(items)
+  if (bloqueo) return { ok: false, error: bloqueo }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const service = createServiceClient()

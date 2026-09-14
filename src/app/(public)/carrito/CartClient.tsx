@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, Loader2, Trash2, Upload, Check, Copy } from 'lucide-react'
+import { ShoppingBag, Loader2, Trash2, Upload, Check, Copy, Ship } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useCartStore } from '@/stores/cartStore'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
@@ -15,6 +15,7 @@ import { EnvioCotizador, type EnvioSeleccionado } from '@/components/cliente/Env
 import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { METODOS_CON_IVA, METODOS_SIN_IVA, METODO_LABEL, metodoLabelCorto } from '@/lib/metodos-pago'
 import { resolverTramoVolumen, tramosPendientes } from '@/lib/descuento-volumen'
+import { textoDemora } from '@/lib/containers'
 import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
 import { netoDesdeBruto, ajusteMetodoPago, totalMercaderiaConMetodo } from '@/lib/iva'
 
@@ -368,7 +369,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setGuestErrors(null)
 
     const result = await iniciarCheckoutMP(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId })),
       guestOverride,
       envioSeleccionado
         ? {
@@ -422,7 +423,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setErrorPago(null)
 
     const result = await iniciarCheckoutTransferencia(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId })),
       envioSeleccionado
         ? {
             provincia: envioSeleccionado.provincia,
@@ -455,7 +456,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setErrorPago(null)
 
     const result = await iniciarCheckoutTransferencia(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId })),
       envioSeleccionado
         ? {
             provincia: envioSeleccionado.provincia,
@@ -487,7 +488,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     setPagando(true)
     setErrorPago(null)
     const result = await crearPedidoBorrador(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante })),
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId })),
       {
         medioPago: metodoPago,
         facturaIva: facturaIva === 'con',
@@ -871,6 +872,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
                           {formatPrecio(item.precio)} c/u
+                        </p>
+                      )}
+                      {/* Preventa: la demora va en la línea, no en el pie del
+                          carrito. Un pedido mezcla stock y barco, y el cliente
+                          tiene que poder ver cuál es cuál sin abrir nada. */}
+                      {item.containerItemId != null && (
+                        <p className="text-xs mt-1.5 inline-flex items-center gap-1 px-2 py-1 rounded"
+                           style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-oscuro)' }}>
+                          <Ship size={12} aria-hidden="true" />
+                          {textoDemora(item.fechaEstimada)}
+                          {item.containerNombre ? ` · ${item.containerNombre}` : ''}
                         </p>
                       )}
                     </div>

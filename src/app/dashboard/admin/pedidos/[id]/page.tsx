@@ -10,6 +10,16 @@ import { GenerarEnvioButton } from './GenerarEnvioButton'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { esRolMayorista } from '@/lib/roles'
+import { textoDemora } from '@/lib/containers'
+
+/** Los campos de preventa de una línea del pedido, para el embed de PostgREST. */
+type LineaPreventaAdmin = {
+  container_item_id: number | null
+  fecha_estimada: string | null
+  descuento_etapa_pct: number | null
+  // El embed to-one de PostgREST llega como objeto, no como array.
+  container_item: { containers: { nombre: string; etapa: string } | null } | null
+}
 
 export default async function AdminDetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -26,8 +36,9 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       notas, created_at, fecha_pago, mp_preference_id, mp_payment_id,
       cliente_id, guest_nombre, guest_email, guest_telefono,
       pedido_items (
-        id, cantidad, precio_unit, variante,
-        producto:producto_id ( id, codigo_interno, titulo )
+        id, cantidad, precio_unit, variante, fecha_estimada, container_item_id, descuento_etapa_pct,
+        producto:producto_id ( id, codigo_interno, titulo ),
+        container_item:container_item_id ( id, containers ( nombre, etapa ) )
       ),
       cliente:cliente_id ( nombre, razon_social, email, telefono, rol, cuit_dni, direccion, localidad, sitio_web, puntos_venta )
     `)
@@ -209,6 +220,22 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                         {(item as any).variante}
                       </span>
                     )}
+                    {/* Preventa: Elena y Tony necesitan saber, línea por línea,
+                        qué sale del depósito hoy y qué viene en el barco. Sin
+                        esto un pedido mixto se arma entero y se despacha corto. */}
+                    {(() => {
+                      const pre = item as unknown as LineaPreventaAdmin
+                      if (pre.container_item_id == null) return null
+                      const viaje = pre.container_item?.containers?.nombre
+                      const desc = Number(pre.descuento_etapa_pct ?? 0)
+                      return (
+                        <span className="block text-xs mt-0.5 font-medium" style={{ color: 'var(--color-granito)' }}>
+                          ⛴ Preventa{viaje ? ` · ${viaje}` : ''}
+                          {' · '}{textoDemora(pre.fecha_estimada)}
+                          {desc > 0 ? ` · −${desc}% etapa` : ''}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--foreground)' }}>{item.cantidad}</td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>
