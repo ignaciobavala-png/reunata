@@ -725,10 +725,27 @@ export interface ItemRecompra {
   foto_url: string | null
   variante?: string
   stock: number | null
+
+  // Presentes solo si la línea salía de un viaje. Los consumidores pasan el ítem
+  // entero al carrito, así que agregar un campo acá no obliga a tocarlos.
+  containerItemId?: number
+  containerNombre?: string
+  fechaEstimada?: string
+  descuentoEtapaPct?: number
+  precioLista?: number
 }
 
 export async function getItemsParaRecomprar(
   pedidoId: string,
+  /**
+   * true cuando el pedido se está EDITANDO (borrador que vuelve al carrito), no
+   * recomprando. Mientras el borrador existe, sus líneas ya tienen tomada la
+   * mercadería del barco; al confirmar la edición se libera y se vuelve a tomar
+   * (ver `preventa_liberar` más arriba). Sin este flag el cliente compite contra
+   * su propia reserva: un borrador que se llevó todo el ítem se editaría con
+   * cero disponible y la línea desaparecería.
+   */
+  editando = false,
 ): Promise<{ ok: true; items: ItemRecompra[]; omitidos: number } | { ok: false; error: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -739,13 +756,15 @@ export async function getItemsParaRecomprar(
   // El pedido debe ser del usuario — nunca recomprar pedidos ajenos
   const { data: pedido } = await service
     .from('pedidos')
-    .select('id, cliente_id, pedido_items(producto_id, cantidad, variante)')
+    .select('id, cliente_id, pedido_items(producto_id, cantidad, variante, container_item_id)')
     .eq('id', pedidoId)
     .eq('cliente_id', user.id)
     .single()
 
   if (!pedido) return { ok: false, error: 'Pedido no encontrado.' }
-  const lineasPedido = (pedido.pedido_items ?? []) as { producto_id: number; cantidad: number; variante: string | null }[]
+  const lineasPedido = (pedido.pedido_items ?? []) as {
+    producto_id: number; cantidad: number; variante: string | null; container_item_id: number | null
+  }[]
   if (lineasPedido.length === 0) return { ok: false, error: 'El pedido no tiene productos.' }
 
   const { data: perfil } = await service
@@ -781,6 +800,64 @@ export async function getItemsParaRecomprar(
   for (const r of pcRows ?? []) multiplos[r.producto_id] = r.multiplo ?? 1
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
+  // ── Preventa ────────────────────────────────────────────────────────────
+  // Las líneas que salen de un viaje NO se miden contra el stock del depósito:
+  // la preventa es mercadería que todavía no llegó y su producto en la tienda
+  // está casi siempre en cero, así que mirar ahí las omitía todas. Su disponible
+  // es el del barco, y su precio lleva el descuento de la etapa vigente.
+  const idsPreventa = [...new Set(
+    lineasPedido.map(l => l.container_item_id).filter((id): id is number => Number.isInteger(id)),
+  )]
+
+  type ItemViaje = {
+    id: number
+    producto_id: number | null
+    cantidad: number
+    comprometido: number
+    precio_base: number | null
+    containers: {
+      nombre: string
+      etapa: EtapaContainer
+      descuento_china: number
+      descuento_oceano: number
+      fecha_arribo_est: string | null
+    }
+  }
+  const itemsViaje = new Map<number, ItemViaje>()
+
+  if (idsPreventa.length > 0) {
+    // Sin permiso el mapa queda vacío y las líneas de preventa se omiten, igual
+    // que un producto que salió del canal: no se filtra precio de viaje a quien
+    // no corresponde.
+    const { data: permiso } = await supabase.rpc('puede_containers')
+    if (permiso) {
+      const { data: filas } = await service
+        .from('container_items')
+        .select(`
+          id, producto_id, cantidad, comprometido, precio_base,
+          containers!inner ( nombre, etapa, descuento_china, descuento_oceano, fecha_arribo_est )
+        `)
+        .in('id', idsPreventa)
+        .in('containers.etapa', ETAPAS_VISIBLES)
+      for (const f of (filas ?? []) as unknown as ItemViaje[]) itemsViaje.set(f.id, f)
+    }
+  }
+
+  // Dos líneas del mismo ítem de viaje compiten contra el mismo disponible, no
+  // cada una por su lado.
+  const tomadoPorItem = new Map<number, number>()
+
+  // Lo que este mismo pedido tiene tomado del barco. Al editar vuelve al pool
+  // porque la edición lo libera; al recomprar no, porque el pedido original
+  // sigue en pie.
+  const propioPorItem = new Map<number, number>()
+  if (editando) {
+    for (const l of lineasPedido) {
+      if (l.container_item_id == null) continue
+      propioPorItem.set(l.container_item_id, (propioPorItem.get(l.container_item_id) ?? 0) + l.cantidad)
+    }
+  }
+
   const items: ItemRecompra[] = []
   let omitidos = 0
 
@@ -788,25 +865,51 @@ export async function getItemsParaRecomprar(
     const prod = productos?.find(p => p.id === linea.producto_id)
     // Producto inactivo, fuera del canal del usuario o sin precio para su lista → se omite
     if (!prod || !(linea.producto_id in multiplos)) { omitidos++; continue }
-    const precioRaw = (prod as Record<string, unknown>)[listaPrecio] as number | null
+
+    const viaje = linea.container_item_id != null ? itemsViaje.get(linea.container_item_id) : undefined
+    // Preventa cuyo viaje ya cerró, ya zarpó de la etapa que toma pedidos, o que
+    // dejó de corresponder a este producto: no se puede volver a pedir.
+    if (linea.container_item_id != null) {
+      if (!viaje || !aceptaReservas(viaje.containers.etapa) || viaje.producto_id !== linea.producto_id) {
+        omitidos++; continue
+      }
+    }
+
+    // El override de precio del viaje pisa la lista del canal cuando está cargado.
+    const precioRaw = viaje?.precio_base != null
+      ? Number(viaje.precio_base)
+      : (prod as Record<string, unknown>)[listaPrecio] as number | null
     if (precioRaw == null) { omitidos++; continue }
     const { precio: precioArs } = aplicarTipoCambio(precioRaw, prod.moneda ?? null, tipoCambioUsd)
     if (precioArs === null) { omitidos++; continue }
     // precio_lista5 (minorista) ya viene con IVA incluido y precio_lista3 (mayorista) es neto:
     // en ambos casos el precio de la lista se guarda tal cual, sin recargar IVA.
-    const precio = precioArs
+    const descuentoEtapaPct = viaje ? descuentoVigente(viaje.containers) : 0
+    const precio = aplicarDescuento(precioArs, descuentoEtapaPct)
 
-    const disponible = stockDisponible(prod, linea.variante)
+    const disponible = viaje
+      ? Math.max(
+          viaje.cantidad - viaje.comprometido
+            + (propioPorItem.get(viaje.id) ?? 0)
+            - (tomadoPorItem.get(viaje.id) ?? 0),
+          0,
+        )
+      : stockDisponible(prod, linea.variante)
     const multiplo = multiplos[linea.producto_id] ?? 1
     // Cantidad del pedido original, ajustada al múltiplo vigente y al stock de hoy
     let cantidad = Math.ceil(linea.cantidad / multiplo) * multiplo
     if (disponible !== null) cantidad = Math.min(cantidad, Math.floor(disponible / multiplo) * multiplo)
     if (cantidad <= 0) { omitidos++; continue }
+    if (viaje) tomadoPorItem.set(viaje.id, (tomadoPorItem.get(viaje.id) ?? 0) + cantidad)
 
     const fotos = ordenarFotos((prod.producto_fotos ?? []) as { url: string; orden: number; destacada: boolean }[])
     items.push({
       productoId: prod.id,
-      itemKey: `${prod.id}:${linea.variante ?? ''}`,
+      // El viaje entra en la clave: el mismo producto de stock y el de un viaje
+      // son dos líneas distintas del carrito, con precio y fecha distintos.
+      itemKey: viaje
+        ? `${prod.id}:${linea.variante ?? ''}:c${viaje.id}`
+        : `${prod.id}:${linea.variante ?? ''}`,
       codigo_interno: prod.codigo_interno,
       titulo: prod.titulo,
       precio,
@@ -815,6 +918,13 @@ export async function getItemsParaRecomprar(
       foto_url: fotos[0]?.url ? supabaseImg(supabaseUrl, fotos[0].url, 200) : null,
       variante: linea.variante ?? undefined,
       stock: disponible,
+      ...(viaje ? {
+        containerItemId: viaje.id,
+        containerNombre: viaje.containers.nombre,
+        fechaEstimada: viaje.containers.fecha_arribo_est ?? undefined,
+        descuentoEtapaPct,
+        precioLista: Math.round(precioArs),
+      } : {}),
     })
   }
 

@@ -19,7 +19,7 @@ export function useEditarBorrador(pedidoId: string, numero: number) {
     setCargando(true)
     setError(null)
 
-    const res = await getItemsParaRecomprar(pedidoId)
+    const res = await getItemsParaRecomprar(pedidoId, true)
     if (!res.ok) {
       setError(res.error)
       setCargando(false)
@@ -34,18 +34,12 @@ export function useEditarBorrador(pedidoId: string, numero: number) {
     const store = useCartStore.getState()
     store.startEditingPedido(pedidoId, numero)
     for (const it of res.items) {
-      store.add({
-        productoId: it.productoId,
-        itemKey: it.itemKey,
-        codigo_interno: it.codigo_interno,
-        titulo: it.titulo,
-        precio: it.precio,
-        multiplo: it.multiplo,
-        foto_url: it.foto_url,
-        variante: it.variante,
-        stock: it.stock,
-      })
-      store.updateCantidad(it.itemKey, it.cantidad)
+      // El ítem entra entero (menos la cantidad, que se fija abajo): así los
+      // campos de preventa —viaje, fecha estimada, descuento de etapa— llegan al
+      // carrito sin tener que enumerarlos acá cada vez que se agrega uno.
+      const { cantidad, ...linea } = it
+      store.add(linea)
+      store.updateCantidad(it.itemKey, cantidad)
     }
 
     if (res.omitidos > 0) {

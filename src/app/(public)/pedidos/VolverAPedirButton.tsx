@@ -35,18 +35,11 @@ export function VolverAPedirButton({ pedidoId, compact = false }: { pedidoId: st
       if (existente) {
         useCartStore.getState().updateCantidad(it.itemKey, existente.cantidad + it.cantidad)
       } else {
-        useCartStore.getState().add({
-          productoId: it.productoId,
-          itemKey: it.itemKey,
-          codigo_interno: it.codigo_interno,
-          titulo: it.titulo,
-          precio: it.precio,
-          multiplo: it.multiplo,
-          foto_url: it.foto_url,
-          variante: it.variante,
-          stock: it.stock,
-        })
-        useCartStore.getState().updateCantidad(it.itemKey, it.cantidad)
+        // Entero menos la cantidad: los campos de preventa (viaje, fecha, descuento
+        // de etapa) viajan solos.
+        const { cantidad, ...linea } = it
+        useCartStore.getState().add(linea)
+        useCartStore.getState().updateCantidad(it.itemKey, cantidad)
       }
     }
 
