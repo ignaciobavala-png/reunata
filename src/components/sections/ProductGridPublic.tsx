@@ -149,7 +149,7 @@ export function ProductGridPublic({
           const agregado = agregados.has(p.id)
           const yaEsta = enCarrito(p.id)
           const agotado = sinStock(p)
-          const viajes = disponibilidad[p.codigo_interno] ?? []
+          const viajes = disponibilidad.porCodigo[p.codigo_interno] ?? []
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -297,7 +297,9 @@ export function ProductGridPublic({
         abierto={cuandoViene !== null}
         onCerrar={() => setCuandoViene(null)}
         titulo={cuandoViene?.titulo ?? ''}
-        viajes={cuandoViene ? (disponibilidad[cuandoViene.codigo_interno] ?? []) : []}
+        viajes={cuandoViene ? (disponibilidad.porCodigo[cuandoViene.codigo_interno] ?? []) : []}
+        tienda={cuandoViene ? disponibilidad.tienda[cuandoViene.codigo_interno] : undefined}
+        codigoInterno={cuandoViene?.codigo_interno ?? ''}
         esMayorista={esMayorista}
         fotoUrl={cuandoViene?.foto_url ? supabaseImg(cuandoViene.supabaseUrl, cuandoViene.foto_url, 200) : null}
       />

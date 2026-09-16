@@ -12,10 +12,18 @@ import {
   etiquetaLlegada,
   formatFechaEstimada,
   type DisponibilidadPorCodigo,
+  type TiendaDisponible,
+  type TiendaPorCodigo,
   type ViajeDisponible,
 } from '@/lib/containers'
 
-const VACIO: DisponibilidadPorCodigo = {}
+interface Disponibilidad {
+  porCodigo: DisponibilidadPorCodigo
+  /** La opción de stock (precio web, entrega inmediata) de cada código. */
+  tienda: TiendaPorCodigo
+}
+
+const VACIO: Disponibilidad = { porCodigo: {}, tienda: {} }
 
 /**
  * Disponibilidad de preventa para los códigos que hay en pantalla.
@@ -31,7 +39,7 @@ const VACIO: DisponibilidadPorCodigo = {}
  * endpoint.
  */
 export function useDisponibilidadContainers(codigos: string[], activo = true) {
-  const [porCodigo, setPorCodigo] = useState<DisponibilidadPorCodigo>({})
+  const [datos, setDatos] = useState<Disponibilidad>(VACIO)
   const clave = codigos.filter(Boolean).sort().join(',')
 
   useEffect(() => {
@@ -43,7 +51,11 @@ export function useDisponibilidadContainers(codigos: string[], activo = true) {
       body: JSON.stringify({ codigos: clave.split(',') }),
     })
       .then(r => (r.ok ? r.json() : null))
-      .then(json => { if (vivo && json?.porCodigo) setPorCodigo(json.porCodigo) })
+      .then(json => {
+        if (vivo && json?.porCodigo) {
+          setDatos({ porCodigo: json.porCodigo, tienda: json.tienda ?? {} })
+        }
+      })
       .catch(() => {})
     return () => { vivo = false }
   }, [clave, activo])
@@ -51,7 +63,7 @@ export function useDisponibilidadContainers(codigos: string[], activo = true) {
   // Derivado, no un reset por efecto: si `activo` se apaga (logout sin recargar),
   // el badge desaparece en el mismo render en vez de quedar un tick con los datos
   // de la sesión anterior.
-  return activo ? porCodigo : VACIO
+  return activo ? datos : VACIO
 }
 
 /** Badge fijo sobre la foto. Solo aparece si el producto viene en algún viaje. */
@@ -83,18 +95,108 @@ export function BadgeCuandoViene({
   )
 }
 
+/**
+ * El bloque de contenedores dentro de la ficha del producto.
+ *
+ * Es el pedido literal de la maqueta del tester (16/09/2026): el mismo artículo
+ * con cuatro formas de comprarlo —hoy, o en alguno de los barcos— y las cuatro
+ * agregables al carrito sin salir de la ficha.
+ *
+ * NO repite la fila "Precio web": en la ficha esa opción ya es el bloque principal
+ * de arriba, con su precio grande, su selector de color y su botón. Mostrarla dos
+ * veces obligaría al cliente a preguntarse cuál de las dos es la buena.
+ *
+ * Se pide en el cliente y no en el server para que la ficha siga siendo una sola
+ * página para todos: la preventa la ve una minoría de cuentas habilitadas, y
+ * resolverla en el server la haría privada para todo el mundo.
+ */
+export function CuandoVieneFicha({
+  codigoInterno,
+  titulo,
+  estaLogueado,
+  esMayorista = false,
+  fotoUrl = null,
+}: {
+  codigoInterno: string
+  titulo: string
+  estaLogueado: boolean
+  esMayorista?: boolean
+  fotoUrl?: string | null
+}) {
+  const { porCodigo } = useDisponibilidadContainers([codigoInterno], estaLogueado)
+  const viajes = porCodigo[codigoInterno] ?? []
+
+  // Sin viajes no hay bloque: para el que no tiene permiso —que es casi todo el
+  // mundo— la ficha queda exactamente como estaba.
+  if (viajes.length === 0) return null
+
+  return (
+    <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
+      <div className="flex items-center gap-2 mb-1">
+        <Ship size={14} style={{ color: 'var(--color-granito)' }} aria-hidden="true" />
+        <p className="text-[10px] tracking-[0.25em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
+          También viene en camino
+        </p>
+      </div>
+      <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
+        El mismo producto, a mejor precio, esperando el barco. Se paga junto con el resto
+        del carrito y se despacha cuando llega.
+      </p>
+
+      <OpcionesDeCompra
+        titulo={titulo}
+        viajes={viajes}
+        codigoInterno={codigoInterno}
+        esMayorista={esMayorista}
+        fotoUrl={fotoUrl}
+        claveReset={codigoInterno}
+      />
+    </div>
+  )
+}
+
 interface DrawerProps {
   abierto: boolean
   onCerrar: () => void
   titulo: string
   viajes: ViajeDisponible[]
+  /** La opción de stock: precio web, entrega inmediata. Va primera en la lista. */
+  tienda?: TiendaDisponible
+  codigoInterno?: string
   /** Mayorista ve neto en grande; minorista ve el final. */
   esMayorista?: boolean
   /** Foto de la card, para que la línea del carrito no salga en blanco. */
   fotoUrl?: string | null
 }
 
-export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayorista = false, fotoUrl = null }: DrawerProps) {
+/**
+ * La lista de opciones de compra de un producto: la entrega inmediata y cada barco.
+ *
+ * Vive suelta —y no adentro del panel— porque se muestra en dos lugares: el drawer
+ * que abre el badge de la grilla y la ficha del producto. Son la misma lista, con
+ * el mismo estado y el mismo botón; lo único que cambia es el marco.
+ */
+function OpcionesDeCompra({
+  titulo,
+  viajes,
+  tienda,
+  codigoInterno = '',
+  esMayorista = false,
+  fotoUrl = null,
+  claveReset,
+  textoVacio = null,
+}: {
+  titulo: string
+  viajes: ViajeDisponible[]
+  tienda?: TiendaDisponible
+  codigoInterno?: string
+  esMayorista?: boolean
+  fotoUrl?: string | null
+  /** Cambiar este valor limpia las cantidades elegidas. */
+  claveReset: string
+  /** Qué decir cuando no hay ningún viaje. null = no decir nada. */
+  textoVacio?: string | null
+}) {
   const [cantidades, setCantidades] = useState<Record<number, number>>({})
   const [error, setError] = useState<string | null>(null)
   const [listo, setListo] = useState<{ containerId: string; unidades: number } | null>(null)
@@ -107,7 +209,7 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
   // Se ajusta durante el render y no en un efecto: resetear con setState dentro de
   // un useEffect dispara un render en cascada y el panel llega a pintarse un frame
   // con los datos del producto anterior.
-  const clave = abierto ? titulo : ''
+  const clave = claveReset
   const [duenoEstado, setDuenoEstado] = useState(clave)
   if (duenoEstado !== clave) {
     setDuenoEstado(clave)
@@ -115,13 +217,6 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
     setError(null)
     setListo(null)
   }
-
-  useEffect(() => {
-    if (!abierto) return
-    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar() }
-    window.addEventListener('keydown', onEsc)
-    return () => window.removeEventListener('keydown', onEsc)
-  }, [abierto, onCerrar])
 
   // La cantidad se mueve de a bultos: el server rechaza cualquier cosa que no sea
   // múltiplo (mismo criterio que el checkout), así que los botones no pueden dejar
@@ -194,6 +289,220 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
 
   return (
     <>
+          {/* Primero la entrega inmediata: es la referencia contra la que se lee el
+          descuento de cada barco. Mismo formato y mismo botón que los viajes —
+          el cliente no elige "web o preventa", elige cuándo lo quiere. */}
+      {tienda && (
+        <OpcionTienda
+          tienda={tienda}
+          titulo={titulo}
+          codigoInterno={codigoInterno}
+          esMayorista={esMayorista}
+          fotoUrl={fotoUrl}
+          separador={false}
+        />
+      )}
+
+      {viajes.length === 0 && textoVacio && (
+        <p className="text-xs mt-6 pt-6 border-t" style={{ color: 'var(--color-acero-oscuro)', borderColor: 'var(--color-acero-claro)' }}>
+          {textoVacio}
+        </p>
+      )}
+
+      {viajes.map((viaje, i) => {
+        const fecha = formatFechaEstimada(viaje.fechaArribo)
+        const elegido = viaje.colores.reduce((acc, c) => acc + (cantidades[c.itemId] ?? 0), 0)
+        const totalViaje = viaje.colores.reduce(
+          (acc, c) => acc + (cantidades[c.itemId] ?? 0) * c.precio, 0,
+        )
+        const paso = Math.max(1, viaje.multiplo ?? 1)
+        // Con bulto mínimo, "queda menos de un bulto" es lo mismo que no quedar:
+        // el server no va a aceptar una cantidad que no sea múltiplo.
+        const sinNada = viaje.colores.every(c => c.disponible < paso)
+
+        return (
+          <div
+        key={viaje.containerId}
+        className={i > 0 || tienda ? 'mt-6 pt-6 border-t' : ''}
+        style={i > 0 || tienda ? { borderColor: 'var(--color-acero-claro)' } : undefined}
+          >
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+            style={{ background: ETAPA_COLOR[viaje.etapa] }}
+            aria-hidden="true"
+          />
+          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+            {viaje.nombre}
+          </p>
+          <span className="text-xs" style={{ color: ETAPA_COLOR[viaje.etapa] }}>
+            {ETAPA_LABEL[viaje.etapa]}
+          </span>
+        </div>
+
+        <p className="text-xs mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+          {ETAPA_AYUDA[viaje.etapa]}
+        </p>
+
+        {fecha && (
+          <p className="text-xs mt-1" style={{ color: 'var(--foreground)' }}>
+            Llega aprox. <strong>{fecha}</strong>
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          {viaje.descuentoPct > 0 && (
+            <span className="text-xs inline-block px-2 py-0.5 rounded"
+              style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-oscuro)' }}>
+          −{viaje.descuentoPct}% por reservar ahora
+            </span>
+          )}
+          {/* El precio de esta etapa sube todos los días hasta el de la web.
+          Decirlo es la mitad del sentido de la etapa: el que espera,
+          paga más. */}
+          {viaje.pasoDiarioPct != null && viaje.descuentoPct > 0 && (
+            <span className="text-xs inline-block px-2 py-0.5 rounded"
+              style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}>
+          sube cada día
+            </span>
+          )}
+          {paso > 1 && (
+            <span className="text-xs inline-block px-2 py-0.5 rounded"
+              style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}>
+          × {paso} u. mín.
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {viaje.colores.map(color => {
+            const agotado = color.disponible <= 0
+            const cant = cantidades[color.itemId] ?? 0
+            const precioMostrado = esMayorista ? color.neto : color.precio
+            return (
+          <div
+            key={color.itemId}
+            className="flex items-center gap-2 py-1.5"
+            style={{ opacity: agotado ? 0.45 : 1 }}
+          >
+            {color.variante ? (
+              <span
+            className="inline-block rounded flex-shrink-0"
+            style={{
+              width: 20, height: 20,
+              ...getSwatchStyle(color.variante),
+              border: '1px solid rgba(0,0,0,0.12)',
+            }}
+            aria-hidden="true"
+              />
+            ) : (
+              <span className="w-5 flex-shrink-0" aria-hidden="true" />
+            )}
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
+            {color.variante ? capitalizeVariante(color.variante) : 'Único'}
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {agotado ? 'Sin disponibilidad' : `${color.disponible} disponibles`}
+              </p>
+            </div>
+
+            <div className="text-right flex-shrink-0">
+              <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+            {formatPrecio(precioMostrado, viaje.moneda)}
+              </p>
+              {viaje.descuentoPct > 0 && (
+            <p className="text-[11px] line-through" style={{ color: 'var(--color-acero-oscuro)' }}>
+              {formatPrecio(esMayorista ? color.netoLista : color.precioLista, viaje.moneda)}
+            </p>
+              )}
+            </div>
+
+            {viaje.aceptaReservas && !agotado && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setCantidad(color.itemId, cant - paso, color.disponible, paso)}
+              className="w-6 h-6 flex items-center justify-center rounded"
+              style={{ border: '1px solid var(--color-acero-claro)' }}
+              aria-label={`Quitar ${paso} de ${color.variante ?? 'este color'}`}
+            >
+              <Minus size={11} aria-hidden="true" />
+            </button>
+            <span className="w-6 text-center text-xs tabular-nums" style={{ color: 'var(--foreground)' }}>
+              {cant}
+            </span>
+            <button
+              onClick={() => setCantidad(color.itemId, cant + paso, color.disponible, paso)}
+              className="w-6 h-6 flex items-center justify-center rounded"
+              style={{ border: '1px solid var(--color-acero-claro)' }}
+              aria-label={`Agregar ${paso} de ${color.variante ?? 'este color'}`}
+            >
+              <Plus size={11} aria-hidden="true" />
+            </button>
+              </div>
+            )}
+          </div>
+            )
+          })}
+        </div>
+
+        {listo?.containerId === viaje.containerId ? (
+          <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
+            <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>
+          <strong>{listo.unidades} u.</strong> agregadas al carrito
+          {fecha ? <> · llegan aprox. el {fecha}</> : null}.
+            </span>
+          </p>
+        ) : viaje.aceptaReservas && !sinNada ? (
+          <button
+            onClick={() => handleAgregar(viaje)}
+            disabled={elegido === 0}
+            className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+          >
+            {elegido === 0
+          ? 'Elegí una cantidad'
+          : `Agregar ${elegido} u. · ${formatPrecio(totalViaje, viaje.moneda)}`}
+          </button>
+        ) : (
+          <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando pedidos.'}
+          </p>
+        )}
+          </div>
+        )
+      })}
+
+      {error && (
+        <p className="mt-4 text-xs" style={{ color: '#ef4444' }} role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  )
+}
+
+export function CuandoVieneDrawer({
+  abierto,
+  onCerrar,
+  titulo,
+  viajes,
+  tienda,
+  codigoInterno = '',
+  esMayorista = false,
+  fotoUrl = null,
+}: DrawerProps) {
+  useEffect(() => {
+    if (!abierto) return
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar() }
+    window.addEventListener('keydown', onEsc)
+    return () => window.removeEventListener('keydown', onEsc)
+  }, [abierto, onCerrar])
+
+  return (
+    <>
       {abierto && (
         <div className="fixed inset-0 z-40 bg-black/30" onClick={onCerrar} aria-hidden="true" />
       )}
@@ -220,7 +529,7 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
                 {titulo}
               </p>
               <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Preventa de importado
+                Cuándo lo querés
               </p>
             </div>
           </div>
@@ -230,174 +539,16 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4" data-lenis-prevent>
-          {viajes.length === 0 && (
-            <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Este producto no viene en ningún viaje abierto.
-            </p>
-          )}
-
-          {viajes.map((viaje, i) => {
-            const fecha = formatFechaEstimada(viaje.fechaArribo)
-            const elegido = viaje.colores.reduce((acc, c) => acc + (cantidades[c.itemId] ?? 0), 0)
-            const totalViaje = viaje.colores.reduce(
-              (acc, c) => acc + (cantidades[c.itemId] ?? 0) * c.precio, 0,
-            )
-            const paso = Math.max(1, viaje.multiplo ?? 1)
-            // Con bulto mínimo, "queda menos de un bulto" es lo mismo que no quedar:
-            // el server no va a aceptar una cantidad que no sea múltiplo.
-            const sinNada = viaje.colores.every(c => c.disponible < paso)
-
-            return (
-              <div
-                key={viaje.containerId}
-                className={i > 0 ? 'mt-6 pt-6 border-t' : ''}
-                style={i > 0 ? { borderColor: 'var(--color-acero-claro)' } : undefined}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: ETAPA_COLOR[viaje.etapa] }}
-                    aria-hidden="true"
-                  />
-                  <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                    {viaje.nombre}
-                  </p>
-                  <span className="text-xs" style={{ color: ETAPA_COLOR[viaje.etapa] }}>
-                    {ETAPA_LABEL[viaje.etapa]}
-                  </span>
-                </div>
-
-                <p className="text-xs mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                  {ETAPA_AYUDA[viaje.etapa]}
-                </p>
-
-                {fecha && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--foreground)' }}>
-                    Llega aprox. <strong>{fecha}</strong>
-                  </p>
-                )}
-
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {viaje.descuentoPct > 0 && (
-                    <span className="text-xs inline-block px-2 py-0.5 rounded"
-                          style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-oscuro)' }}>
-                      −{viaje.descuentoPct}% por reservar ahora
-                    </span>
-                  )}
-                  {paso > 1 && (
-                    <span className="text-xs inline-block px-2 py-0.5 rounded"
-                          style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}>
-                      × {paso} u. mín.
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-3 flex flex-col gap-2">
-                  {viaje.colores.map(color => {
-                    const agotado = color.disponible <= 0
-                    const cant = cantidades[color.itemId] ?? 0
-                    const precioMostrado = esMayorista ? color.neto : color.precio
-                    return (
-                      <div
-                        key={color.itemId}
-                        className="flex items-center gap-2 py-1.5"
-                        style={{ opacity: agotado ? 0.45 : 1 }}
-                      >
-                        {color.variante ? (
-                          <span
-                            className="inline-block rounded flex-shrink-0"
-                            style={{
-                              width: 20, height: 20,
-                              ...getSwatchStyle(color.variante),
-                              border: '1px solid rgba(0,0,0,0.12)',
-                            }}
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <span className="w-5 flex-shrink-0" aria-hidden="true" />
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
-                            {color.variante ? capitalizeVariante(color.variante) : 'Único'}
-                          </p>
-                          <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                            {agotado ? 'Sin disponibilidad' : `${color.disponible} disponibles`}
-                          </p>
-                        </div>
-
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
-                            {formatPrecio(precioMostrado, viaje.moneda)}
-                          </p>
-                          {viaje.descuentoPct > 0 && (
-                            <p className="text-[11px] line-through" style={{ color: 'var(--color-acero-oscuro)' }}>
-                              {formatPrecio(esMayorista ? color.netoLista : color.precioLista, viaje.moneda)}
-                            </p>
-                          )}
-                        </div>
-
-                        {viaje.aceptaReservas && !agotado && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button
-                              onClick={() => setCantidad(color.itemId, cant - paso, color.disponible, paso)}
-                              className="w-6 h-6 flex items-center justify-center rounded"
-                              style={{ border: '1px solid var(--color-acero-claro)' }}
-                              aria-label={`Quitar ${paso} de ${color.variante ?? 'este color'}`}
-                            >
-                              <Minus size={11} aria-hidden="true" />
-                            </button>
-                            <span className="w-6 text-center text-xs tabular-nums" style={{ color: 'var(--foreground)' }}>
-                              {cant}
-                            </span>
-                            <button
-                              onClick={() => setCantidad(color.itemId, cant + paso, color.disponible, paso)}
-                              className="w-6 h-6 flex items-center justify-center rounded"
-                              style={{ border: '1px solid var(--color-acero-claro)' }}
-                              aria-label={`Agregar ${paso} de ${color.variante ?? 'este color'}`}
-                            >
-                              <Plus size={11} aria-hidden="true" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {listo?.containerId === viaje.containerId ? (
-                  <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
-                    <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
-                    <span>
-                      <strong>{listo.unidades} u.</strong> agregadas al carrito
-                      {fecha ? <> · llegan aprox. el {fecha}</> : null}.
-                    </span>
-                  </p>
-                ) : viaje.aceptaReservas && !sinNada ? (
-                  <button
-                    onClick={() => handleAgregar(viaje)}
-                    disabled={elegido === 0}
-                    className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
-                  >
-                    {elegido === 0
-                      ? 'Elegí una cantidad'
-                      : `Agregar ${elegido} u. · ${formatPrecio(totalViaje, viaje.moneda)}`}
-                  </button>
-                ) : (
-                  <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando pedidos.'}
-                  </p>
-                )}
-              </div>
-            )
-          })}
-
-          {error && (
-            <p className="mt-4 text-xs" style={{ color: '#ef4444' }} role="alert">
-              {error}
-            </p>
-          )}
+          <OpcionesDeCompra
+            titulo={titulo}
+            viajes={viajes}
+            tienda={tienda}
+            codigoInterno={codigoInterno}
+            esMayorista={esMayorista}
+            fotoUrl={fotoUrl}
+            claveReset={abierto ? titulo : ''}
+            textoVacio="Este producto no viene en ningún viaje abierto."
+          />
         </div>
 
         <div className="px-5 py-3 border-t" style={{ borderColor: 'var(--color-acero-claro)' }}>
@@ -409,5 +560,188 @@ export function CuandoVieneDrawer({ abierto, onCerrar, titulo, viajes, esMayoris
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * La opción de stock dentro del panel: precio de la web, entrega inmediata.
+ *
+ * Existe para que el cliente pueda comparar sin cerrar el panel. Tiene el mismo
+ * formato que un viaje —color, disponible, precio, stepper y un botón— porque la
+ * pregunta que contesta el panel es una sola: cuándo lo querés y cuánto sale.
+ *
+ * Maneja sus cantidades por su cuenta: las del panel están indexadas por
+ * container_item_id, que acá no existe.
+ */
+function OpcionTienda({
+  tienda,
+  titulo,
+  codigoInterno,
+  esMayorista,
+  fotoUrl,
+  separador,
+}: {
+  tienda: TiendaDisponible
+  titulo: string
+  codigoInterno: string
+  esMayorista: boolean
+  fotoUrl: string | null
+  separador: boolean
+}) {
+  const [cantidades, setCantidades] = useState<Record<string, number>>({})
+  const [listo, setListo] = useState<number | null>(null)
+  const addAlCarrito = useCartStore(s => s.add)
+  const abrirCarrito = useCartStore(s => s.setCartOpen)
+
+  const paso = Math.max(1, tienda.multiplo ?? 1)
+  const elegido = Object.values(cantidades).reduce((a, b) => a + b, 0)
+  const precioMostrado = esMayorista ? tienda.neto : tienda.precio
+  const total = elegido * precioMostrado
+  // stock null = sin control de stock: se vende igual.
+  const sinNada = tienda.colores.every(c => c.stock != null && c.stock < paso)
+
+  function setCantidad(clave: string, valor: number, max: number | null) {
+    const tope = max != null ? Math.floor(max / paso) * paso : Infinity
+    const ajustado = Math.round(valor / paso) * paso
+    setCantidades(prev => ({ ...prev, [clave]: Math.max(0, Math.min(ajustado, tope)) }))
+  }
+
+  function agregar() {
+    let unidades = 0
+    for (const color of tienda.colores) {
+      const clave = color.variante ?? ''
+      const cantidad = cantidades[clave] ?? 0
+      if (cantidad <= 0) continue
+      const item = {
+        productoId: tienda.productoId,
+        // Sin sufijo de viaje: es la misma línea que agrega la card del catálogo,
+        // así que agregar desde acá suma a la que ya esté en el carrito.
+        itemKey: `${tienda.productoId}:${clave}`,
+        codigo_interno: codigoInterno,
+        titulo,
+        precio: tienda.precio,
+        multiplo: paso,
+        foto_url: fotoUrl ?? null,
+        variante: color.variante ?? undefined,
+        stock: color.stock,
+      }
+      for (let i = 0; i < Math.floor(cantidad / paso); i++) addAlCarrito(item)
+      unidades += cantidad
+    }
+    if (unidades === 0) return
+    setListo(unidades)
+    setCantidades({})
+    abrirCarrito(true)
+  }
+
+  return (
+    <div
+      className={separador ? 'mt-6 pt-6 border-t' : ''}
+      style={separador ? { borderColor: 'var(--color-acero-claro)' } : undefined}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+          style={{ background: '#10b981' }}
+          aria-hidden="true"
+        />
+        <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+          Precio web
+        </p>
+        <span className="text-xs" style={{ color: '#10b981' }}>Entrega inmediata</span>
+      </div>
+
+      <p className="text-xs mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+        Lo que hay en depósito. Se despacha con el resto del pedido.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2">
+        {tienda.colores.map(color => {
+          const clave = color.variante ?? ''
+          const agotado = color.stock != null && color.stock <= 0
+          const cant = cantidades[clave] ?? 0
+          return (
+            <div
+              key={clave || 'unico'}
+              className="flex items-center gap-2 py-1.5"
+              style={{ opacity: agotado ? 0.45 : 1 }}
+            >
+              {color.variante ? (
+                <span
+                  className="inline-block rounded flex-shrink-0"
+                  style={{
+                    width: 20, height: 20,
+                    ...getSwatchStyle(color.variante),
+                    border: '1px solid rgba(0,0,0,0.12)',
+                  }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <span className="w-5 flex-shrink-0" aria-hidden="true" />
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
+                  {color.variante ? capitalizeVariante(color.variante) : 'Único'}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  {agotado ? 'Sin stock' : color.stock != null ? `${color.stock} disponibles` : 'Disponible'}
+                </p>
+              </div>
+
+              <div className="text-right flex-shrink-0">
+                <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                  {formatPrecio(precioMostrado)}
+                </p>
+              </div>
+
+              {!agotado && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setCantidad(clave, cant - paso, color.stock)}
+                    className="w-6 h-6 flex items-center justify-center rounded"
+                    style={{ border: '1px solid var(--color-acero-claro)' }}
+                    aria-label={`Quitar ${paso} de ${color.variante ?? 'este producto'}`}
+                  >
+                    <Minus size={11} aria-hidden="true" />
+                  </button>
+                  <span className="w-6 text-center text-xs tabular-nums" style={{ color: 'var(--foreground)' }}>
+                    {cant}
+                  </span>
+                  <button
+                    onClick={() => setCantidad(clave, cant + paso, color.stock)}
+                    className="w-6 h-6 flex items-center justify-center rounded"
+                    style={{ border: '1px solid var(--color-acero-claro)' }}
+                    aria-label={`Agregar ${paso} de ${color.variante ?? 'este producto'}`}
+                  >
+                    <Plus size={11} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {listo != null ? (
+        <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
+          <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <span><strong>{listo} u.</strong> agregadas al carrito · entrega inmediata.</span>
+        </p>
+      ) : sinNada ? (
+        <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+          Sin stock para entrega inmediata.
+        </p>
+      ) : (
+        <button
+          onClick={agregar}
+          disabled={elegido === 0}
+          className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: 'var(--color-granito)', color: 'white' }}
+        >
+          {elegido === 0 ? 'Elegí una cantidad' : `Agregar ${elegido} u. · ${formatPrecio(total)}`}
+        </button>
+      )}
+    </div>
   )
 }

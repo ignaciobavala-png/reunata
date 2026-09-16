@@ -9,8 +9,10 @@ import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '
 import { AddToCartButton } from '@/components/sections/AddToCartButton'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
+import { CuandoVieneFicha } from '@/components/sections/CuandoViene'
 import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 import { ordenarFotos } from '@/lib/fotos'
+import { supabaseImg } from '@/lib/images'
 import { netoDesdeBruto } from '@/lib/iva'
 
 function PaymentInfo({ esMayorista }: { esMayorista: boolean }) {
@@ -194,6 +196,16 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                     variantes: (producto.variantes as { nombre: string; stock: number }[] | null) ?? null,
                     stock: producto.stock ?? null,
                   }}
+                />
+                {/* Preventa: los barcos que traen este mismo artículo. El permiso
+                    lo resuelve el endpoint, así que para quien no lo tiene esto no
+                    dibuja nada. */}
+                <CuandoVieneFicha
+                  codigoInterno={producto.codigo_interno}
+                  titulo={producto.titulo}
+                  estaLogueado={!!user}
+                  esMayorista={esMayorista}
+                  fotoUrl={fotos[0]?.url ? supabaseImg(supabaseUrl, fotos[0].url, 200) : null}
                 />
                 <PaymentInfo esMayorista={esMayorista} />
               </>
