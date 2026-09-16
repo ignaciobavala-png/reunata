@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import type { EtapaContainer } from '@/lib/containers'
+import { hoyArgentina, type EtapaContainer } from '@/lib/containers'
 import { parsearPlanilla } from '@/lib/planilla'
 
 const RUTA = '/dashboard/admin/containers'
@@ -65,7 +65,76 @@ export async function cambiarEtapa(id: string, etapa: EtapaContainer): Promise<{
   const { supabase, ok, error } = await exigirInterno()
   if (!ok) return { ok: false, error }
 
-  const { error: err } = await supabase.from('containers').update({ etapa }).eq('id', id)
+  const cambios: Record<string, unknown> = { etapa }
+
+  // Entrar en "En viaje" es lo que arranca la rampa de precio: desde hoy, y
+  // durante los días que falten para el arribo, el descuento baja hasta 0. Los
+  // días se congelan ACÁ porque después la fecha de arribo se puede correr por una
+  // demora, y una rampa que se estira le baja el precio a quien compre mañana
+  // respecto de quien compró ayer (ver descuentoVigente en lib/containers.ts).
+  if (etapa === 'oceano') {
+    const { data: viaje } = await supabase
+      .from('containers')
+      .select('fecha_arribo_est, oceano_desde')
+      .eq('id', id)
+      .single()
+
+    // Solo la primera vez: si alguien vuelve a "En viaje" después de un ida y
+    // vuelta de etapa, reiniciar la rampa devolvería el descuento entero y el
+    // precio bajaría de golpe.
+    if (viaje && !viaje.oceano_desde) {
+      const hoy = hoyArgentina()
+      cambios.oceano_desde = hoy
+      if (viaje.fecha_arribo_est) {
+        const dias = Math.round(
+          (Date.parse(`${viaje.fecha_arribo_est}T00:00:00Z`) - Date.parse(`${hoy}T00:00:00Z`)) / 86_400_000,
+        )
+        // Sin días por delante no hay rampa posible: queda el % fijo de la etapa
+        // hasta que carguen una fecha de arribo y se reinicie a mano.
+        if (dias > 0) cambios.oceano_dias = dias
+      }
+    }
+  }
+
+  const { error: err } = await supabase.from('containers').update(cambios).eq('id', id)
+  if (err) return { ok: false, error: err.message }
+  revalidatePath(RUTA)
+  return { ok: true }
+}
+
+/**
+ * Reinicia la rampa de "En viaje" desde hoy hasta la fecha de arribo cargada.
+ *
+ * Es la única forma de que el descuento vuelva a subir, y es a mano y explícita:
+ * el precio bajando solo es justo lo que la rampa congelada evita. Sirve cuando el
+ * viaje pasó a "En viaje" sin fecha de arribo, o cuando la demora fue tan grande
+ * que la rampa entera quedó vieja.
+ */
+export async function reiniciarRampa(id: string): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok, error } = await exigirInterno()
+  if (!ok) return { ok: false, error }
+
+  const { data: viaje } = await supabase
+    .from('containers')
+    .select('fecha_arribo_est')
+    .eq('id', id)
+    .single()
+
+  if (!viaje?.fecha_arribo_est) {
+    return { ok: false, error: 'Cargá primero la fecha estimada de arribo.' }
+  }
+
+  const hoy = hoyArgentina()
+  const dias = Math.round(
+    (Date.parse(`${viaje.fecha_arribo_est}T00:00:00Z`) - Date.parse(`${hoy}T00:00:00Z`)) / 86_400_000,
+  )
+  if (dias <= 0) return { ok: false, error: 'La fecha de arribo ya pasó.' }
+
+  const { error: err } = await supabase
+    .from('containers')
+    .update({ oceano_desde: hoy, oceano_dias: dias })
+    .eq('id', id)
+
   if (err) return { ok: false, error: err.message }
   revalidatePath(RUTA)
   return { ok: true }

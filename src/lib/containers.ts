@@ -25,14 +25,23 @@ export type EtapaContainer =
 /** Etapas en las que se puede reservar. */
 export const ETAPAS_ABIERTAS: EtapaContainer[] = ['china', 'oceano']
 
-/** Etapas que el cliente ve. Puerto se muestra pero es de solo lectura. */
-export const ETAPAS_VISIBLES: EtapaContainer[] = ['china', 'oceano', 'puerto']
+/**
+ * Etapas que el cliente ve en el panel del producto.
+ *
+ * Nacionalizado quedó AFUERA (16/09/2026): su precio ya es el de la web y su
+ * entrega es inmediata, así que es exactamente la fila "Precio web" del panel.
+ * Mostrarlo aparte era la misma mercadería, al mismo precio, dos veces.
+ */
+export const ETAPAS_VISIBLES: EtapaContainer[] = ['china', 'oceano']
 
+// Las claves de la etapa son las del diseño original (china/oceano/puerto); los
+// nombres son los que usa el equipo de Reunata para hablar del viaje. No se
+// renombró el enum en la base para no migrar datos por una cuestión de texto.
 export const ETAPA_LABEL: Record<EtapaContainer, string> = {
   borrador:  'Borrador',
-  china:     'Armando en China',
-  oceano:    'En el océano',
-  puerto:    'En el puerto',
+  china:     'Armando el contenedor',
+  oceano:    'En viaje',
+  puerto:    'Nacionalizado',
   cerrado:   'Viaje cerrado',
   cancelado: 'Cancelado',
 }
@@ -41,8 +50,8 @@ export const ETAPA_LABEL: Record<EtapaContainer, string> = {
 export const ETAPA_AYUDA: Record<EtapaContainer, string> = {
   borrador:  'Todavía no se publicó.',
   china:     'Se está armando el pedido. Es el mejor precio y el plazo más largo.',
-  oceano:    'Ya salió el barco. Queda solo lo que se cargó.',
-  puerto:    'Llegó a la Argentina y está en aduana. No se puede reservar hasta que se libere.',
+  oceano:    'Fabricación y viaje del barco. El precio sube un poco cada día hasta llegar al de la web.',
+  puerto:    'Ya está nacionalizado: se vende al precio de la web, con entrega inmediata.',
   cerrado:   'El viaje terminó. La mercadería ya pasó a stock normal.',
   cancelado: 'El viaje se canceló.',
 }
@@ -64,17 +73,82 @@ export interface ContainerDescuentos {
   etapa: EtapaContainer
   descuento_china: number
   descuento_oceano: number
+  oceano_desde?: string | null
+  oceano_dias?: number | null
+}
+
+/** Columnas del viaje que necesita `descuentoVigente`. Para no olvidar ninguna en un select. */
+export const COLUMNAS_DESCUENTO = 'etapa, descuento_china, descuento_oceano, oceano_desde, oceano_dias'
+
+/**
+ * Hoy en hora argentina, como 'YYYY-MM-DD'.
+ *
+ * El escalón del precio cambia a la medianoche de acá, no a la de Londres: en
+ * Vercel el server corre en UTC y con `new Date()` a secas el precio subiría a las
+ * 21:00 del día anterior. La base hace la misma cuenta con `now() at time zone
+ * 'America/Argentina/Buenos_Aires'`.
+ */
+export function hoyArgentina(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+}
+
+/** Días enteros entre dos fechas 'YYYY-MM-DD'. */
+function diasEntre(desde: string, hasta: string): number {
+  const a = Date.parse(`${desde}T00:00:00Z`)
+  const b = Date.parse(`${hasta}T00:00:00Z`)
+  if (isNaN(a) || isNaN(b)) return 0
+  return Math.round((b - a) / 86_400_000)
 }
 
 /**
- * Descuento vigente del viaje. Escalonado, no continuo: el cliente ve el mismo
- * precio cada vez que entra, y una demora del barco no cambia el precio de algo
- * ya reservado. Puerto no descuenta — es precio de lista.
+ * Descuento vigente del viaje.
+ *
+ * "Armando el contenedor" es un % fijo: el mejor precio, el mismo todos los días.
+ *
+ * "En viaje" es una rampa. Arranca en `descuento_oceano` y baja hasta 0 —el precio
+ * de la web— a lo largo de los días que faltaban para el arribo el día en que una
+ * persona apretó el botón. Son muchos escalones chicos: con 18% y 90 días de
+ * viaje, 0,2 puntos por día.
+ *
+ * La rampa se mide contra `oceano_desde` + `oceano_dias` congelados y NO contra
+ * `fecha_arribo_est` en vivo: si el barco se demora y alguien corre la fecha, una
+ * rampa en vivo se estiraría y el precio bajaría, con lo cual el que compró ayer
+ * habría pagado más que el que compra hoy. Congelada, el descuento llega a 0 y se
+ * queda en precio web hasta que la persona pase el viaje a nacionalizado. El
+ * precio nunca vuelve atrás — que es lo único que no se puede deshacer.
+ *
+ * Sin rampa cargada (viaje viejo, o sin fecha de arribo) se comporta como antes:
+ * el % fijo de la etapa.
+ *
+ * Nacionalizado y cerrado no descuentan: es precio de lista.
+ *
+ * Espejo de `container_descuento_vigente()` en la base, que lo necesita para
+ * congelar el descuento de la reserva. Las dos se mueven juntas.
  */
-export function descuentoVigente(c: ContainerDescuentos): number {
-  if (c.etapa === 'china')  return Number(c.descuento_china)  || 0
-  if (c.etapa === 'oceano') return Number(c.descuento_oceano) || 0
-  return 0
+export function descuentoVigente(c: ContainerDescuentos, hoy = hoyArgentina()): number {
+  if (c.etapa === 'china') return Number(c.descuento_china) || 0
+  if (c.etapa !== 'oceano') return 0
+
+  const inicial = Number(c.descuento_oceano) || 0
+  const dias = Number(c.oceano_dias)
+  if (inicial <= 0) return 0
+  if (!c.oceano_desde || !Number.isFinite(dias) || dias <= 0) return inicial
+
+  const pasados = diasEntre(c.oceano_desde, hoy)
+  if (pasados <= 0) return inicial
+  if (pasados >= dias) return 0
+  return Math.round(inicial * (1 - pasados / dias) * 100) / 100
+}
+
+/** Cuántos puntos de descuento pierde por día la etapa "En viaje". Para el panel. */
+export function pasoDiario(c: ContainerDescuentos): number | null {
+  if (!c.oceano_dias || c.oceano_dias <= 0) return null
+  const inicial = Number(c.descuento_oceano) || 0
+  if (inicial <= 0) return null
+  return Math.round((inicial / c.oceano_dias) * 100) / 100
 }
 
 /**
@@ -110,7 +184,7 @@ export function formatFechaEstimada(fecha: string | null | undefined): string | 
 
 /** Texto corto para el badge de la card: "60 d", "2 meses", "En puerto". */
 export function etiquetaLlegada(etapa: EtapaContainer, fechaArribo: string | null | undefined): string {
-  if (etapa === 'puerto') return 'En puerto'
+  if (etapa === 'puerto') return 'Entrega inmediata'
   const dias = diasHasta(fechaArribo)
   if (dias === null) return 'Por venir'
   if (dias <= 0) return 'Llegando'
@@ -143,6 +217,8 @@ export interface ViajeDisponible {
   etapa: EtapaContainer
   fechaArribo: string | null
   descuentoPct: number
+  /** Puntos de descuento que se pierden por día. null = etapa sin rampa. */
+  pasoDiarioPct: number | null
   aceptaReservas: boolean
   moneda: string | null
   /** Bulto mínimo del canal (producto_canales.multiplo). Se reserva de a múltiplos. */
@@ -152,6 +228,24 @@ export interface ViajeDisponible {
 
 /** codigo_interno → viajes que lo traen. */
 export type DisponibilidadPorCodigo = Record<string, ViajeDisponible[]>
+
+/**
+ * La opción de stock: precio de la web, entrega inmediata.
+ *
+ * Viaja con la disponibilidad de preventa porque el panel las muestra juntas, en
+ * la misma lista y con el mismo botón. El cliente no elige "web o preventa": elige
+ * cuándo lo quiere.
+ */
+export interface TiendaDisponible {
+  productoId: number
+  precio: number
+  neto: number
+  multiplo: number
+  colores: { variante: string | null; stock: number | null }[]
+}
+
+/** codigo_interno → la opción de stock de ese producto. */
+export type TiendaPorCodigo = Record<string, TiendaDisponible>
 
 /**
  * Cómo se le anuncia la demora al cliente en una línea del carrito o del pedido.

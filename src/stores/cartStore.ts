@@ -29,6 +29,15 @@ export interface CartItem {
   precioLista?: number       // sin el descuento de etapa, para el tachado
 }
 
+/** Lo que el server dice hoy de una línea de preventa. Llega de /api/carrito/precios. */
+export interface PreventaVigente {
+  precio: number
+  precioLista: number
+  descuentoEtapaPct: number
+  disponible: number
+  vigente: boolean
+}
+
 // Maneja ítems viejos (sin itemKey) del localStorage
 const ik = (i: CartItem) => i.itemKey ?? `${i.productoId}:`
 
@@ -44,6 +53,7 @@ interface CartStore {
   remove: (itemKey: string) => void
   updateCantidad: (itemKey: string, cantidad: number) => void
   updatePrecios: (precios: Record<number, number>) => void
+  updatePreventa: (vigentes: Record<string, PreventaVigente>) => void
   updateStocks: (stocksPorItemKey: Record<string, number | null>) => void
   clear: () => void
   setOwner: (userId: string | null) => void
@@ -115,6 +125,32 @@ export const useCartStore = create<CartStore>()(
             ? { ...i, precio: precios[i.productoId] }
             : i
         ),
+      })),
+
+      // Refresca las líneas de preventa: el precio de la etapa "En viaje" sube todos
+      // los días, así que un carrito de hace tres días muestra un número que ya no
+      // existe. Se toca solo lo que el server mandó — una línea sin respuesta (sin
+      // permiso, o el endpoint caído) se deja como está, porque el precio lo
+      // revalida igual el server al confirmar.
+      //
+      // Las líneas de un viaje que dejó de tomar pedidos se sacan del carrito: no
+      // hay precio posible para algo que ya no se puede comprar, y dejarlas sirve
+      // para que el pedido las omita en silencio al final.
+      updatePreventa: (vigentes) => set(state => ({
+        items: state.items.flatMap(i => {
+          const v = i.containerItemId != null ? vigentes[ik(i)] : undefined
+          if (!v) return [i]
+          if (!v.vigente) return []
+          const stock = Math.max(v.disponible, 0)
+          return [{
+            ...i,
+            precio: v.precio,
+            precioLista: v.precioLista,
+            descuentoEtapaPct: v.descuentoEtapaPct,
+            stock,
+            cantidad: Math.min(i.cantidad, stock),
+          }]
+        }).filter(i => i.cantidad > 0),
       })),
 
       // Refresca el stock conocido de cada ítem (por itemKey) y reclampa la cantidad si bajó.

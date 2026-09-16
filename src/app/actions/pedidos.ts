@@ -197,6 +197,8 @@ export async function crearPedidoBorrador(
       etapa: EtapaContainer
       descuento_china: number
       descuento_oceano: number
+      oceano_desde: string | null
+      oceano_dias: number | null
       fecha_arribo_est: string | null
     }
   }
@@ -212,7 +214,10 @@ export async function crearPedidoBorrador(
       .from('container_items')
       .select(`
         id, producto_id, variante, cantidad, comprometido, precio_base,
-        containers!inner ( id, nombre, etapa, descuento_china, descuento_oceano, fecha_arribo_est )
+        containers!inner (
+          id, nombre, etapa, descuento_china, descuento_oceano,
+          oceano_desde, oceano_dias, fecha_arribo_est
+        )
       `)
       .in('id', idsPreventa)
       .in('containers.etapa', ETAPAS_VISIBLES)
@@ -825,6 +830,8 @@ export async function getItemsParaRecomprar(
       etapa: EtapaContainer
       descuento_china: number
       descuento_oceano: number
+      oceano_desde: string | null
+      oceano_dias: number | null
       fecha_arribo_est: string | null
     }
   }
@@ -840,7 +847,10 @@ export async function getItemsParaRecomprar(
         .from('container_items')
         .select(`
           id, producto_id, cantidad, comprometido, precio_base,
-          containers!inner ( nombre, etapa, descuento_china, descuento_oceano, fecha_arribo_est )
+          containers!inner (
+            nombre, etapa, descuento_china, descuento_oceano,
+            oceano_desde, oceano_dias, fecha_arribo_est
+          )
         `)
         .in('id', idsPreventa)
         .in('containers.etapa', ETAPAS_VISIBLES)

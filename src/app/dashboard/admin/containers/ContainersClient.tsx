@@ -9,12 +9,16 @@ import {
   ETAPA_LABEL,
   ETAPA_AYUDA,
   ETAPA_COLOR,
+  descuentoVigente,
+  pasoDiario,
+  formatFechaEstimada,
   type EtapaContainer,
 } from '@/lib/containers'
 import {
   crearViaje,
   actualizarViaje,
   cambiarEtapa,
+  reiniciarRampa,
   importarItems,
   agregarDesdeCatalogo,
   borrarItem,
@@ -43,6 +47,8 @@ export interface ViajeAdmin {
   etapa: EtapaContainer
   descuento_china: number
   descuento_oceano: number
+  oceano_desde: string | null
+  oceano_dias: number | null
   fecha_cierre_china: string | null
   fecha_embarque: string | null
   fecha_arribo_est: string | null
@@ -356,6 +362,10 @@ function FichaViaje({
               La etapa la avanzás vos, nunca el calendario: si el barco se demora, el sistema
               no puede decir que llegó.
             </p>
+
+            {viaje.etapa === 'oceano' && (
+              <RampaOceano viaje={viaje} pendiente={pendiente} ejecutar={ejecutar} />
+            )}
           </div>
 
           {/* Datos */}
@@ -373,8 +383,20 @@ function FichaViaje({
                 onChange={v => setForm({ ...form, gesu_token_env: v })}
               />
               <div />
-              <Campo label="Descuento en China (%)" tipo="number" valor={form.descuento_china} onChange={v => setForm({ ...form, descuento_china: v })} />
-              <Campo label="Descuento en Océano (%)" tipo="number" valor={form.descuento_oceano} onChange={v => setForm({ ...form, descuento_oceano: v })} />
+              <Campo
+                label="Descuento armando el contenedor (%)"
+                ayuda="Fijo. Es el mejor precio: el mismo todos los días de la etapa."
+                tipo="number"
+                valor={form.descuento_china}
+                onChange={v => setForm({ ...form, descuento_china: v })}
+              />
+              <Campo
+                label="Descuento al empezar el viaje (%)"
+                ayuda="Es el punto de partida. Baja solo, un poco por día, hasta 0 — o sea hasta el precio de la web — el día del arribo."
+                tipo="number"
+                valor={form.descuento_oceano}
+                onChange={v => setForm({ ...form, descuento_oceano: v })}
+              />
               <Campo label="Cierre de pedidos a China" tipo="date" valor={form.fecha_cierre_china} onChange={v => setForm({ ...form, fecha_cierre_china: v })} />
               <Campo label="Embarque" tipo="date" valor={form.fecha_embarque} onChange={v => setForm({ ...form, fecha_embarque: v })} />
               <Campo label="Arribo estimado" tipo="date" valor={form.fecha_arribo_est} onChange={v => setForm({ ...form, fecha_arribo_est: v })} />
@@ -968,6 +990,79 @@ function TablaPermisos({
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * La rampa de precio de la etapa "En viaje", en números concretos.
+ *
+ * Es la parte del panel que hay que poder mirar y entender sin preguntar: dónde
+ * está hoy el descuento, cuánto baja por día y qué día toca el precio de la web.
+ * El descuento se calcula acá con la misma función que usa el server, así que lo
+ * que se ve en el panel es lo que paga el cliente.
+ */
+function RampaOceano({
+  viaje,
+  pendiente,
+  ejecutar,
+}: {
+  viaje: ViajeAdmin
+  pendiente: boolean
+  ejecutar: (fn: () => Promise<{ ok: boolean; error?: string }>, exito: string) => void
+}) {
+  const hoyPct = descuentoVigente(viaje)
+  const paso = pasoDiario(viaje)
+  const arranque = Number(viaje.descuento_oceano) || 0
+
+  const fin = viaje.oceano_desde && viaje.oceano_dias
+    ? formatFechaEstimada(
+        new Date(Date.parse(`${viaje.oceano_desde}T00:00:00Z`) + viaje.oceano_dias * 86_400_000)
+          .toISOString()
+          .slice(0, 10),
+      )
+    : null
+
+  return (
+    <div className="mt-3 p-3 rounded" style={{ background: 'var(--color-acero-brillo)' }}>
+      <p className="text-xs" style={{ color: 'var(--color-granito-oscuro)' }}>
+        Precio de esta etapa
+      </p>
+
+      {paso == null ? (
+        <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+          Sin rampa: se está cobrando el {arranque}% fijo todos los días. Cargá la fecha
+          estimada de arribo y apretá &ldquo;Reiniciar rampa&rdquo; para que el precio empiece a subir.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm mt-1" style={{ color: 'var(--foreground)' }}>
+            Hoy: <strong>−{hoyPct}%</strong>{' '}
+            <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+              (arrancó en −{arranque}%)
+            </span>
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Sube {paso} puntos por día durante {viaje.oceano_dias} días.
+            {fin && <> Llega al precio de la web el <strong>{fin}</strong>.</>}
+          </p>
+        </>
+      )}
+
+      <p className="text-[11px] mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+        Si el barco se demora, la rampa no se estira sola: el descuento llega a 0, se queda en
+        precio web y espera. Es a propósito — estirarla haría que el que compró ayer haya pagado
+        más que el que compra hoy.
+      </p>
+
+      <button
+        onClick={() => ejecutar(() => reiniciarRampa(viaje.id), 'Rampa reiniciada desde hoy.')}
+        disabled={pendiente}
+        className="mt-2 px-3 py-1.5 text-[11px] tracking-widest uppercase disabled:opacity-40"
+        style={{ border: '1px solid var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
+      >
+        Reiniciar rampa desde hoy
+      </button>
+    </div>
+  )
+}
 
 function Campo({
   label,

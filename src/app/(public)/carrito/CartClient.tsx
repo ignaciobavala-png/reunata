@@ -205,13 +205,14 @@ function UploaderComprobante({
 }
 
 export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoCuentaSinIva = 'CBU', cuitSinIva, bancoSinIva, cbuConIva, aliasConIva, tipoCuentaConIva = 'CBU', cuitConIva, bancoConIva }: Props) {
-  const { items, remove, updateCantidad, updatePrecios, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag, editingPedidoId, editingPedidoNumero } = useCartStore()
+  const { items, remove, updateCantidad, updatePrecios, updatePreventa, updateStocks, clear, total, guestItemsMerged, clearGuestMergedFlag, editingPedidoId, editingPedidoNumero } = useCartStore()
   const [confirmVaciar, setConfirmVaciar] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState<string | null>(null)
   const [refreshingPrecios, setRefreshingPrecios] = useState(false)
   const [preciosCambiaron, setPreciosCambiaron] = useState(false)
+  const [preventaSubio, setPreventaSubio] = useState(false)
   const [refreshFallo, setRefreshFallo] = useState(false)
   const router = useRouter()
 
@@ -282,10 +283,16 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
     fetch('/api/carrito/precios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items.map(i => ({ productoId: i.productoId, variante: i.variante ?? null })) }),
+      body: JSON.stringify({
+        items: items.map(i => ({
+          productoId: i.productoId,
+          variante: i.variante ?? null,
+          containerItemId: i.containerItemId ?? null,
+        })),
+      }),
     })
       .then(r => r.json())
-      .then(({ precios, stocks: st, ivaRates: ir }) => {
+      .then(({ precios, stocks: st, ivaRates: ir, preventa }) => {
         if (precios) {
           const cambiaron = ids.some(
             id => precios[id] !== undefined && precios[id] !== preciosSnapshot[id]
@@ -296,6 +303,17 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
         if (st) {
           setStocks(st)
           updateStocks(st)
+        }
+        // El precio de preventa sube por día: si subió desde que lo agregó, se
+        // avisa aparte. Es un aviso distinto al de los precios de lista porque la
+        // causa es distinta y la respuesta también — acá esperar cuesta plata.
+        if (preventa) {
+          const subio = items.some(i => {
+            const v = i.containerItemId != null ? preventa[i.itemKey] : undefined
+            return v?.vigente && v.precio > i.precio
+          })
+          updatePreventa(preventa)
+          if (subio) setPreventaSubio(true)
         }
         if (ir) setIvaRates(ir)
         setRefreshingPrecios(false)
@@ -756,6 +774,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
       {preciosCambiaron && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
           Los precios de tu carrito se actualizaron. Revisá el total antes de continuar.
+        </div>
+      )}
+      {preventaSubio && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+          El precio de los productos de preventa que tenías en el carrito subió: en la etapa
+          &ldquo;En viaje&rdquo; sube un poco cada día hasta llegar al precio de la web. Actualizamos
+          las líneas al precio de hoy.
         </div>
       )}
       {refreshFallo && !preciosCambiaron && (

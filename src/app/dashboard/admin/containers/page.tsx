@@ -122,6 +122,8 @@ export default async function ContainersPage() {
     etapa: v.etapa as EtapaContainer,
     descuento_china: Number(v.descuento_china ?? 0),
     descuento_oceano: Number(v.descuento_oceano ?? 0),
+    oceano_desde: (v.oceano_desde ?? null) as string | null,
+    oceano_dias: v.oceano_dias != null ? Number(v.oceano_dias) : null,
     fecha_cierre_china: (v.fecha_cierre_china ?? null) as string | null,
     fecha_embarque: (v.fecha_embarque ?? null) as string | null,
     fecha_arribo_est: (v.fecha_arribo_est ?? null) as string | null,

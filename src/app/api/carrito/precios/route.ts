@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
+import {
+  ETAPAS_VISIBLES,
+  aceptaReservas,
+  descuentoVigente,
+  precioConDescuento,
+  type EtapaContainer,
+} from '@/lib/containers'
 
 interface ItemBody {
   productoId: number
   variante?: string | null
+  /** Presente solo en las líneas de preventa. */
+  containerItemId?: number | null
+}
+
+/** Lo que el carrito necesita saber de una línea de preventa, ya revalidado. */
+interface PreventaVigente {
+  precio: number
+  precioLista: number
+  descuentoEtapaPct: number
+  disponible: number
+  /** false = el viaje dejó de tomar pedidos; la línea ya no se puede comprar. */
+  vigente: boolean
 }
 
 export async function POST(req: NextRequest) {
@@ -68,5 +87,80 @@ export async function POST(req: NextRequest) {
     stocks[key] = prod ? stockDisponible(prod, item.variante) : null
   }
 
-  return NextResponse.json({ precios, stocks, ivaRates })
+  // ── Preventa ────────────────────────────────────────────────────────────
+  // El precio de la etapa "En viaje" sube todos los días, así que un carrito de
+  // hace tres días muestra un número que ya no existe. El server igual lo
+  // recalcula al confirmar el pedido (ver pedidos.ts), pero sin esto el drawer
+  // diría una cosa y el pedido guardaría otra — y la diferencia siempre es en
+  // contra del cliente, que es la peor forma de enterarse.
+  const preventa: Record<string, PreventaVigente> = {}
+  const idsViaje = [...new Set(
+    items.map(i => i.containerItemId).filter((id): id is number => Number.isInteger(id)),
+  )]
+
+  if (idsViaje.length > 0) {
+    // Sin permiso el mapa queda vacío: no se filtra precio de viaje a quien no
+    // corresponde, igual que en el endpoint de disponibilidad.
+    const supabase = await createClient()
+    const { data: habilitado } = await supabase.rpc('puede_containers')
+
+    if (habilitado) {
+      type Fila = {
+        id: number
+        cantidad: number
+        comprometido: number
+        precio_base: number | null
+        producto_id: number | null
+        containers: {
+          etapa: EtapaContainer
+          descuento_china: number
+          descuento_oceano: number
+          oceano_desde: string | null
+          oceano_dias: number | null
+        }
+      }
+
+      const { data: filas } = await service
+        .from('container_items')
+        .select(`
+          id, cantidad, comprometido, precio_base, producto_id,
+          containers!inner (
+            etapa, descuento_china, descuento_oceano, oceano_desde, oceano_dias
+          )
+        `)
+        .in('id', idsViaje)
+        .in('containers.etapa', ETAPAS_VISIBLES)
+
+      const porId = new Map<number, Fila>()
+      for (const f of (filas ?? []) as unknown as Fila[]) porId.set(f.id, f)
+
+      for (const item of items) {
+        if (!Number.isInteger(item.containerItemId)) continue
+        const key = `${item.productoId}:${item.variante ?? ''}:c${item.containerItemId}`
+        const fila = porId.get(item.containerItemId as number)
+
+        if (!fila || !aceptaReservas(fila.containers.etapa)) {
+          preventa[key] = { precio: 0, precioLista: 0, descuentoEtapaPct: 0, disponible: 0, vigente: false }
+          continue
+        }
+
+        // El override del viaje pisa la lista del canal, igual que en el panel.
+        const lista = fila.precio_base != null
+          ? Math.round(Number(fila.precio_base))
+          : precios[item.productoId]
+        if (lista == null) continue
+
+        const pct = descuentoVigente(fila.containers)
+        preventa[key] = {
+          precio: precioConDescuento(lista, pct),
+          precioLista: lista,
+          descuentoEtapaPct: pct,
+          disponible: Math.max(fila.cantidad - fila.comprometido, 0),
+          vigente: true,
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ precios, stocks, ivaRates, preventa })
 }

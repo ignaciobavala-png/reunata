@@ -3,13 +3,16 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { netoDesdeBruto } from '@/lib/iva'
+import { stockDisponible } from '@/lib/stock'
 import {
   ETAPAS_VISIBLES,
   aceptaReservas,
   descuentoVigente,
+  pasoDiario,
   precioConDescuento,
   type DisponibilidadPorCodigo,
   type EtapaContainer,
+  type TiendaPorCodigo,
   type ViajeDisponible,
 } from '@/lib/containers'
 
@@ -58,25 +61,29 @@ export async function POST(req: NextRequest) {
       .select(`
         id, producto_id, codigo_interno, variante, cantidad, comprometido, precio_base,
         containers!inner (
-          id, nombre, etapa, descuento_china, descuento_oceano, fecha_arribo_est, orden
+          id, nombre, etapa, descuento_china, descuento_oceano,
+          oceano_desde, oceano_dias, fecha_arribo_est, orden
         )
       `)
       .in('codigo_interno', codigos)
       .in('containers.etapa', ETAPAS_VISIBLES),
     service
       .from('productos')
-      .select(`codigo_interno, moneda, iva, ${listaPrecio}`)
+      .select(`id, codigo_interno, moneda, iva, stock, stock_visible, variantes, ${listaPrecio}`)
       .in('codigo_interno', codigos)
       .eq('activo', true),
   ])
 
-  if (!items || items.length === 0) {
-    return NextResponse.json({ habilitado: true, porCodigo: {} })
-  }
-
   // El precio de lista sale del producto de la tienda: es el mismo artículo, y así
   // el "antes / ahora" del panel compara contra lo que la card ya muestra.
   const precioPorCodigo = new Map<string, { precio: number; iva: number | null; moneda: string | null }>()
+
+  // La fila "Precio web — entrega inmediata" del panel. Es la referencia contra la
+  // que el cliente compara los barcos: sin ella, para saber cuánto ahorra tiene que
+  // cerrar el panel y mirar la card. Pedido del tester (16/09/2026), que la puso
+  // primera en la maqueta, arriba de los contenedores.
+  const tienda: TiendaPorCodigo = {}
+
   for (const p of productos ?? []) {
     const row = p as unknown as Record<string, unknown>
     const { precio } = aplicarTipoCambio(
@@ -85,11 +92,30 @@ export async function POST(req: NextRequest) {
       tipoCambioUsd,
     )
     if (precio === null) continue
-    precioPorCodigo.set(row.codigo_interno as string, {
+    const codigo = row.codigo_interno as string
+    const iva = (row.iva ?? null) as number | null
+    precioPorCodigo.set(codigo, { precio, iva, moneda: null })
+
+    const productoId = row.id as number
+    if (!permitidos.has(productoId)) continue
+
+    const variantes = (row.variantes ?? null) as { nombre: string; stock: number }[] | null
+    const prodStock = row as unknown as Parameters<typeof stockDisponible>[0]
+    tienda[codigo] = {
+      productoId,
       precio,
-      iva: (row.iva ?? null) as number | null,
-      moneda: null,
-    })
+      neto: netoDesdeBruto(precio, iva),
+      multiplo: multiplos[productoId] ?? 1,
+      colores: variantes?.length
+        ? variantes.map(v => ({ variante: v.nombre, stock: stockDisponible(prodStock, v.nombre) }))
+        : [{ variante: null, stock: stockDisponible(prodStock, null) }],
+    }
+  }
+
+  // Sin barcos para estos códigos igual vuelve la fila de tienda: el panel no se
+  // abre, pero el badge y el precio web ya están resueltos.
+  if (!items || items.length === 0) {
+    return NextResponse.json({ habilitado: true, porCodigo: {}, tienda })
   }
 
   // El embed to-one de PostgREST llega como objeto, no como array.
@@ -107,6 +133,8 @@ export async function POST(req: NextRequest) {
       etapa: EtapaContainer
       descuento_china: number
       descuento_oceano: number
+      oceano_desde: string | null
+      oceano_dias: number | null
       fecha_arribo_est: string | null
       orden: number
     }
@@ -141,6 +169,7 @@ export async function POST(req: NextRequest) {
         etapa: c.etapa,
         fechaArribo: c.fecha_arribo_est,
         descuentoPct,
+        pasoDiarioPct: c.etapa === 'oceano' ? pasoDiario(c) : null,
         aceptaReservas: aceptaReservas(c.etapa),
         moneda: base.moneda,
         multiplo: multiplos[fila.producto_id] ?? 1,
@@ -169,5 +198,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ habilitado: true, porCodigo })
+  return NextResponse.json({ habilitado: true, porCodigo, tienda })
 }
