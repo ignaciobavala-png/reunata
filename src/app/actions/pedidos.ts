@@ -406,8 +406,13 @@ export async function crearPedidoBorrador(
   // El IVA que NO se cobra por ir sin factura se anota con su % efectivo sobre el
   // subtotal, para que el desglose del pedido lo muestre como línea propia y no
   // quede escondido dentro del "Descuento total" (ver lib/desglose-pedido.ts).
+  // Se guardan 4 decimales a propósito: el desglose reconstruye el MONTO a partir
+  // de este %, y con 2 decimales (17,36% en vez de 17,3554%) la línea se iba $42
+  // sobre un subtotal de $920.000 y el control del tester —restar la línea al
+  // subtotal y comparar contra subtotal/1,21— no cerraba. La etiqueta se sigue
+  // mostrando con 2 decimales.
   if (esMetodoSinFactura(medioPagoOriginal) && factorNeto < 1) {
-    notaPartes.push(`Sin factura ${((1 - factorNeto) * 100).toFixed(2)}%`)
+    notaPartes.push(`Sin factura ${((1 - factorNeto) * 100).toFixed(4)}%`)
   }
   if (ajusteMedioPago !== 0) {
     notaPartes.push(`${ajusteMedioPago < 0 ? 'Desc.' : 'Recargo'} ${METODO_NOTA[medioPagoOriginal!] ?? medioPagoOriginal} ${pctMetodoPago}%`)
