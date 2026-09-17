@@ -133,7 +133,7 @@ export function CuandoVieneFicha({
       <div className="flex items-center gap-2 mb-1">
         <Ship size={14} style={{ color: 'var(--color-granito)' }} aria-hidden="true" />
         <p className="text-[10px] tracking-[0.25em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Importá con Reunata — Compra preventa
+          Importá con Reunata — Compra Preventa
         </p>
       </div>
       <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -524,7 +524,7 @@ export function CuandoVieneDrawer({
                 {titulo}
               </p>
               <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Importá con Reunata — Compra preventa
+                Importá con Reunata — Compra Preventa
               </p>
             </div>
           </div>
