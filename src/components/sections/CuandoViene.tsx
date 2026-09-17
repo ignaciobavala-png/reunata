@@ -6,8 +6,6 @@ import { formatPrecio } from '@/lib/utils'
 import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 import { useCartStore } from '@/stores/cartStore'
 import {
-  ETAPA_LABEL,
-  ETAPA_AYUDA,
   ETAPA_COLOR,
   etiquetaLlegada,
   formatFechaEstimada,
@@ -87,7 +85,7 @@ export function BadgeCuandoViene({
         color: ETAPA_COLOR[proximo.etapa],
         border: `1px solid ${ETAPA_COLOR[proximo.etapa]}33`,
       }}
-      aria-label={`¿Cuándo viene? — ${ETAPA_LABEL[proximo.etapa]}`}
+      aria-label={`Compra preventa — ${etiquetaLlegada(proximo.etapa, proximo.fechaArribo)}`}
     >
       <Ship size={12} strokeWidth={2} aria-hidden="true" />
       {etiquetaLlegada(proximo.etapa, proximo.fechaArribo)}
@@ -135,12 +133,11 @@ export function CuandoVieneFicha({
       <div className="flex items-center gap-2 mb-1">
         <Ship size={14} style={{ color: 'var(--color-granito)' }} aria-hidden="true" />
         <p className="text-[10px] tracking-[0.25em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
-          También viene en camino
+          Importá con Reunata — Compra preventa
         </p>
       </div>
       <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        El mismo producto, a mejor precio, esperando el barco. Se paga junto con el resto
-        del carrito y se despacha cuando llega.
+        Conseguí los productos que están por llegar en los próximos meses a un mejor precio.
       </p>
 
       <OpcionesDeCompra
@@ -326,6 +323,10 @@ function OpcionesDeCompra({
         className={i > 0 || tienda ? 'mt-6 pt-6 border-t' : ''}
         style={i > 0 || tienda ? { borderColor: 'var(--color-acero-claro)' } : undefined}
           >
+        {/* La fecha es el encabezado del bloque, no un dato más abajo.
+        Pedido del tester (17/09/2026): el cliente no ve el nombre del
+        contenedor ni la etapa del barco —eso es nuestro—, así que sin la
+        fecha dos viajes del mismo producto serían indistinguibles. */}
         <div className="flex items-center gap-2">
           <span
             className="inline-block w-2 h-2 rounded-full flex-shrink-0"
@@ -333,22 +334,9 @@ function OpcionesDeCompra({
             aria-hidden="true"
           />
           <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-            {viaje.nombre}
+            {fecha ? <>Llega aprox. {fecha}</> : 'Fecha a confirmar'}
           </p>
-          <span className="text-xs" style={{ color: ETAPA_COLOR[viaje.etapa] }}>
-            {ETAPA_LABEL[viaje.etapa]}
-          </span>
         </div>
-
-        <p className="text-xs mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {ETAPA_AYUDA[viaje.etapa]}
-        </p>
-
-        {fecha && (
-          <p className="text-xs mt-1" style={{ color: 'var(--foreground)' }}>
-            Llega aprox. <strong>{fecha}</strong>
-          </p>
-        )}
 
         <div className="flex flex-wrap items-center gap-2 mt-2">
           {viaje.descuentoPct > 0 && (
@@ -399,13 +387,20 @@ function OpcionesDeCompra({
               <span className="w-5 flex-shrink-0" aria-hidden="true" />
             )}
 
+            {/* Un modelo sin variantes no lleva nombre de color —no hay nada
+            que elegir— y nunca decimos cuántas unidades trae el barco.
+            Queda el spacer: la fila alinea precio y stepper a la derecha. */}
             <div className="min-w-0 flex-1">
-              <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
-            {color.variante ? capitalizeVariante(color.variante) : 'Único'}
-              </p>
-              <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {agotado ? 'Sin disponibilidad' : `${color.disponible} disponibles`}
-              </p>
+              {color.variante && (
+            <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
+              {capitalizeVariante(color.variante)}
+            </p>
+              )}
+              {agotado && (
+            <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Sin disponibilidad
+            </p>
+              )}
             </div>
 
             <div className="text-right flex-shrink-0">
@@ -529,7 +524,7 @@ export function CuandoVieneDrawer({
                 {titulo}
               </p>
               <p className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-                Cuándo lo querés
+                Importá con Reunata — Compra preventa
               </p>
             </div>
           </div>
@@ -681,9 +676,14 @@ function OpcionTienda({
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
-                  {color.variante ? capitalizeVariante(color.variante) : 'Único'}
-                </p>
+                {/* Igual que en los viajes: un modelo sin variantes no lleva
+                nombre de color. El stock sí queda —es el de la tienda, no la
+                cantidad que trae un barco. */}
+                {color.variante && (
+                  <p className="text-xs truncate" style={{ color: 'var(--foreground)' }}>
+                    {capitalizeVariante(color.variante)}
+                  </p>
+                )}
                 <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
                   {agotado ? 'Sin stock' : color.stock != null ? `${color.stock} disponibles` : 'Disponible'}
                 </p>
