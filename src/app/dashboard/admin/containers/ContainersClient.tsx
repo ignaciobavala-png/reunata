@@ -350,7 +350,10 @@ function FichaViaje({
             </p>
             {siguiente && (
               <button
-                onClick={() => ejecutar(() => cambiarEtapa(viaje.id, siguiente), `"${viaje.nombre}" pasó a ${ETAPA_LABEL[siguiente]}.`)}
+                onClick={() => {
+                  if (!confirm(`¿Pasar "${viaje.nombre}" a "${ETAPA_LABEL[siguiente]}"? El precio cambia al instante para todos los clientes.`)) return
+                  ejecutar(() => cambiarEtapa(viaje.id, siguiente), `"${viaje.nombre}" pasó a ${ETAPA_LABEL[siguiente]}.`)
+                }}
                 disabled={pendiente}
                 className="mt-3 px-4 py-2 text-xs tracking-widest uppercase disabled:opacity-40"
                 style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}

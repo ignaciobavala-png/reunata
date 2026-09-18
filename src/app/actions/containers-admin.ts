@@ -31,9 +31,24 @@ export interface ViajeInput {
   notas?: string | null
 }
 
+/**
+ * "Armando el contenedor" tiene que ser el mejor precio: si "En viaje" arrancara
+ * más alto, el incentivo de comprar temprano se invierte y nadie lo notaría hasta
+ * ver el carrito.
+ */
+function validarDescuentos(input: ViajeInput): string | undefined {
+  if (input.descuento_china === undefined || input.descuento_oceano === undefined) return
+  if (Number(input.descuento_oceano) > Number(input.descuento_china)) {
+    return 'El descuento de "En viaje" no puede ser mayor que el de "Armando el contenedor" — invertiría el incentivo de comprar temprano.'
+  }
+}
+
 export async function crearViaje(input: ViajeInput): Promise<{ ok: boolean; id?: string; error?: string }> {
   const { supabase, ok, error } = await exigirInterno()
   if (!ok) return { ok: false, error }
+
+  const errorDescuentos = validarDescuentos(input)
+  if (errorDescuentos) return { ok: false, error: errorDescuentos }
 
   const { data, error: err } = await supabase
     .from('containers')
@@ -49,6 +64,9 @@ export async function crearViaje(input: ViajeInput): Promise<{ ok: boolean; id?:
 export async function actualizarViaje(id: string, input: ViajeInput): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok, error } = await exigirInterno()
   if (!ok) return { ok: false, error }
+
+  const errorDescuentos = validarDescuentos(input)
+  if (errorDescuentos) return { ok: false, error: errorDescuentos }
 
   const { error: err } = await supabase.from('containers').update(limpiar(input)).eq('id', id)
   if (err) return { ok: false, error: err.message }
