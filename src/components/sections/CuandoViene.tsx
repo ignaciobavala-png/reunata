@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Ship, X, Minus, Plus, Check } from 'lucide-react'
+import { Ship, X, Check } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 import { useCartStore } from '@/stores/cartStore'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import {
   ETAPA_COLOR,
   etiquetaLlegada,
@@ -89,6 +90,41 @@ export function BadgeCuandoViene({
     >
       <Ship size={12} strokeWidth={2} aria-hidden="true" />
       {etiquetaLlegada(proximo.etapa, proximo.fechaArribo)}
+    </button>
+  )
+}
+
+/**
+ * Precio + fecha del próximo viaje, debajo del precio de la card.
+ *
+ * Pedido del tester (18/09/2026): "falta agregar precio y fecha de arribo de los
+ * contenedores a la vista de todos los productos" — antes solo se veían al abrir
+ * el panel del badge. Muestra el viaje más próximo (el mismo que el badge), con
+ * el precio más bajo entre sus colores.
+ */
+export function PreventaResumen({
+  viaje,
+  esMayorista,
+  onClick,
+}: {
+  viaje: ViajeDisponible
+  esMayorista: boolean
+  onClick: () => void
+}) {
+  const fecha = formatFechaEstimada(viaje.fechaArribo)
+  const desde = Math.min(...viaje.colores.map(c => esMayorista ? c.neto : c.precio))
+
+  return (
+    <button
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
+      className="mt-1 flex items-center gap-1 text-[11px] text-left hover:underline"
+      style={{ color: ETAPA_COLOR[viaje.etapa] }}
+    >
+      <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
+      <span>
+        Preventa desde {formatPrecio(desde, viaje.moneda)}
+        {fecha ? <> · llega aprox. {fecha}</> : null}
+      </span>
     </button>
   )
 }
@@ -345,15 +381,6 @@ function OpcionesDeCompra({
           −{viaje.descuentoPct}% por reservar ahora
             </span>
           )}
-          {/* El precio de esta etapa sube todos los días hasta el de la web.
-          Decirlo es la mitad del sentido de la etapa: el que espera,
-          paga más. */}
-          {viaje.pasoDiarioPct != null && viaje.descuentoPct > 0 && (
-            <span className="text-xs inline-block px-2 py-0.5 rounded"
-              style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}>
-          sube cada día
-            </span>
-          )}
           {paso > 1 && (
             <span className="text-xs inline-block px-2 py-0.5 rounded"
               style={{ background: 'var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}>
@@ -415,27 +442,14 @@ function OpcionesDeCompra({
             </div>
 
             {viaje.aceptaReservas && !agotado && (
-              <div className="flex items-center gap-1 flex-shrink-0">
-            <button
-              onClick={() => setCantidad(color.itemId, cant - paso, color.disponible, paso)}
-              className="w-6 h-6 flex items-center justify-center rounded"
-              style={{ border: '1px solid var(--color-acero-claro)' }}
-              aria-label={`Quitar ${paso} de ${color.variante ?? 'este color'}`}
-            >
-              <Minus size={11} aria-hidden="true" />
-            </button>
-            <span className="w-6 text-center text-xs tabular-nums" style={{ color: 'var(--foreground)' }}>
-              {cant}
-            </span>
-            <button
-              onClick={() => setCantidad(color.itemId, cant + paso, color.disponible, paso)}
-              className="w-6 h-6 flex items-center justify-center rounded"
-              style={{ border: '1px solid var(--color-acero-claro)' }}
-              aria-label={`Agregar ${paso} de ${color.variante ?? 'este color'}`}
-            >
-              <Plus size={11} aria-hidden="true" />
-            </button>
-              </div>
+              <QuantityStepper
+                value={cant}
+                multiplo={paso}
+                max={color.disponible}
+                size="sm"
+                plusDisabled={cant >= Math.floor(color.disponible / paso) * paso}
+                onCommit={(n) => setCantidad(color.itemId, n, color.disponible, paso)}
+              />
             )}
           </div>
             )
@@ -459,7 +473,7 @@ function OpcionesDeCompra({
           >
             {elegido === 0
           ? 'Elegí una cantidad'
-          : `Agregar ${elegido} u. · ${formatPrecio(totalViaje, viaje.moneda)}`}
+          : `+ Agregar ${elegido} u. al carrito · ${formatPrecio(totalViaje, viaje.moneda)}`}
           </button>
         ) : (
           <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -696,27 +710,14 @@ function OpcionTienda({
               </div>
 
               {!agotado && (
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => setCantidad(clave, cant - paso, color.stock)}
-                    className="w-6 h-6 flex items-center justify-center rounded"
-                    style={{ border: '1px solid var(--color-acero-claro)' }}
-                    aria-label={`Quitar ${paso} de ${color.variante ?? 'este producto'}`}
-                  >
-                    <Minus size={11} aria-hidden="true" />
-                  </button>
-                  <span className="w-6 text-center text-xs tabular-nums" style={{ color: 'var(--foreground)' }}>
-                    {cant}
-                  </span>
-                  <button
-                    onClick={() => setCantidad(clave, cant + paso, color.stock)}
-                    className="w-6 h-6 flex items-center justify-center rounded"
-                    style={{ border: '1px solid var(--color-acero-claro)' }}
-                    aria-label={`Agregar ${paso} de ${color.variante ?? 'este producto'}`}
-                  >
-                    <Plus size={11} aria-hidden="true" />
-                  </button>
-                </div>
+                <QuantityStepper
+                  value={cant}
+                  multiplo={paso}
+                  max={color.stock}
+                  size="sm"
+                  plusDisabled={color.stock != null && cant >= Math.floor(color.stock / paso) * paso}
+                  onCommit={(n) => setCantidad(clave, n, color.stock)}
+                />
               )}
             </div>
           )
@@ -739,7 +740,7 @@ function OpcionTienda({
           className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--color-granito)', color: 'white' }}
         >
-          {elegido === 0 ? 'Elegí una cantidad' : `Agregar ${elegido} u. · ${formatPrecio(total)}`}
+          {elegido === 0 ? 'Elegí una cantidad' : `+ Agregar ${elegido} u. al carrito · ${formatPrecio(total)}`}
         </button>
       )}
     </div>

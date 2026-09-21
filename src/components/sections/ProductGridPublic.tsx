@@ -15,6 +15,7 @@ import {
   useDisponibilidadContainers,
   BadgeCuandoViene,
   CuandoVieneDrawer,
+  PreventaResumen,
 } from '@/components/sections/CuandoViene'
 
 interface ProductoPublico {
@@ -148,8 +149,13 @@ export function ProductGridPublic({
         {productos.map((p) => {
           const agregado = agregados.has(p.id)
           const yaEsta = enCarrito(p.id)
-          const agotado = sinStock(p)
           const viajes = disponibilidad.porCodigo[p.codigo_interno] ?? []
+          // Sin stock local pero con un viaje activo con disponibilidad: no es
+          // "sin stock", se puede seguir comprando por barco (pedido del tester,
+          // 18/09/2026 — "el producto si está en un contenedor no tiene que
+          // figurar sin stock").
+          const hayPreventaDisponible = viajes.some(v => v.colores.some(c => c.disponible > 0))
+          const agotado = sinStock(p) && !hayPreventaDisponible
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -274,6 +280,13 @@ export function ProductGridPublic({
                   )
                 })()}
               </Link>
+              {viajes.length > 0 && (
+                <PreventaResumen
+                  viaje={viajes[0]}
+                  esMayorista={esMayorista}
+                  onClick={() => setCuandoViene(p)}
+                />
+              )}
               {loginHint === p.id && (
                 <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
                   <Link href="/login" className="underline">Iniciá sesión</Link> para guardar favoritos
