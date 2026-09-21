@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/stores/cartStore'
-import { ShoppingCart, ShoppingBag, X, Loader2, Trash2 } from 'lucide-react'
+import { ShoppingCart, ShoppingBag, X, Loader2, Trash2, Ship } from 'lucide-react'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -10,6 +10,7 @@ import { crearPedidoBorrador } from '@/app/actions/pedidos'
 import { formatPrecio } from '@/lib/utils'
 import { VarianteBadge } from '@/components/sections/ColorPicker'
 import { tramosPendientes, type ConfigVolumen } from '@/lib/descuento-volumen'
+import { textoDemora } from '@/lib/containers'
 
 // Solo lo que el drawer necesita para los avisos de mínimo y volumen; el detalle
 // fino (base post-descuentos) vive en la página /carrito, acá es un adelanto.
@@ -149,6 +150,16 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
                         <div className="mt-1">
                           <VarianteBadge variante={item.variante} />
                         </div>
+                      )}
+                      {/* Preventa: sin esto, dos líneas del mismo producto (una
+                          de stock y otra de un barco, o de dos barcos) son
+                          indistinguibles. Reporte del tester con video (21/09). */}
+                      {item.containerItemId != null && (
+                        <p className="text-[11px] mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
+                           style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-oscuro)' }}>
+                          <Ship size={10} aria-hidden="true" />
+                          {textoDemora(item.fechaEstimada)}
+                        </p>
                       )}
                     </div>
                     <button onClick={() => remove(item.itemKey ?? `${item.productoId}:`)} aria-label={`Eliminar ${item.titulo}`}>

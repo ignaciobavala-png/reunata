@@ -907,7 +907,6 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                            style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-granito-oscuro)' }}>
                           <Ship size={12} aria-hidden="true" />
                           {textoDemora(item.fechaEstimada)}
-                          {item.containerNombre ? ` · ${item.containerNombre}` : ''}
                         </p>
                       )}
                     </div>
