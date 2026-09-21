@@ -247,14 +247,13 @@ function OpcionesDeCompra({
   textoVacio?: string | null
 }) {
   const addAlCarrito = useCartStore(s => s.add)
+  const actualizarCantidadCarrito = useCartStore(s => s.updateCantidad)
   const abrirCarrito = useCartStore(s => s.setCartOpen)
   const itemsCarrito = useCartStore(s => s.items)
 
   const [cantidades, setCantidades] = useState<Record<number, number>>(
     () => cantidadesDesdeCarrito(viajes, itemsCarrito),
   )
-  const [error, setError] = useState<string | null>(null)
-  const [listo, setListo] = useState<{ containerId: string; unidades: number } | null>(null)
 
   // Al abrir otro producto (o al reabrir el panel) se releen las cantidades del
   // carrito en vez de limpiar a 0: si el cliente ya agregó 10 del Contenedor 3,
@@ -269,8 +268,6 @@ function OpcionesDeCompra({
   if (duenoEstado !== clave) {
     setDuenoEstado(clave)
     setCantidades(cantidadesDesdeCarrito(viajes, itemsCarrito))
-    setError(null)
-    setListo(null)
   }
 
   // La cantidad se mueve de a bultos: el server rechaza cualquier cosa que no sea
@@ -285,7 +282,15 @@ function OpcionesDeCompra({
   }, [])
 
   /**
-   * Agrega al carrito, no reserva.
+   * Confirma en el carrito lo que el cliente eligió: DEJA cada línea en la
+   * cantidad elegida, no la incrementa.
+   *
+   * Antes esto sumaba `cantidad` unidades llamando `add` N veces, así que
+   * tocar el botón dos veces con el mismo número duplicaba la línea. Ahora el
+   * botón solo aparece cuando lo elegido difiere de lo que ya está en el
+   * carrito (ver `hayCambios` más abajo), así que cada click siempre mueve el
+   * carrito a un número nuevo: crea la línea si no existía, la actualiza si
+   * existía, y la borra si se bajó a 0 (`updateCantidad(key, 0)` ya la saca).
    *
    * Decisión de Gastón (14/09/2026): un solo carrito y un solo pago, como un
    * pedido normal. La mercadería del viaje NO se bloquea acá — se bloquea recién
@@ -293,53 +298,46 @@ function OpcionesDeCompra({
    * (`preventa_comprometer`). Mientras está en el carrito de alguien sigue
    * disponible para todos, igual que el stock de la tienda: bloquear al agregar
    * dejaría el barco vendido por carritos abandonados.
-   *
-   * `add` suma un bulto cuando el itemKey ya existe, así que N bultos se agregan
-   * llamando N veces. Es la misma puerta que usa la card del catálogo y no hay
-   * motivo para abrirle una segunda.
    */
-  function handleAgregar(viaje: ViajeDisponible) {
-    const elegidos = viaje.colores
-      .map(c => ({ color: c, cantidad: cantidades[c.itemId] ?? 0 }))
-      .filter(x => x.cantidad > 0)
-
-    if (elegidos.length === 0) {
-      setError('Elegí una cantidad antes de agregar.')
-      return
-    }
-
-    setError(null)
+  function handleConfirmar(viaje: ViajeDisponible) {
     const paso = Math.max(1, viaje.multiplo ?? 1)
-    let unidades = 0
+    let huboAgregado = false
 
-    for (const { color, cantidad } of elegidos) {
-      const item = {
-        productoId: viaje.productoId,
-        // El viaje va en la clave: el mismo mate de stock y el del Contenedor 3
-        // son dos líneas, con precio y fecha distintos.
-        itemKey: `${viaje.productoId}:${color.variante ?? ''}:c${color.itemId}`,
-        codigo_interno: viaje.codigoInterno,
-        titulo,
-        precio: color.precio,
-        multiplo: paso,
-        foto_url: fotoUrl ?? null,
-        variante: color.variante ?? undefined,
-        // Tope del stepper del carrito: lo que queda en el barco, no el stock
-        // de la tienda.
-        stock: color.disponible,
-        containerItemId: color.itemId,
-        containerNombre: viaje.nombre,
-        fechaEstimada: viaje.fechaArribo ?? undefined,
-        descuentoEtapaPct: viaje.descuentoPct,
-        precioLista: color.precioLista,
+    for (const color of viaje.colores) {
+      const cantidad = cantidades[color.itemId] ?? 0
+      // El viaje va en la clave: el mismo mate de stock y el del Contenedor 3
+      // son dos líneas, con precio y fecha distintos.
+      const key = `${viaje.productoId}:${color.variante ?? ''}:c${color.itemId}`
+      const yaExiste = itemsCarrito.some(i => i.itemKey === key)
+
+      if (!yaExiste) {
+        if (cantidad <= 0) continue
+        addAlCarrito({
+          productoId: viaje.productoId,
+          itemKey: key,
+          codigo_interno: viaje.codigoInterno,
+          titulo,
+          precio: color.precio,
+          multiplo: paso,
+          foto_url: fotoUrl ?? null,
+          variante: color.variante ?? undefined,
+          // Tope del stepper del carrito: lo que queda en el barco, no el
+          // stock de la tienda.
+          stock: color.disponible,
+          containerItemId: color.itemId,
+          containerNombre: viaje.nombre,
+          fechaEstimada: viaje.fechaArribo ?? undefined,
+          descuentoEtapaPct: viaje.descuentoPct,
+          precioLista: color.precioLista,
+        })
+        huboAgregado = true
       }
-      for (let i = 0; i < Math.floor(cantidad / paso); i++) addAlCarrito(item)
-      unidades += cantidad
+      // `add` siempre crea la línea con `multiplo` unidades — si el cliente
+      // eligió más, este segundo paso la deja en el número exacto.
+      actualizarCantidadCarrito(key, cantidad)
     }
 
-    setListo({ containerId: viaje.containerId, unidades })
-    setCantidades({})
-    abrirCarrito(true)
+    if (huboAgregado) abrirCarrito(true)
   }
 
   return (
@@ -374,6 +372,16 @@ function OpcionesDeCompra({
         // Con bulto mínimo, "queda menos de un bulto" es lo mismo que no quedar:
         // el server no va a aceptar una cantidad que no sea múltiplo.
         const sinNada = viaje.colores.every(c => c.disponible < paso)
+
+        // Lo que ya está confirmado en el carrito para este viaje, y si lo
+        // elegido ahora difiere. Pedido del tester (21/09/2026): que el número
+        // quede puesto, y que el botón solo reaparezca cuando lo cambian —no
+        // que haya que "agregar" de nuevo algo que ya está.
+        const confirmadoPorColor = cantidadesDesdeCarrito([viaje], itemsCarrito)
+        const confirmadoViaje = viaje.colores.reduce((acc, c) => acc + (confirmadoPorColor[c.itemId] ?? 0), 0)
+        const hayCambios = viaje.colores.some(
+          c => (cantidades[c.itemId] ?? 0) !== (confirmadoPorColor[c.itemId] ?? 0),
+        )
 
         return (
           <div
@@ -478,39 +486,37 @@ function OpcionesDeCompra({
           })}
         </div>
 
-        {listo?.containerId === viaje.containerId ? (
-          <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
-            <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
-            <span>
-          <strong>{listo.unidades} u.</strong> agregadas al carrito
-          {fecha ? <> · llegan aprox. el {fecha}</> : null}.
-            </span>
-          </p>
-        ) : viaje.aceptaReservas && !sinNada ? (
-          <button
-            onClick={() => handleAgregar(viaje)}
-            disabled={elegido === 0}
-            className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
-          >
-            {elegido === 0 ? 'Elegí una cantidad' : (
-          <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(totalViaje, viaje.moneda)}</>
-            )}
-          </button>
-        ) : (
+        {!viaje.aceptaReservas || sinNada ? (
           <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
             {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando pedidos.'}
           </p>
+        ) : !hayCambios && confirmadoViaje > 0 ? (
+          <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
+            <Check size={13} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>
+          <strong>{confirmadoViaje}<span style={{ textTransform: 'lowercase' }}>u.</span></strong> en tu carrito
+          {fecha ? <> · llegan aprox. el {fecha}</> : null}.
+            </span>
+          </p>
+        ) : (
+          <button
+            onClick={() => handleConfirmar(viaje)}
+            disabled={!hayCambios}
+            className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+          >
+            {elegido === 0 && confirmadoViaje === 0 ? 'Elegí una cantidad'
+              : elegido === 0 ? 'Quitar del carrito'
+              : confirmadoViaje === 0 ? (
+            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(totalViaje, viaje.moneda)}</>
+              ) : (
+            <>Actualizar a {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> · {formatPrecio(totalViaje, viaje.moneda)}</>
+              )}
+          </button>
         )}
           </div>
         )
       })}
-
-      {error && (
-        <p className="mt-4 text-xs" style={{ color: '#ef4444' }} role="alert">
-          {error}
-        </p>
-      )}
     </>
   )
 }
