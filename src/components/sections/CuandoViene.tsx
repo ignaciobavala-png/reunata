@@ -202,6 +202,22 @@ interface DrawerProps {
   fotoUrl?: string | null
 }
 
+/** itemId de cada color → cantidad que ya está cargada en el carrito para ese viaje. */
+function cantidadesDesdeCarrito(
+  viajes: ViajeDisponible[],
+  itemsCarrito: ReturnType<typeof useCartStore.getState>['items'],
+): Record<number, number> {
+  const cantidades: Record<number, number> = {}
+  for (const viaje of viajes) {
+    for (const color of viaje.colores) {
+      const key = `${viaje.productoId}:${color.variante ?? ''}:c${color.itemId}`
+      const enCarrito = itemsCarrito.find(i => i.itemKey === key)
+      if (enCarrito) cantidades[color.itemId] = enCarrito.cantidad
+    }
+  }
+  return cantidades
+}
+
 /**
  * La lista de opciones de compra de un producto: la entrega inmediata y cada barco.
  *
@@ -230,14 +246,20 @@ function OpcionesDeCompra({
   /** Qué decir cuando no hay ningún viaje. null = no decir nada. */
   textoVacio?: string | null
 }) {
-  const [cantidades, setCantidades] = useState<Record<number, number>>({})
-  const [error, setError] = useState<string | null>(null)
-  const [listo, setListo] = useState<{ containerId: string; unidades: number } | null>(null)
   const addAlCarrito = useCartStore(s => s.add)
   const abrirCarrito = useCartStore(s => s.setCartOpen)
+  const itemsCarrito = useCartStore(s => s.items)
 
-  // Al abrir otro producto (o al reabrir el panel) se limpia todo: si no, la
-  // cantidad elegida para un mate queda puesta al abrir el siguiente.
+  const [cantidades, setCantidades] = useState<Record<number, number>>(
+    () => cantidadesDesdeCarrito(viajes, itemsCarrito),
+  )
+  const [error, setError] = useState<string | null>(null)
+  const [listo, setListo] = useState<{ containerId: string; unidades: number } | null>(null)
+
+  // Al abrir otro producto (o al reabrir el panel) se releen las cantidades del
+  // carrito en vez de limpiar a 0: si el cliente ya agregó 10 del Contenedor 3,
+  // reabrir tiene que mostrar 10, no volver a "Elegí una cantidad" como si no
+  // hubiera pasado nada (video del tester, 21/09/2026).
   //
   // Se ajusta durante el render y no en un efecto: resetear con setState dentro de
   // un useEffect dispara un render en cascada y el panel llega a pintarse un frame
@@ -246,7 +268,7 @@ function OpcionesDeCompra({
   const [duenoEstado, setDuenoEstado] = useState(clave)
   if (duenoEstado !== clave) {
     setDuenoEstado(clave)
-    setCantidades({})
+    setCantidades(cantidadesDesdeCarrito(viajes, itemsCarrito))
     setError(null)
     setListo(null)
   }
