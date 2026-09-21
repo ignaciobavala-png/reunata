@@ -471,9 +471,9 @@ function OpcionesDeCompra({
             className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
           >
-            {elegido === 0
-          ? 'Elegí una cantidad'
-          : `+ Agregar ${elegido} u. al carrito · ${formatPrecio(totalViaje, viaje.moneda)}`}
+            {elegido === 0 ? 'Elegí una cantidad' : (
+          <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(totalViaje, viaje.moneda)}</>
+            )}
           </button>
         ) : (
           <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -740,7 +740,9 @@ function OpcionTienda({
           className="mt-3 w-full py-2.5 text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--color-granito)', color: 'white' }}
         >
-          {elegido === 0 ? 'Elegí una cantidad' : `+ Agregar ${elegido} u. al carrito · ${formatPrecio(total)}`}
+          {elegido === 0 ? 'Elegí una cantidad' : (
+            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(total)}</>
+          )}
         </button>
       )}
     </div>
