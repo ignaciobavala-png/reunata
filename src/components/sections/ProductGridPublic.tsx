@@ -13,7 +13,6 @@ import { toggleFavorito } from '@/app/actions/favoritos'
 import { netoDesdeBruto } from '@/lib/iva'
 import {
   useDisponibilidadContainers,
-  BadgeCuandoViene,
   CuandoVieneDrawer,
   PreventaResumen,
 } from '@/components/sections/CuandoViene'
@@ -188,19 +187,13 @@ export function ProductGridPublic({
                     </div>
                   )}
 
-                  {/* Badge "en carrito" esquina superior derecha — baja un renglón
-                      cuando el producto también tiene badge de preventa, para no
-                      quedar uno encima del otro. */}
+                  {/* Badge "en carrito" esquina superior derecha. */}
                   {yaEsta && !agregado && (
-                    <span className={`absolute ${viajes.length > 0 ? 'top-10' : 'top-2'} right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center`}>
+                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
                       <Check size={11} className="text-white" strokeWidth={3} />
                     </span>
                   )}
                 </Link>
-
-                {/* Preventa — "¿Cuándo viene?". Fuera del Link para que el click
-                    abra el panel en vez de navegar a la ficha. */}
-                <BadgeCuandoViene viajes={viajes} onClick={() => setCuandoViene(p)} />
 
                 {/* Corazón favorito — esquina superior izquierda */}
                 <button
