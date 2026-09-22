@@ -280,13 +280,11 @@ export function ProductGridPublic({
                   )
                 })()}
               </Link>
-              {viajes.length > 0 && (
-                <PreventaResumen
-                  viaje={viajes[0]}
-                  esMayorista={esMayorista}
-                  onClick={() => setCuandoViene(p)}
-                />
-              )}
+              <PreventaResumen
+                viajes={viajes}
+                esMayorista={esMayorista}
+                onClick={() => setCuandoViene(p)}
+              />
               {loginHint === p.id && (
                 <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
                   <Link href="/login" className="underline">Iniciá sesión</Link> para guardar favoritos

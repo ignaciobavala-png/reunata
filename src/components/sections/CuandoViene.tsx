@@ -95,37 +95,50 @@ export function BadgeCuandoViene({
 }
 
 /**
- * Precio + fecha del próximo viaje, debajo del precio de la card.
+ * Precio + fecha de cada viaje disponible, debajo del precio de la card.
  *
  * Pedido del tester (18/09/2026): "falta agregar precio y fecha de arribo de los
  * contenedores a la vista de todos los productos" — antes solo se veían al abrir
- * el panel del badge. Muestra el viaje más próximo (el mismo que el badge), con
- * el precio más bajo entre sus colores.
+ * el panel del badge.
+ *
+ * Pedido del tester (21/09/2026): mostraba solo el viaje más próximo y un
+ * producto con arribo en octubre y en diciembre solo dejaba ver el de octubre.
+ * Ahora lista una línea por cada viaje —mismo criterio que el panel
+ * (`OpcionesDeCompra`), que ya itera todos.
  */
 export function PreventaResumen({
-  viaje,
+  viajes,
   esMayorista,
   onClick,
 }: {
-  viaje: ViajeDisponible
+  viajes: ViajeDisponible[]
   esMayorista: boolean
   onClick: () => void
 }) {
-  const fecha = formatFechaEstimada(viaje.fechaArribo)
-  const desde = Math.min(...viaje.colores.map(c => esMayorista ? c.neto : c.precio))
+  if (viajes.length === 0) return null
 
   return (
-    <button
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
-      className="mt-1 flex items-center gap-1 text-[11px] text-left hover:underline"
-      style={{ color: ETAPA_COLOR[viaje.etapa] }}
-    >
-      <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
-      <span>
-        Preventa desde {formatPrecio(desde, viaje.moneda)}
-        {fecha ? <> · llega aprox. {fecha}</> : null}
-      </span>
-    </button>
+    <div className="mt-1 flex flex-col gap-0.5">
+      {viajes.map(viaje => {
+        const fecha = formatFechaEstimada(viaje.fechaArribo)
+        const desde = Math.min(...viaje.colores.map(c => esMayorista ? c.neto : c.precio))
+
+        return (
+          <button
+            key={viaje.containerId}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
+            className="flex items-center gap-1 text-[11px] text-left hover:underline"
+            style={{ color: ETAPA_COLOR[viaje.etapa] }}
+          >
+            <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
+            <span>
+              Preventa desde {formatPrecio(desde, viaje.moneda)}
+              {fecha ? <> · llega aprox. {fecha}</> : null}
+            </span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
