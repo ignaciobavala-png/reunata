@@ -123,7 +123,7 @@ export default async function ContainersPage() {
         <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
           <Link href="/tienda" className="hover:underline">Tienda</Link>
           <span>/</span>
-          <span style={{ color: 'var(--foreground)' }}>Containers</span>
+          <span style={{ color: 'var(--foreground)' }}>REUNATA importa</span>
         </nav>
 
         <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -133,7 +133,7 @@ export default async function ContainersPage() {
           className="text-3xl md:text-5xl mb-2"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
         >
-          Containers
+          REUNATA importa
         </h1>
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
           {productos.length > 0

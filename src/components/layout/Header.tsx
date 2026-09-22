@@ -54,7 +54,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
   // card sigue existiendo, y además esto — visible solo a quien tiene el permiso
   // de preventa habilitado.
   const links = puedeContainers
-    ? [...tiendaLinks, { label: 'Containers', href: '/tienda/containers' }]
+    ? [...tiendaLinks, { label: 'REUNATA importa', href: '/tienda/containers' }]
     : tiendaLinks
 
   const { totalItems, setCartOpen } = useCartStore()
