@@ -5,6 +5,7 @@ import { Ship, X, Check } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 import { useCartStore } from '@/stores/cartStore'
+import { WHATSAPP_NUMERO } from '@/lib/whatsapp'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import {
   ETAPA_COLOR,
@@ -121,6 +122,25 @@ export function PreventaResumen({
     <div className="mt-1 flex flex-col gap-0.5">
       {viajes.map(viaje => {
         const fecha = formatFechaEstimada(viaje.fechaArribo)
+
+        // Sin acceso no hay precio que mostrar —`colores` viene vacío a
+        // propósito—, así que la línea invita a pedirlo en vez de cotizar.
+        if (viaje.requiereAcceso) {
+          return (
+            <button
+              key={viaje.containerId}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
+              className="flex items-center gap-1 text-[11px] text-left hover:underline"
+              style={{ color: ETAPA_COLOR[viaje.etapa] }}
+            >
+              <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
+              <span>
+                Viene en un próximo envío{fecha ? <> · llega aprox. {fecha}</> : null} · Pedí acceso
+              </span>
+            </button>
+          )
+        }
+
         const desde = Math.min(...viaje.colores.map(c => esMayorista ? c.neto : c.precio))
 
         return (
@@ -160,21 +180,21 @@ export function PreventaResumen({
 export function CuandoVieneFicha({
   codigoInterno,
   titulo,
-  estaLogueado,
   esMayorista = false,
   fotoUrl = null,
 }: {
   codigoInterno: string
   titulo: string
-  estaLogueado: boolean
+  /** @deprecated El bloque se muestra a todos ahora; ya no filtra por sesión. */
+  estaLogueado?: boolean
   esMayorista?: boolean
   fotoUrl?: string | null
 }) {
-  const { porCodigo } = useDisponibilidadContainers([codigoInterno], estaLogueado)
+  const { porCodigo } = useDisponibilidadContainers([codigoInterno])
   const viajes = porCodigo[codigoInterno] ?? []
 
-  // Sin viajes no hay bloque: para el que no tiene permiso —que es casi todo el
-  // mundo— la ficha queda exactamente como estaba.
+  // Sin viajes no hay bloque: si el producto no viene en ningún barco, la
+  // ficha queda exactamente como estaba.
   if (viajes.length === 0) return null
 
   return (
@@ -377,6 +397,49 @@ function OpcionesDeCompra({
 
       {viajes.map((viaje, i) => {
         const fecha = formatFechaEstimada(viaje.fechaArribo)
+
+        // Sin `puede_containers()` no hay panel de compra: en vez de precios y
+        // cantidades, la invitación a pedir acceso. Pedido del tester
+        // (22/09/2026) — "que vean que el producto va a llegar... pero que no
+        // puedan entrar".
+        if (viaje.requiereAcceso) {
+          const msg = encodeURIComponent(
+            `Hola, quiero pedir acceso a Reunata Importa para comprar "${titulo}" en preventa.`,
+          )
+          return (
+            <div
+              key={viaje.containerId}
+              className={i > 0 || tienda ? 'mt-6 pt-6 border-t' : ''}
+              style={i > 0 || tienda ? { borderColor: 'var(--color-acero-claro)' } : undefined}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: ETAPA_COLOR[viaje.etapa] }}
+                  aria-hidden="true"
+                />
+                <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  {fecha ? <>Llega aprox. {fecha}</> : 'Fecha a confirmar'}
+                </p>
+              </div>
+              <p className="text-xs mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
+                Este producto viene en un próximo viaje de <strong>Reunata Importa</strong>: comprás
+                antes de que llegue el barco, a mejor precio. Es un beneficio de cuentas habilitadas
+                — pedí acceso y te contamos las condiciones.
+              </p>
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMERO}?text=${msg}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block w-full text-center py-2.5 text-xs tracking-widest uppercase transition-opacity"
+                style={{ background: '#25D366', color: 'white' }}
+              >
+                Pedir acceso por WhatsApp
+              </a>
+            </div>
+          )
+        }
+
         const elegido = viaje.colores.reduce((acc, c) => acc + (cantidades[c.itemId] ?? 0), 0)
         const totalViaje = viaje.colores.reduce(
           (acc, c) => acc + (cantidades[c.itemId] ?? 0) * c.precio, 0,
@@ -501,7 +564,11 @@ function OpcionesDeCompra({
 
         {!viaje.aceptaReservas || sinNada ? (
           <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {sinNada ? 'No queda nada de este viaje.' : 'Este viaje no está tomando pedidos.'}
+            {sinNada
+              ? 'No queda nada de este viaje.'
+              : viaje.etapa === 'puerto'
+                ? 'Nacionalizado: ya está en camino al depósito, todavía sin entrega inmediata.'
+                : 'Este viaje no está tomando pedidos.'}
           </p>
         ) : !hayCambios && confirmadoViaje > 0 ? (
           <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>

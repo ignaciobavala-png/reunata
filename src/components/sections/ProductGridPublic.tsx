@@ -61,14 +61,12 @@ export function ProductGridPublic({
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const router = useRouter()
 
-  // Preventa de importados. El endpoint chequea el permiso, así que para el que no
-  // lo tiene esto vuelve vacío y ninguna card muestra el badge. Sin sesión ni se
-  // pregunta: el anónimo nunca tiene preventa y el catálogo público es casi todo
-  // tráfico anónimo.
-  const disponibilidad = useDisponibilidadContainers(
-    productos.map(p => p.codigo_interno),
-    estaLogueado,
-  )
+  // Preventa de importados. El badge se muestra a TODOS, con o sin sesión —
+  // pedido del tester (22/09/2026): que se vea que algo viene, aunque no se
+  // tenga acceso. El endpoint decide el detalle: con `puede_containers()`
+  // vuelven precio y cantidades; sin él, solo el badge y la invitación a pedir
+  // acceso (`requiereAcceso`, ver CuandoViene.tsx).
+  const disponibilidad = useDisponibilidadContainers(productos.map(p => p.codigo_interno))
   const [cuandoViene, setCuandoViene] = useState<ProductoPublico | null>(null)
 
   function getSupabase() {

@@ -24,8 +24,12 @@ import {
  * de "puede ver containers" y no hay forma de que una grilla nueva se olvide y
  * filtre precios de preventa a quien no corresponde.
  *
- * Vacío ({}) es la respuesta correcta para el que no tiene permiso: la card
- * simplemente no muestra el badge.
+ * Pedido del tester (22/09/2026): el que NO tiene acceso ya no vuelve vacío.
+ * Ve el mismo badge —que algo viene en un próximo viaje— pero `colores` viene
+ * vacío y `requiereAcceso: true` en cada viaje, así que no hay precio ni
+ * cantidad que filtrar. Es a propósito: la mayoría del tráfico es anónimo y
+ * este endpoint ahora es el gancho para pedir acceso a Reunata Importa, no un
+ * muro que hay que no tocar.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -38,10 +42,65 @@ export async function POST(req: NextRequest) {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return vacio
 
-  const { data: habilitado } = await supabase.rpc('puede_containers')
-  if (!habilitado) return vacio
+  let habilitado = false
+  if (user) {
+    const { data } = await supabase.rpc('puede_containers')
+    habilitado = !!data
+  }
+
+  const service = createServiceClient()
+
+  if (!habilitado) {
+    const { data: filas } = await service
+      .from('container_items')
+      .select(`
+        producto_id, codigo_interno,
+        containers!inner (id, nombre, etapa, fecha_arribo_est, orden)
+      `)
+      .in('codigo_interno', codigos)
+      .in('containers.etapa', ETAPAS_VISIBLES)
+
+    type FilaMinima = {
+      producto_id: number | null
+      codigo_interno: string
+      containers: { id: string; nombre: string; etapa: EtapaContainer; fecha_arribo_est: string | null; orden: number }
+    }
+
+    const porCodigo: DisponibilidadPorCodigo = {}
+    const vistos = new Set<string>()
+
+    for (const fila of (filas ?? []) as unknown as FilaMinima[]) {
+      const c = fila.containers
+      if (!c || fila.producto_id == null) continue
+      const clave = `${fila.codigo_interno}:${c.id}`
+      if (vistos.has(clave)) continue
+      vistos.add(clave)
+
+      const lista = (porCodigo[fila.codigo_interno] ??= [])
+      lista.push({
+        containerId: c.id,
+        nombre: c.nombre,
+        productoId: fila.producto_id,
+        codigoInterno: fila.codigo_interno,
+        etapa: c.etapa,
+        fechaArribo: c.fecha_arribo_est,
+        descuentoPct: 0,
+        pasoDiarioPct: null,
+        aceptaReservas: false,
+        moneda: null,
+        multiplo: 1,
+        colores: [],
+        requiereAcceso: true,
+      } satisfies ViajeDisponible)
+    }
+
+    for (const lista of Object.values(porCodigo)) {
+      lista.sort((a, b) => (a.fechaArribo ?? '9999').localeCompare(b.fechaArribo ?? '9999'))
+    }
+
+    return NextResponse.json({ habilitado: false, porCodigo, tienda: {} })
+  }
 
   const { canalId, listaPrecio, mostrarPrecios, tipoCambioUsd } = await resolverCanalTienda()
   if (!mostrarPrecios || !listaPrecio) return vacio
@@ -52,8 +111,6 @@ export async function POST(req: NextRequest) {
   // mínimo — y esa reserva después había que facturarla igual.
   const { ids: idsCanal, multiplos } = await getProductosDelCanal(canalId)
   const permitidos = new Set(idsCanal)
-
-  const service = createServiceClient()
 
   const [{ data: items }, { data: productos }] = await Promise.all([
     service

@@ -19,6 +19,7 @@ export type EtapaContainer =
   | 'china'
   | 'oceano'
   | 'puerto'
+  | 'deposito'
   | 'cerrado'
   | 'cancelado'
 
@@ -28,11 +29,15 @@ export const ETAPAS_ABIERTAS: EtapaContainer[] = ['china', 'oceano']
 /**
  * Etapas que el cliente ve en el panel del producto.
  *
- * Nacionalizado quedó AFUERA (16/09/2026): su precio ya es el de la web y su
- * entrega es inmediata, así que es exactamente la fila "Precio web" del panel.
- * Mostrarlo aparte era la misma mercadería, al mismo precio, dos veces.
+ * Nacionalizado (puerto) VOLVIÓ a estar adentro (22/09/2026, devolución del
+ * tester): aduana liberada no es lo mismo que mercadería en el depósito, así que
+ * no hay entrega inmediata todavía y el cliente tiene que seguir viendo que es
+ * preventa. Quien marca la llegada real es "deposito" — una etapa nueva, a mano,
+ * para el día que Elena carga la unidad en la cuenta principal (ver
+ * `containers-modelo-subcuentas-gesu`). Recién ahí sale de este panel y pasa a
+ * ser exactamente la fila "Precio web" del catálogo normal.
  */
-export const ETAPAS_VISIBLES: EtapaContainer[] = ['china', 'oceano']
+export const ETAPAS_VISIBLES: EtapaContainer[] = ['china', 'oceano', 'puerto']
 
 // Las claves de la etapa son las del diseño original (china/oceano/puerto); los
 // nombres son los que usa el equipo de Reunata para hablar del viaje. No se
@@ -42,6 +47,7 @@ export const ETAPA_LABEL: Record<EtapaContainer, string> = {
   china:     'Armando el contenedor',
   oceano:    'En viaje',
   puerto:    'Nacionalizado',
+  deposito:  'Recibido en depósito',
   cerrado:   'Viaje cerrado',
   cancelado: 'Cancelado',
 }
@@ -51,8 +57,9 @@ export const ETAPA_AYUDA: Record<EtapaContainer, string> = {
   borrador:  'Todavía no se publicó.',
   china:     'Se está armando el pedido. Es el mejor precio y el plazo más largo.',
   oceano:    'Fabricación y viaje del barco. El precio sube un poco cada día hasta llegar al de la web.',
-  puerto:    'Ya está nacionalizado: se vende al precio de la web, con entrega inmediata.',
-  cerrado:   'El viaje terminó. La mercadería ya pasó a stock normal.',
+  puerto:    'Aduana liberada, viene en camino al depósito. Ya se vende al precio de la web, pero todavía sin entrega inmediata.',
+  deposito:  'Llegó al depósito: pasa a stock normal, con entrega inmediata.',
+  cerrado:   'El viaje se archivó.',
   cancelado: 'El viaje se canceló.',
 }
 
@@ -61,6 +68,7 @@ export const ETAPA_COLOR: Record<EtapaContainer, string> = {
   china:     '#f59e0b',
   oceano:    '#0ea5e9',
   puerto:    '#8b5cf6',
+  deposito:  '#22c55e',
   cerrado:   '#6b7280',
   cancelado: '#ef4444',
 }
@@ -182,9 +190,9 @@ export function formatFechaEstimada(fecha: string | null | undefined): string | 
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-/** Texto corto para el badge de la card: "60 d", "2 meses", "En puerto". */
+/** Texto corto para el badge de la card: "60 d", "2 meses", "Nacionalizado". */
 export function etiquetaLlegada(etapa: EtapaContainer, fechaArribo: string | null | undefined): string {
-  if (etapa === 'puerto') return 'Entrega inmediata'
+  if (etapa === 'puerto') return 'Nacionalizado'
   const dias = diasHasta(fechaArribo)
   if (dias === null) return 'Por venir'
   if (dias <= 0) return 'Llegando'
@@ -224,6 +232,14 @@ export interface ViajeDisponible {
   /** Bulto mínimo del canal (producto_canales.multiplo). Se reserva de a múltiplos. */
   multiplo: number
   colores: ColorDisponible[]
+  /**
+   * true = el que pide esto no tiene `puede_containers()`. Ve que el viaje existe
+   * (badge, fecha) pero no precios ni cantidades — `colores` viene vacío a
+   * propósito. Pedido del tester (22/09/2026): todos ven que algo viene, y al
+   * tocar reciben la invitación a pedir acceso a Reunata Importa en vez del panel
+   * de compra.
+   */
+  requiereAcceso?: boolean
 }
 
 /** codigo_interno → viajes que lo traen. */

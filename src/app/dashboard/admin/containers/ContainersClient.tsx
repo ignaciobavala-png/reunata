@@ -102,7 +102,7 @@ export interface ProductoCatalogo {
 }
 
 /** El orden real del viaje. Se avanza de a un paso, a mano. */
-const SECUENCIA: EtapaContainer[] = ['borrador', 'china', 'oceano', 'puerto', 'cerrado']
+const SECUENCIA: EtapaContainer[] = ['borrador', 'china', 'oceano', 'puerto', 'deposito', 'cerrado']
 
 type Pestana = 'viajes' | 'reservas' | 'permisos'
 
@@ -277,6 +277,7 @@ function FichaViaje({
   const totalComprometido = viaje.items.reduce((a, i) => a + i.comprometido, 0)
   const idx = SECUENCIA.indexOf(viaje.etapa)
   const siguiente = idx >= 0 && idx < SECUENCIA.length - 1 ? SECUENCIA[idx + 1] : null
+  const anterior = idx > 0 ? SECUENCIA[idx - 1] : null
 
   async function handleImportar() {
     const res = await importarItems(viaje.id, pegado)
@@ -348,19 +349,34 @@ function FichaViaje({
             <p className="text-xs mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
               {ETAPA_AYUDA[viaje.etapa]}
             </p>
-            {siguiente && (
-              <button
-                onClick={() => {
-                  if (!confirm(`¿Pasar "${viaje.nombre}" a "${ETAPA_LABEL[siguiente]}"? El precio cambia al instante para todos los clientes.`)) return
-                  ejecutar(() => cambiarEtapa(viaje.id, siguiente), `"${viaje.nombre}" pasó a ${ETAPA_LABEL[siguiente]}.`)
-                }}
-                disabled={pendiente}
-                className="mt-3 px-4 py-2 text-xs tracking-widest uppercase disabled:opacity-40"
-                style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
-              >
-                Avanzar a {ETAPA_LABEL[siguiente]}
-              </button>
-            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {siguiente && (
+                <button
+                  onClick={() => {
+                    if (!confirm(`¿Pasar "${viaje.nombre}" a "${ETAPA_LABEL[siguiente]}"? El precio cambia al instante para todos los clientes.`)) return
+                    ejecutar(() => cambiarEtapa(viaje.id, siguiente), `"${viaje.nombre}" pasó a ${ETAPA_LABEL[siguiente]}.`)
+                  }}
+                  disabled={pendiente}
+                  className="px-4 py-2 text-xs tracking-widest uppercase disabled:opacity-40"
+                  style={{ background: 'var(--color-granito-oscuro)', color: 'white' }}
+                >
+                  Avanzar a {ETAPA_LABEL[siguiente]}
+                </button>
+              )}
+              {anterior && (
+                <button
+                  onClick={() => {
+                    if (!confirm(`¿Volver "${viaje.nombre}" a "${ETAPA_LABEL[anterior]}"? El precio cambia al instante para todos los clientes. La rampa de "En viaje" no se reinicia sola: si hace falta, usá "Reiniciar rampa" después.`)) return
+                    ejecutar(() => cambiarEtapa(viaje.id, anterior), `"${viaje.nombre}" volvió a ${ETAPA_LABEL[anterior]}.`)
+                  }}
+                  disabled={pendiente}
+                  className="px-4 py-2 text-xs tracking-widest uppercase disabled:opacity-40"
+                  style={{ border: '1px solid var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
+                >
+                  Volver a {ETAPA_LABEL[anterior]}
+                </button>
+              )}
+            </div>
             <p className="text-[11px] mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
               La etapa la avanzás vos, nunca el calendario: si el barco se demora, el sistema
               no puede decir que llegó.
@@ -1046,6 +1062,12 @@ function RampaOceano({
             Sube {paso} puntos por día durante {viaje.oceano_dias} días.
             {fin && <> Llega al precio de la web el <strong>{fin}</strong>.</>}
           </p>
+          {viaje.oceano_desde && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+              Rampa arrancó el <strong>{formatFechaEstimada(viaje.oceano_desde)}</strong> — no es la fecha
+              &ldquo;En viaje&rdquo; del formulario, sino el día que se apretó &ldquo;Avanzar a En viaje&rdquo; acá.
+            </p>
+          )}
         </>
       )}
 
