@@ -10,12 +10,17 @@ export default async function PublicLayout({ children }: { children: React.React
 
   let headerUser: { nombre: string | null; rol: string; aprobado: boolean } | null = null
   let categoriaComercial: string | null = null
+  let puedeContainers = false
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nombre, rol, aprobado, canal_id')
-      .eq('id', user.id)
-      .single()
+    const [{ data: profile }, { data: habilitado }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('nombre, rol, aprobado, canal_id')
+        .eq('id', user.id)
+        .single(),
+      supabase.rpc('puede_containers'),
+    ])
+    puedeContainers = !!habilitado
     if (profile) {
       headerUser = { nombre: profile.nombre, rol: profile.rol, aprobado: profile.aprobado ?? false }
       if (profile.canal_id) {
@@ -42,7 +47,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
-      <Header user={headerUser} categorias={headerCategorias} />
+      <Header user={headerUser} categorias={headerCategorias} puedeContainers={puedeContainers} />
       <main className="flex-1">
         {children}
       </main>

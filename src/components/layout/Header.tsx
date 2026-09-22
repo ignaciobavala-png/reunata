@@ -30,7 +30,7 @@ const tiendaLinks = [
   // { label: 'Vistos recientemente', href: '/historial' },
 ]
 
-export function Header({ user, categorias = [], variant = 'light' }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark' }) {
+export function Header({ user, categorias = [], variant = 'light', puedeContainers = false }: { user?: HeaderUser | null; categorias?: HeaderCategoria[]; variant?: 'light' | 'dark'; puedeContainers?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const isHome = pathname === '/' && variant === 'light'
@@ -49,6 +49,13 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // "Las dos opciones las vamos a necesitar" (Gastón, 22/09/2026): el ícono en la
+  // card sigue existiendo, y además esto — visible solo a quien tiene el permiso
+  // de preventa habilitado.
+  const links = puedeContainers
+    ? [...tiendaLinks, { label: 'Containers', href: '/tienda/containers' }]
+    : tiendaLinks
 
   const { totalItems, setCartOpen } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -185,7 +192,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
                   <div className="px-5 pt-4 pb-1 text-[9px] tracking-[0.3em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
                     Explorar
                   </div>
-                  {tiendaLinks.map((link) => (
+                  {links.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
@@ -460,7 +467,7 @@ export function Header({ user, categorias = [], variant = 'light' }: { user?: He
           <span className="text-xs tracking-widest uppercase text-[var(--color-acero-oscuro)] mb-2">
             Tienda
           </span>
-          {tiendaLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
