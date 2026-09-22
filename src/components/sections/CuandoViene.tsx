@@ -11,6 +11,7 @@ import {
   ETAPA_COLOR,
   etiquetaLlegada,
   formatFechaEstimada,
+  formatMesArribo,
   type DisponibilidadPorCodigo,
   type TiendaDisponible,
   type TiendaPorCodigo,
@@ -106,6 +107,13 @@ export function BadgeCuandoViene({
  * producto con arribo en octubre y en diciembre solo dejaba ver el de octubre.
  * Ahora lista una línea por cada viaje —mismo criterio que el panel
  * (`OpcionesDeCompra`), que ya itera todos.
+ *
+ * Devolución de Gastón (22/09/2026), sobre la foto del tester: "no se aprecia
+ * que es mejor precio" — el precio de preventa se leía más chico y más gris que
+ * el de arriba, así que no competía visualmente con el precio de lista. Ahora
+ * el precio va al mismo tamaño que el precio principal (`text-base font-bold`)
+ * y el resto del mensaje se resume a "Arribo <mes>", sin fecha completa ni el
+ * prefijo "Preventa desde".
  */
 export function PreventaResumen({
   viajes,
@@ -119,9 +127,9 @@ export function PreventaResumen({
   if (viajes.length === 0) return null
 
   return (
-    <div className="mt-1 flex flex-col gap-0.5">
+    <div className="mt-1 flex flex-col gap-1">
       {viajes.map(viaje => {
-        const fecha = formatFechaEstimada(viaje.fechaArribo)
+        const mes = formatMesArribo(viaje.fechaArribo)
 
         // Sin acceso no hay precio que mostrar —`colores` viene vacío a
         // propósito—, así que la línea invita a pedirlo en vez de cotizar.
@@ -130,12 +138,12 @@ export function PreventaResumen({
             <button
               key={viaje.containerId}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
-              className="flex items-center gap-1 text-[11px] text-left hover:underline"
+              className="flex items-center gap-1 text-xs text-left hover:underline"
               style={{ color: ETAPA_COLOR[viaje.etapa] }}
             >
-              <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
+              <Ship size={13} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
               <span>
-                Viene en un próximo envío{fecha ? <> · llega aprox. {fecha}</> : null} · Pedí acceso
+                {mes ? <>Arribo {mes}</> : 'Próximo envío'} · Pedí acceso
               </span>
             </button>
           )
@@ -147,14 +155,23 @@ export function PreventaResumen({
           <button
             key={viaje.containerId}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
-            className="flex items-center gap-1 text-[11px] text-left hover:underline"
-            style={{ color: ETAPA_COLOR[viaje.etapa] }}
+            className="flex items-center gap-1.5 text-left hover:underline"
           >
-            <Ship size={11} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
-            <span>
-              Preventa desde {formatPrecio(desde, viaje.moneda)}
-              {fecha ? <> · llega aprox. {fecha}</> : null}
+            <Ship
+              size={14}
+              strokeWidth={2}
+              aria-hidden="true"
+              className="flex-shrink-0"
+              style={{ color: ETAPA_COLOR[viaje.etapa] }}
+            />
+            <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
+              {formatPrecio(desde, viaje.moneda)}
             </span>
+            {mes && (
+              <span className="text-xs font-medium" style={{ color: ETAPA_COLOR[viaje.etapa] }}>
+                Arribo {mes}
+              </span>
+            )}
           </button>
         )
       })}

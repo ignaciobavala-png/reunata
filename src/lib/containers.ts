@@ -190,6 +190,15 @@ export function formatFechaEstimada(fecha: string | null | undefined): string | 
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+/** "Octubre". Mes de arribo, para el resumen de precio de la card. */
+export function formatMesArribo(fecha: string | null | undefined): string | null {
+  if (!fecha) return null
+  const d = new Date(`${fecha}T00:00:00`)
+  if (isNaN(d.getTime())) return null
+  const mes = d.toLocaleDateString('es-AR', { month: 'long' })
+  return mes.charAt(0).toUpperCase() + mes.slice(1)
+}
+
 /** Texto corto para el badge de la card: "60 d", "2 meses", "Nacionalizado". */
 export function etiquetaLlegada(etapa: EtapaContainer, fechaArribo: string | null | undefined): string {
   if (etapa === 'puerto') return 'Nacionalizado'
