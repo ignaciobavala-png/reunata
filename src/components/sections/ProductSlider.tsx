@@ -33,7 +33,7 @@ export function ProductSlider({ fotos, esMayorista = false }: { fotos: FotoDesta
   if (fotos.length === 0) return null
 
   return (
-    <section className="py-16 md:py-24 overflow-hidden">
+    <section className="py-8 md:py-12 overflow-hidden">
       <FadeIn className="px-6 md:px-10 mb-10 flex items-end justify-between">
         <h2
           className="text-3xl md:text-4xl text-[var(--foreground)]"

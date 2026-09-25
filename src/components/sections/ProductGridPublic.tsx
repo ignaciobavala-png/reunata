@@ -150,7 +150,9 @@ export function ProductGridPublic({
           // 18/09/2026 — "el producto si está en un contenedor no tiene que
           // figurar sin stock").
           const hayPreventaDisponible = viajes.some(v => v.colores.some(c => c.disponible > 0))
-          const agotado = sinStock(p) && !hayPreventaDisponible
+          // Mientras la disponibilidad de preventa todavía no llegó, no se puede
+          // afirmar "sin stock" — se sabría recién con la respuesta del endpoint.
+          const agotado = !disponibilidad.cargando && sinStock(p) && !hayPreventaDisponible
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -235,7 +237,15 @@ export function ProductGridPublic({
               </div>
 
               <Link href={`/tienda/p/${p.id}`} className="block">
-                <p className="text-sm font-medium leading-snug" style={{ color: 'var(--foreground)' }}>
+                {/* line-clamp-2 + min-h de dos líneas: sin esto un título corto
+                    deja el precio más arriba que el de un vecino con título largo.
+                    El title nativo muestra el texto completo al pasar el mouse
+                    cuando el título no entra en las dos líneas. */}
+                <p
+                  className="text-sm font-medium leading-snug line-clamp-2 min-h-10"
+                  style={{ color: 'var(--foreground)' }}
+                  title={p.titulo}
+                >
                   {p.titulo}
                 </p>
                 <p className="text-xs font-mono" style={{ color: 'var(--color-acero-oscuro)' }}>

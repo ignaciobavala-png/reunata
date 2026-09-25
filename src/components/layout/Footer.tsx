@@ -127,10 +127,9 @@ export function Footer() {
             <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-acero-oscuro)] py-3.5 md:py-0 md:mb-4">
               Newsletter
             </p>
-            <p className="text-xs text-[var(--color-acero-oscuro)] mb-3">10% OFF en tu próxima compra</p>
             {newsletterStatus === 'ok' ? (
               <p className="text-xs mb-6 py-2.5 text-center" style={{ color: '#10b981' }}>
-                ¡Listo! Te llegará tu descuento por email.
+                ¡Listo! Ya estás suscripto.
               </p>
             ) : (
               <form onSubmit={handleNewsletter} className="flex border border-[var(--color-granito-claro)] hover:border-[var(--color-acero-oscuro)] transition-colors duration-300 mb-6">

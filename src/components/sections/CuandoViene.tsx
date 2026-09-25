@@ -42,6 +42,10 @@ const VACIO: Disponibilidad = { porCodigo: {}, tienda: {} }
  */
 export function useDisponibilidadContainers(codigos: string[], activo = true) {
   const [datos, setDatos] = useState<Disponibilidad>(VACIO)
+  // Distingue "todavía no llegó la respuesta" de "llegó y no hay viajes" — sin
+  // esto, mientras el fetch está en vuelo un producto en preventa (sin stock
+  // local) se ve un instante como agotado. Pedido del tester (21/09/2026).
+  const [cargando, setCargando] = useState(true)
   const clave = codigos.filter(Boolean).sort().join(',')
 
   useEffect(() => {
@@ -59,13 +63,18 @@ export function useDisponibilidadContainers(codigos: string[], activo = true) {
         }
       })
       .catch(() => {})
+      .finally(() => {
+        if (vivo) setCargando(false)
+      })
     return () => { vivo = false }
   }, [clave, activo])
 
   // Derivado, no un reset por efecto: si `activo` se apaga (logout sin recargar),
   // el badge desaparece en el mismo render en vez de quedar un tick con los datos
-  // de la sesión anterior.
-  return activo ? datos : VACIO
+  // de la sesión anterior. Sin `clave` nunca hay fetch en vuelo, así que tampoco
+  // hay "cargando" que esperar.
+  if (!activo || !clave) return { ...VACIO, cargando: false }
+  return { ...datos, cargando }
 }
 
 /** Badge fijo sobre la foto. Solo aparece si el producto viene en algún viaje. */
