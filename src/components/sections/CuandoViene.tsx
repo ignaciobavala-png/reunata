@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Ship, X, Check } from 'lucide-react'
 import { formatPrecio } from '@/lib/utils'
 import { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
@@ -114,15 +115,22 @@ export function BadgeCuandoViene({
  * el precio va al mismo tamaño que el precio principal (`text-base font-bold`)
  * y el resto del mensaje se resume a "Arribo <mes>", sin fecha completa ni el
  * prefijo "Preventa desde".
+ *
+ * Devolución del tester (25/09/2026): el hover subrayaba el precio en vez de
+ * mostrar la manito, el color por etapa competía con el resto de la lista
+ * (pidió todo negro), y el click abría un panel aparte que había que mantener
+ * sincronizado con la ficha. Ahora es un link directo a la ficha del producto
+ * —que ya tiene el mismo bloque de opciones (`CuandoVieneFicha`)— sin
+ * subrayado ni color de etapa.
  */
 export function PreventaResumen({
   viajes,
   esMayorista,
-  onClick,
+  productoId,
 }: {
   viajes: ViajeDisponible[]
   esMayorista: boolean
-  onClick: () => void
+  productoId: number
 }) {
   if (viajes.length === 0) return null
 
@@ -135,44 +143,44 @@ export function PreventaResumen({
         // propósito—, así que la línea invita a pedirlo en vez de cotizar.
         if (viaje.requiereAcceso) {
           return (
-            <button
+            <Link
               key={viaje.containerId}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
-              className="flex items-center gap-1 text-xs text-left hover:underline"
-              style={{ color: ETAPA_COLOR[viaje.etapa] }}
+              href={`/tienda/p/${productoId}`}
+              className="flex items-center gap-1 text-xs text-left"
+              style={{ color: 'var(--color-acero-oscuro)' }}
             >
               <Ship size={13} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
               <span>
                 {mes ? <>Arribo {mes}</> : 'Próximo envío'} · Pedí acceso
               </span>
-            </button>
+            </Link>
           )
         }
 
         const desde = Math.min(...viaje.colores.map(c => esMayorista ? c.neto : c.precio))
 
         return (
-          <button
+          <Link
             key={viaje.containerId}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick() }}
-            className="flex items-center gap-1.5 text-left hover:underline"
+            href={`/tienda/p/${productoId}`}
+            className="flex items-center gap-1.5 text-left"
           >
             <Ship
               size={14}
               strokeWidth={2}
               aria-hidden="true"
               className="flex-shrink-0"
-              style={{ color: ETAPA_COLOR[viaje.etapa] }}
+              style={{ color: 'var(--color-acero-oscuro)' }}
             />
             <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
               {formatPrecio(desde, viaje.moneda)}
             </span>
             {mes && (
-              <span className="text-xs font-medium" style={{ color: ETAPA_COLOR[viaje.etapa] }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Arribo {mes}
               </span>
             )}
-          </button>
+          </Link>
         )
       })}
     </div>

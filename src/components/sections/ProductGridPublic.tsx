@@ -13,7 +13,6 @@ import { toggleFavorito } from '@/app/actions/favoritos'
 import { netoDesdeBruto } from '@/lib/iva'
 import {
   useDisponibilidadContainers,
-  CuandoVieneDrawer,
   PreventaResumen,
 } from '@/components/sections/CuandoViene'
 
@@ -66,7 +65,6 @@ export function ProductGridPublic({
   // vuelven precio y cantidades; sin él, solo el badge y la invitación a pedir
   // acceso (`requiereAcceso`, ver CuandoViene.tsx).
   const disponibilidad = useDisponibilidadContainers(productos.map(p => p.codigo_interno))
-  const [cuandoViene, setCuandoViene] = useState<ProductoPublico | null>(null)
 
   function getSupabase() {
     if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -246,19 +244,21 @@ export function ProductGridPublic({
                 {p.precio != null && (() => {
                   // El precio de lista SIEMPRE trae el IVA incluido (ver lib/iva.ts):
                   // el neto se despeja dividiendo, nunca se multiplica.
-                  // esMayorista es solo presentación: neto en grande + "IVA incluido"
+                  // esMayorista es solo presentación: neto + "+IVA" pegado al precio
                   // vs. final + "sin impuestos".
+                  //
+                  // Pedido del tester (25/09/2026): sacar el texto "IVA incluido"
+                  // aparte y sumarlo al precio como "+IVA" — es la misma información,
+                  // solo cambia dónde se lee.
                   const conIva = p.precio
                   const neto = netoDesdeBruto(p.precio, p.iva)
                   return esMayorista ? (
-                    <>
-                      <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                        {formatPrecio(neto, p.moneda)}
-                      </p>
-                      <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        IVA incluido: {formatPrecio(conIva, p.moneda)}
-                      </p>
-                    </>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                      {formatPrecio(neto, p.moneda)}{' '}
+                      <span className="text-[11px] font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        +IVA
+                      </span>
+                    </p>
                   ) : (
                     <>
                       <p className="text-base font-bold mt-0.5" style={{ color: 'var(--foreground)' }}>
@@ -274,7 +274,7 @@ export function ProductGridPublic({
               <PreventaResumen
                 viajes={viajes}
                 esMayorista={esMayorista}
-                onClick={() => setCuandoViene(p)}
+                productoId={p.id}
               />
               {loginHint === p.id && (
                 <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
@@ -293,18 +293,6 @@ export function ProductGridPublic({
           )
         })}
       </div>
-
-      {/* Un solo panel para toda la grilla: el producto abierto lo define el estado. */}
-      <CuandoVieneDrawer
-        abierto={cuandoViene !== null}
-        onCerrar={() => setCuandoViene(null)}
-        titulo={cuandoViene?.titulo ?? ''}
-        viajes={cuandoViene ? (disponibilidad.porCodigo[cuandoViene.codigo_interno] ?? []) : []}
-        tienda={cuandoViene ? disponibilidad.tienda[cuandoViene.codigo_interno] : undefined}
-        codigoInterno={cuandoViene?.codigo_interno ?? ''}
-        esMayorista={esMayorista}
-        fotoUrl={cuandoViene?.foto_url ? supabaseImg(cuandoViene.supabaseUrl, cuandoViene.foto_url, 200) : null}
-      />
 
       {/* CTA — solo para usuarios sin precios asignados */}
       {!mostrarPrecios && (
