@@ -181,11 +181,15 @@ export function PreventaResumen({
               className="flex-shrink-0"
               style={{ color: 'var(--color-acero-oscuro)' }}
             />
-            <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
+            {/* El precio no se parte nunca: en la card angosta de mobile quedaba
+                "$" arriba y "5.400" abajo, y no se leía a qué arribo pertenecía
+                (tester, 29/09/2026). Si no entra todo en una fila, el que baja a
+                dos renglones es "Arribo <mes>", centrado contra el precio. */}
+            <span className="text-base font-bold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
               {formatPrecio(desde, viaje.moneda)}
             </span>
             {mes && (
-              <span className="text-xs font-medium" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <span className="min-w-0 text-xs font-medium leading-tight" style={{ color: 'var(--color-acero-oscuro)' }}>
                 Arribo {mes}
               </span>
             )}
