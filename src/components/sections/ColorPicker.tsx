@@ -11,11 +11,17 @@ interface Props {
   variantes: Variante[]
   selected: string | null
   onSelect: (nombre: string) => void
+  /**
+   * Si el color se puede elegir. Default: que tenga stock en la tienda. La ficha
+   * con preventa lo amplía a "o viene en algún contenedor" — un color agotado hoy
+   * que llega en diciembre se tiene que poder elegir para reservarlo.
+   */
+  habilitada?: (v: Variante) => boolean
 }
 
 export { getSwatchStyle, capitalizeVariante } from '@/lib/variantes'
 
-export function ColorPicker({ variantes, selected, onSelect }: Props) {
+export function ColorPicker({ variantes, selected, onSelect, habilitada = v => v.stock > 0 }: Props) {
   if (!variantes || variantes.length === 0) return null
 
   const todasMedidas = variantes.every(v => esMedida(v.nombre))
@@ -33,7 +39,7 @@ export function ColorPicker({ variantes, selected, onSelect }: Props) {
       </p>
       <div className="flex flex-wrap gap-2">
         {variantes.map(v => {
-          const sinStock = v.stock <= 0
+          const sinStock = !habilitada(v)
           const isSelected = selected === v.nombre
           if (todasMedidas) {
             return (

@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
-import { ProductGridPublic } from '@/components/sections/ProductGridPublic'
+import { ContainersClient, type ArriboFiltro } from './ContainersClient'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { ordenarFotos } from '@/lib/fotos'
-import { ETAPAS_VISIBLES } from '@/lib/containers'
+import { ETAPAS_VISIBLES, formatMesArribo } from '@/lib/containers'
 
 export const metadata: Metadata = {
   title: 'Importá con Reunata — Reunata',
@@ -60,15 +60,26 @@ export default async function ContainersPage() {
   // queda afuera —ver ETAPAS_VISIBLES— porque ya es la tienda de siempre.
   const { data: itemsRows } = await service
     .from('container_items')
-    .select('producto_id, containers!inner(etapa)')
+    .select('producto_id, containers!inner(id, nombre, etapa, fecha_arribo_est)')
     .in('containers.etapa', ETAPAS_VISIBLES)
 
-  const idsContainers = new Set(
-    (itemsRows ?? [])
-      .map(r => r.producto_id as number | null)
-      .filter((id): id is number => id != null),
-  )
-  const idsValidos = [...idsContainers].filter(id => idsCanalSet.has(id))
+  // Por producto, en qué viajes viene. Es lo que alimenta el filtro "Arribo
+  // Octubre / Arribo Diciembre" (pedido del tester, 29/09/2026). Un producto con
+  // varios colores tiene una fila por color en el mismo viaje: el Set lo colapsa.
+  type ViajeRow = { id: string; nombre: string; fecha_arribo_est: string | null }
+  const viajesPorProducto = new Map<number, Set<string>>()
+  const viajes = new Map<string, ViajeRow>()
+  for (const r of itemsRows ?? []) {
+    const productoId = r.producto_id as number | null
+    // Embed to-one: PostgREST lo manda como objeto, no como array.
+    const c = r.containers as unknown as ViajeRow | null
+    if (productoId == null || !c) continue
+    viajes.set(c.id, c)
+    if (!viajesPorProducto.has(productoId)) viajesPorProducto.set(productoId, new Set())
+    viajesPorProducto.get(productoId)!.add(c.id)
+  }
+
+  const idsValidos = [...viajesPorProducto.keys()].filter(id => idsCanalSet.has(id))
 
   type ProductoPublico = {
     id: number
@@ -81,6 +92,8 @@ export default async function ContainersPage() {
     supabaseUrl: string
     variantes?: { nombre: string; stock: number }[] | null
     stock?: number | null
+    iva?: number | null
+    viajes: string[]
   }
 
   let productos: ProductoPublico[] = []
@@ -88,7 +101,7 @@ export default async function ContainersPage() {
   if (idsValidos.length > 0) {
     const { data: prods } = await service
       .from('productos')
-      .select('id, titulo, codigo_interno, moneda, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)')
+      .select('id, titulo, codigo_interno, moneda, iva, stock, stock_visible, variantes, precio_lista1, precio_lista2, precio_lista3, precio_lista4, precio_lista5, producto_fotos(url, orden, destacada)')
       .in('id', idsValidos)
       .eq('activo', true)
       .order('titulo')
@@ -108,6 +121,8 @@ export default async function ContainersPage() {
         moneda,
         multiplo: multiplos[p.id] ?? 1,
         supabaseUrl,
+        iva: (p.iva as number | null) ?? null,
+        viajes: [...(viajesPorProducto.get(p.id) ?? [])],
         variantes: (p.variantes as { nombre: string; stock: number }[] | null) ?? null,
         stock: stockDisponible({
           stock: (p.stock as number | null) ?? null,
@@ -116,6 +131,20 @@ export default async function ContainersPage() {
       }
     })
   }
+
+  // Un filtro por viaje, en orden de llegada. Si dos viajes llegan el mismo mes
+  // el mes solo no alcanza para distinguirlos: se suma el nombre del container.
+  const idsConProducto = new Set(productos.flatMap(p => p.viajes))
+  const viajesOrdenados = [...viajes.values()]
+    .filter(v => idsConProducto.has(v.id))
+    .sort((a, b) => (a.fecha_arribo_est ?? '9999').localeCompare(b.fecha_arribo_est ?? '9999'))
+  const mesDe = (v: ViajeRow) => formatMesArribo(v.fecha_arribo_est)
+  const arribos: ArriboFiltro[] = viajesOrdenados.map(v => {
+    const mes = mesDe(v)
+    const repetido = viajesOrdenados.filter(o => mesDe(o) === mes).length > 1
+    const base = mes ? `Arribo ${mes}` : 'Fecha a confirmar'
+    return { id: v.id, label: repetido ? `${base} (${v.nombre})` : base }
+  })
 
   return (
     <main style={{ background: 'var(--background)' }}>
@@ -142,9 +171,9 @@ export default async function ContainersPage() {
         </p>
 
         {productos.length > 0 && (
-          <ProductGridPublic
+          <ContainersClient
             productos={productos}
-            nombreCategoria="Containers"
+            arribos={arribos}
             mostrarPrecios={mostrarPrecios}
             estaLogueado={!!user}
             esMayorista={esMayoristaPorCanal(user)}

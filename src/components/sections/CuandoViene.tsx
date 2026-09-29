@@ -129,7 +129,7 @@ export function BadgeCuandoViene({
  * mostrar la manito, el color por etapa competía con el resto de la lista
  * (pidió todo negro), y el click abría un panel aparte que había que mantener
  * sincronizado con la ficha. Ahora es un link directo a la ficha del producto
- * —que ya tiene el mismo bloque de opciones (`CuandoVieneFicha`)— sin
+ * —que ya tiene el mismo bloque de opciones (`FichaCompra`)— sin
  * subrayado ni color de etapa.
  */
 export function PreventaResumen({
@@ -196,65 +196,6 @@ export function PreventaResumen({
   )
 }
 
-/**
- * El bloque de contenedores dentro de la ficha del producto.
- *
- * Es el pedido literal de la maqueta del tester (16/09/2026): el mismo artículo
- * con cuatro formas de comprarlo —hoy, o en alguno de los barcos— y las cuatro
- * agregables al carrito sin salir de la ficha.
- *
- * NO repite la fila "Precio web": en la ficha esa opción ya es el bloque principal
- * de arriba, con su precio grande, su selector de color y su botón. Mostrarla dos
- * veces obligaría al cliente a preguntarse cuál de las dos es la buena.
- *
- * Se pide en el cliente y no en el server para que la ficha siga siendo una sola
- * página para todos: la preventa la ve una minoría de cuentas habilitadas, y
- * resolverla en el server la haría privada para todo el mundo.
- */
-export function CuandoVieneFicha({
-  codigoInterno,
-  titulo,
-  esMayorista = false,
-  fotoUrl = null,
-}: {
-  codigoInterno: string
-  titulo: string
-  /** @deprecated El bloque se muestra a todos ahora; ya no filtra por sesión. */
-  estaLogueado?: boolean
-  esMayorista?: boolean
-  fotoUrl?: string | null
-}) {
-  const { porCodigo } = useDisponibilidadContainers([codigoInterno])
-  const viajes = porCodigo[codigoInterno] ?? []
-
-  // Sin viajes no hay bloque: si el producto no viene en ningún barco, la
-  // ficha queda exactamente como estaba.
-  if (viajes.length === 0) return null
-
-  return (
-    <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--color-acero-claro)' }}>
-      <div className="flex items-center gap-2 mb-1">
-        <Ship size={14} style={{ color: 'var(--color-granito)' }} aria-hidden="true" />
-        <p className="text-[10px] tracking-[0.25em] uppercase" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Importá con Reunata — Compra Preventa
-        </p>
-      </div>
-      <p className="text-xs mb-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Conseguí los productos que están por llegar en los próximos meses a un mejor precio.
-      </p>
-
-      <OpcionesDeCompra
-        titulo={titulo}
-        viajes={viajes}
-        codigoInterno={codigoInterno}
-        esMayorista={esMayorista}
-        fotoUrl={fotoUrl}
-        claveReset={codigoInterno}
-      />
-    </div>
-  )
-}
-
 interface DrawerProps {
   abierto: boolean
   onCerrar: () => void
@@ -292,7 +233,7 @@ function cantidadesDesdeCarrito(
  * que abre el badge de la grilla y la ficha del producto. Son la misma lista, con
  * el mismo estado y el mismo botón; lo único que cambia es el marco.
  */
-function OpcionesDeCompra({
+export function OpcionesDeCompra({
   titulo,
   viajes,
   tienda,
@@ -301,6 +242,8 @@ function OpcionesDeCompra({
   fotoUrl = null,
   claveReset,
   textoVacio = null,
+  modoFicha = false,
+  esperandoModelo = false,
 }: {
   titulo: string
   viajes: ViajeDisponible[]
@@ -312,6 +255,15 @@ function OpcionesDeCompra({
   claveReset: string
   /** Qué decir cuando no hay ningún viaje. null = no decir nada. */
   textoVacio?: string | null
+  /**
+   * Ficha de producto con selector de modelo único: cada viaje llega ya filtrado
+   * al color elegido, así que es una sola línea — fecha y precio, nada más
+   * (pedido de Gastón, 24/09/2026: "únicamente con su fecha de arribo y el
+   * precio"). Sin chip de descuento, sin bulto, sin swatch repetido.
+   */
+  modoFicha?: boolean
+  /** Producto con colores y todavía ninguno elegido: se ve fecha y precio, sin stepper. */
+  esperandoModelo?: boolean
 }) {
   const addAlCarrito = useCartStore(s => s.add)
   const actualizarCantidadCarrito = useCartStore(s => s.updateCantidad)
@@ -447,11 +399,13 @@ function OpcionesDeCompra({
               style={i > 0 || tienda ? { borderColor: 'var(--color-acero-claro)' } : undefined}
             >
               <div className="flex items-center gap-2">
-                <span
-                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: ETAPA_COLOR[viaje.etapa] }}
-                  aria-hidden="true"
-                />
+                {!modoFicha && (
+                  <span
+                    className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: ETAPA_COLOR[viaje.etapa] }}
+                    aria-hidden="true"
+                  />
+                )}
                 <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                   {fecha ? <>Llega aprox. {fecha}</> : 'Fecha a confirmar'}
                 </p>
@@ -487,6 +441,10 @@ function OpcionesDeCompra({
         // elegido ahora difiere. Pedido del tester (21/09/2026): que el número
         // quede puesto, y que el botón solo reaparezca cuando lo cambian —no
         // que haya que "agregar" de nuevo algo que ya está.
+        // Solo espera el modelo el viaje que trae colores: uno cargado sin
+        // variante se compra igual, sin elegir nada.
+        const esperaEste = esperandoModelo && viaje.colores.some(c => c.variante != null)
+
         const confirmadoPorColor = cantidadesDesdeCarrito([viaje], itemsCarrito)
         const confirmadoViaje = viaje.colores.reduce((acc, c) => acc + (confirmadoPorColor[c.itemId] ?? 0), 0)
         const hayCambios = viaje.colores.some(
@@ -499,6 +457,47 @@ function OpcionesDeCompra({
         className={i > 0 || tienda ? 'mt-6 pt-6 border-t' : ''}
         style={i > 0 || tienda ? { borderColor: 'var(--color-acero-claro)' } : undefined}
           >
+        {modoFicha ? (() => {
+          // Con el modelo ya elegido hay un color por viaje; esperando el modelo,
+          // el precio que se muestra es el más bajo del viaje.
+          const precioDe = (c: ViajeDisponible['colores'][number]) => esMayorista ? c.neto : c.precio
+          const precioViaje = viaje.colores.length > 0 ? Math.min(...viaje.colores.map(precioDe)) : null
+          const color = !esperaEste && viaje.colores.length === 1 ? viaje.colores[0] : null
+          const cant = color ? cantidades[color.itemId] ?? 0 : 0
+          return (
+            <>
+              <div className="flex items-center gap-3">
+                <p className="flex-1 min-w-0 text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  {fecha ? <>Llega aprox. {fecha}</> : 'Fecha a confirmar'}
+                </p>
+                {precioViaje != null && (
+                  <p className="text-base font-bold flex-shrink-0" style={{ color: 'var(--foreground)' }}>
+                    {formatPrecio(precioViaje, viaje.moneda)}
+                    {esMayorista && (
+                      <span className="text-[11px] font-normal ml-1" style={{ color: 'var(--color-acero-oscuro)' }}>+IVA</span>
+                    )}
+                  </p>
+                )}
+                {color && viaje.aceptaReservas && color.disponible >= paso && (
+                  <QuantityStepper
+                    value={cant}
+                    multiplo={paso}
+                    max={color.disponible}
+                    size="sm"
+                    plusDisabled={cant >= Math.floor(color.disponible / paso) * paso}
+                    onCommit={(n) => setCantidad(color.itemId, n, color.disponible, paso)}
+                  />
+                )}
+              </div>
+              {esperaEste && (
+                <p className="mt-2 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
+                  Elegí un color para reservar.
+                </p>
+              )}
+            </>
+          )
+        })() : (
+          <>
         {/* La fecha es el encabezado del bloque, no un dato más abajo.
         Pedido del tester (17/09/2026): el cliente no ve el nombre del
         contenedor ni la etapa del barco —eso es nuestro—, así que sin la
@@ -574,11 +573,6 @@ function OpcionesDeCompra({
               <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
             {formatPrecio(precioMostrado, viaje.moneda)}
               </p>
-              {viaje.descuentoPct > 0 && (
-            <p className="text-[11px] line-through" style={{ color: 'var(--color-acero-oscuro)' }}>
-              {formatPrecio(esMayorista ? color.netoLista : color.precioLista, viaje.moneda)}
-            </p>
-              )}
             </div>
 
             {viaje.aceptaReservas && !agotado && (
@@ -596,7 +590,10 @@ function OpcionesDeCompra({
           })}
         </div>
 
-        {!viaje.aceptaReservas || sinNada ? (
+          </>
+        )}
+
+        {esperaEste ? null : !viaje.aceptaReservas || sinNada ? (
           <p className="mt-3 text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>
             {sinNada
               ? 'No queda nada de este viaje.'

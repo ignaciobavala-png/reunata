@@ -6,10 +6,9 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
-import { AddToCartButton } from '@/components/sections/AddToCartButton'
+import { FichaCompra } from '@/components/sections/FichaCompra'
 import { PendingApproval } from '@/components/sections/PendingApproval'
 import { ProductGallery } from '@/components/sections/ProductGallery'
-import { CuandoVieneFicha } from '@/components/sections/CuandoViene'
 import { formatPrecio, aplicarTipoCambio } from '@/lib/utils'
 import { ordenarFotos } from '@/lib/fotos'
 import { supabaseImg } from '@/lib/images'
@@ -130,26 +129,29 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             {precio != null && (() => {
               // El precio de lista SIEMPRE trae el IVA incluido (ver lib/iva.ts):
               // el neto se despeja dividiendo, nunca se multiplica. esMayorista es
-              // solo presentación: mayorista ve el neto en grande + "IVA incluido";
+              // solo presentación: mayorista ve el neto + "+IVA" pegado al precio;
               // minorista ve el precio final con IVA + "sin impuestos".
+              //
+              // Pedido de Gastón (24/09/2026): sacar el "IVA incluido: $X" del
+              // precio principal. Mismo formato que la card del listado.
               const conIva = precio
               const neto = netoDesdeBruto(precio, producto.iva as number | null)
               return (
                 <div className="mb-2">
-                  <p
-                    className={esMayorista ? 'text-2xl font-medium' : 'text-3xl font-bold'}
-                    style={{ color: 'var(--foreground)' }}
-                  >
-                    {formatPrecio(esMayorista ? neto : conIva, monedaFinal)}
-                  </p>
                   {esMayorista ? (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      IVA incluido: {formatPrecio(conIva, monedaFinal)}
+                    <p className="text-2xl font-medium" style={{ color: 'var(--foreground)' }}>
+                      {formatPrecio(neto, monedaFinal)}{' '}
+                      <span className="text-sm font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>+IVA</span>
                     </p>
                   ) : (
-                    <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      Precio sin impuestos nacionales: {formatPrecio(neto, monedaFinal)}
-                    </p>
+                    <>
+                      <p className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(conIva, monedaFinal)}
+                      </p>
+                      <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
+                        Precio sin impuestos nacionales: {formatPrecio(neto, monedaFinal)}
+                      </p>
+                    </>
                   )}
                 </div>
               )
@@ -183,7 +185,10 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
             {mostrarPrecios ? (
               <>
-                <AddToCartButton
+                {/* Modelo → entrega inmediata → fechas aproximadas (preventa).
+                    El permiso de preventa lo resuelve el endpoint: para quien no
+                    lo tiene, esto es el selector y el botón de siempre. */}
+                <FichaCompra
                   producto={{
                     id: producto.id,
                     codigo_interno: producto.codigo_interno,
@@ -196,14 +201,6 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
                     variantes: (producto.variantes as { nombre: string; stock: number }[] | null) ?? null,
                     stock: producto.stock ?? null,
                   }}
-                />
-                {/* Preventa: los barcos que traen este mismo artículo. El permiso
-                    lo resuelve el endpoint, así que para quien no lo tiene esto no
-                    dibuja nada. */}
-                <CuandoVieneFicha
-                  codigoInterno={producto.codigo_interno}
-                  titulo={producto.titulo}
-                  estaLogueado={!!user}
                   esMayorista={esMayorista}
                   fotoUrl={fotos[0]?.url ? supabaseImg(supabaseUrl, fotos[0].url, 200) : null}
                 />

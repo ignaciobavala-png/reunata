@@ -20,20 +20,32 @@ interface Props {
     variantes?: Variante[] | null
     stock?: number | null
   }
+  /**
+   * Modelo elegido desde afuera. Si viene (aunque sea null), el selector de color
+   * lo dibuja quien llama y este componente no muestra el suyo — es el caso de la
+   * ficha con preventa, donde un solo selector gobierna la entrega inmediata y los
+   * contenedores (pedido de Gastón, 24/09/2026).
+   */
+  variante?: string | null
 }
 
-export function AddToCartButton({ producto }: Props) {
+export function AddToCartButton({ producto, variante }: Props) {
   const { add, items, updateCantidad, setCartOpen } = useCartStore()
   const multiplo = producto.multiplo ?? 1
   const [cantidad, setCantidad] = useState(0)
-  const [varianteSeleccionada, setVarianteSeleccionada] = useState<string | null>(null)
+  const [varianteInterna, setVarianteInterna] = useState<string | null>(null)
+  const controlado = variante !== undefined
+  const varianteSeleccionada = controlado ? variante : varianteInterna
 
-  const tieneVariantes = (producto.variantes?.length ?? 0) > 0
-
-  function handleSelectVariante(nombre: string) {
-    setVarianteSeleccionada(nombre)
+  // Cambiar de modelo arranca la cantidad de cero. Se ajusta en el render (y no
+  // en un efecto) para no pintar un frame con la cantidad del color anterior.
+  const [varianteAnterior, setVarianteAnterior] = useState(varianteSeleccionada)
+  if (varianteAnterior !== varianteSeleccionada) {
+    setVarianteAnterior(varianteSeleccionada)
     setCantidad(0)
   }
+
+  const tieneVariantes = (producto.variantes?.length ?? 0) > 0
 
   const varianteActual = producto.variantes?.find(v => v.nombre === varianteSeleccionada) ?? null
   // Para productos con variantes: usar stock de la variante seleccionada (cada color es independiente).
@@ -87,14 +99,14 @@ export function AddToCartButton({ producto }: Props) {
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-4">
+    <div className={controlado ? 'flex flex-col gap-4' : 'mt-6 flex flex-col gap-4'}>
 
       {/* Selector de color */}
-      {tieneVariantes && (
+      {tieneVariantes && !controlado && (
         <ColorPicker
           variantes={producto.variantes!}
           selected={varianteSeleccionada}
-          onSelect={handleSelectVariante}
+          onSelect={setVarianteInterna}
         />
       )}
 
