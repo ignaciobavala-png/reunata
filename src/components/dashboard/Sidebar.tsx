@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { LogoutButton } from '@/components/LogoutButton'
-import { labelRol } from '@/lib/roles'
+import { labelRol, labelRolInterno, depositoPuedeVer } from '@/lib/roles'
 import {
   LayoutDashboard, Package, RefreshCw, ShoppingCart,
   Users, UserCog, Settings, LogOut, Store, Images,
@@ -107,9 +107,12 @@ const navCliente: NavItem[] = [
   { label: 'Mi cuenta',   href: '/dashboard/cliente/cuenta',   icon: UserCog },
 ]
 
-function getNav(rol: Rol) {
+// Depósito es un área de empleado: ve el subconjunto que deja pasar el proxy.
+const navDeposito: NavItem[] = navEmpleado.filter(i => 'href' in i && depositoPuedeVer(i.href))
+
+function getNav(rol: Rol, area?: string | null) {
   if (rol === 'master') return navMaster
-  if (rol === 'empleado') return navEmpleado
+  if (rol === 'empleado') return area === 'deposito' ? navDeposito : navEmpleado
   if (rol === 'comisionista') return navComisionista
   return navCliente
 }
@@ -126,9 +129,9 @@ function getActiveGroup(nav: NavItem[], pathname: string): string | null {
   return null
 }
 
-export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string; badges?: Record<string, number> }) {
+export function Sidebar({ rol, area, nombre, badges = {} }: { rol: Rol; area?: string | null; nombre: string; badges?: Record<string, number> }) {
   const pathname = usePathname()
-  const nav = getNav(rol)
+  const nav = getNav(rol, area)
 
   const [openGroup, setOpenGroup] = useState<string | null>(
     () => getActiveGroup(nav, pathname)
@@ -248,7 +251,7 @@ export function Sidebar({ rol, nombre, badges = {} }: { rol: Rol; nombre: string
             {nombre}
           </p>
           <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-            {rol === 'master' ? 'Administrador' : labelRol(rol)}
+            {rol === 'master' ? 'Administrador' : rol === 'empleado' ? labelRolInterno(rol, area) : labelRol(rol)}
           </p>
         </div>
         <LogoutButton

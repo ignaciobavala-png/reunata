@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('rol, nombre, email')
+    .select('rol, area, nombre, email')
     .eq('id', user.id)
     .single()
 
@@ -45,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div data-dashboard className="flex h-screen overflow-hidden font-medium" style={{ background: 'var(--background)' }}>
       <div className="print:hidden">
-        <Sidebar rol={profile.rol} nombre={profile.nombre || profile.email} badges={badges} />
+        <Sidebar rol={profile.rol} area={profile.area} nombre={profile.nombre || profile.email} badges={badges} />
       </div>
       <main className="flex-1 overflow-auto" data-lenis-prevent>
         {children}

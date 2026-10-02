@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { depositoPuedeVer } from '@/lib/roles'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -55,6 +56,23 @@ export async function updateSession(request: NextRequest) {
     }
 
     return NextResponse.redirect(url)
+  }
+
+  // Depósito solo entra a sus secciones, aunque tipee la URL. El resto del panel
+  // sigue como antes (el layout del dashboard ya filtra quién es interno).
+  if (request.nextUrl.pathname.startsWith('/dashboard/admin/') && user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rol, area')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.rol === 'empleado' && profile.area === 'deposito' && !depositoPuedeVer(request.nextUrl.pathname)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard/admin'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

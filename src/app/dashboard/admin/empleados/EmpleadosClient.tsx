@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { invitarEmpleado, desactivarEmpleado } from '@/app/actions/empleados'
+import { invitarEmpleado, desactivarEmpleado, cambiarRolEmpleado } from '@/app/actions/empleados'
+import { OPCIONES_ROL_INTERNO, opcionRolInterno } from '@/lib/roles'
 import { UserPlus, Loader2, X } from 'lucide-react'
 
 interface Empleado {
@@ -9,23 +10,19 @@ interface Empleado {
   nombre: string | null
   email: string | null
   rol: string
+  area: string | null
   activo: boolean | null
   created_at: string
 }
 
-const LABEL_ROL: Record<string, string> = {
-  master: 'Master',
-  empleado: 'Empleado',
-  comisionista: 'Comisionista',
-}
-
 const COLOR_ROL: Record<string, string> = {
-  master:       '#6366f1',
-  empleado:     '#0ea5e9',
-  comisionista: '#f59e0b',
+  master:         '#6366f1',
+  administracion: '#0ea5e9',
+  deposito:       '#10b981',
+  comisionista:   '#f59e0b',
 }
 
-export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] }) {
+export function EmpleadosClient({ empleados: inicial, miId }: { empleados: Empleado[]; miId: string | null }) {
   const [empleados, setEmpleados] = useState(inicial)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +39,21 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
       } else {
         setExito(true)
         setMostrarForm(false)
+      }
+    })
+  }
+
+  function handleCambiarRol(id: string, valor: string) {
+    const elegido = OPCIONES_ROL_INTERNO.find(o => o.valor === valor)
+    if (!elegido) return
+    const previo = empleados
+    setError(null)
+    setEmpleados(prev => prev.map(e => e.id === id ? { ...e, rol: elegido.rol, area: elegido.area } : e))
+    startTransition(async () => {
+      const res = await cambiarRolEmpleado(id, valor)
+      if (!res.ok) {
+        setEmpleados(previo)
+        setError(res.error ?? 'No se pudo cambiar el rol.')
       }
     })
   }
@@ -112,8 +124,9 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
                 className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                 style={{ borderColor: 'var(--color-acero-claro)', color: 'var(--foreground)' }}
               >
-                <option value="empleado">Empleado</option>
-                <option value="comisionista">Comisionista</option>
+                {OPCIONES_ROL_INTERNO.filter(o => o.valor !== 'master').map(o => (
+                  <option key={o.valor} value={o.valor}>{o.label}</option>
+                ))}
               </select>
             </div>
             <div className="md:col-span-3 flex items-center gap-3">
@@ -126,9 +139,14 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
                 {isPending && <Loader2 size={12} className="animate-spin" />}
                 Enviar invitación
               </button>
-              {error && <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>}
             </div>
           </form>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg px-4 py-3 mb-4 text-sm" style={{ background: '#ef444422', color: '#ef4444' }}>
+          {error}
         </div>
       )}
 
@@ -165,15 +183,26 @@ export function EmpleadosClient({ empleados: inicial }: { empleados: Empleado[] 
                   <p style={{ color: 'var(--color-acero-oscuro)' }}>{e.email}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className="px-2 py-0.5 rounded-full"
-                    style={{
-                      background: (COLOR_ROL[e.rol] ?? '#888') + '22',
-                      color: COLOR_ROL[e.rol] ?? '#888',
-                    }}
-                  >
-                    {LABEL_ROL[e.rol] ?? e.rol}
-                  </span>
+                  {(() => {
+                    const valor = opcionRolInterno(e.rol, e.area) ?? e.rol
+                    const color = COLOR_ROL[valor] ?? '#888'
+                    return (
+                      <select
+                        value={valor}
+                        onChange={ev => handleCambiarRol(e.id, ev.target.value)}
+                        // El propio rol no se toca: un master que se baja solo no puede volver.
+                        disabled={isPending || e.id === miId || e.activo === false}
+                        title={e.id === miId ? 'No podés cambiar tu propio rol' : undefined}
+                        aria-label={`Rol de ${e.nombre ?? e.email}`}
+                        className="px-2 py-0.5 rounded-full outline-none cursor-pointer disabled:cursor-default"
+                        style={{ background: color + '22', color }}
+                      >
+                        {OPCIONES_ROL_INTERNO.map(o => (
+                          <option key={o.valor} value={o.valor}>{o.label}</option>
+                        ))}
+                      </select>
+                    )
+                  })()}
                 </td>
                 <td className="px-4 py-3" style={{ color: 'var(--color-acero-oscuro)' }}>
                   {new Date(e.created_at).toLocaleDateString('es-AR')}

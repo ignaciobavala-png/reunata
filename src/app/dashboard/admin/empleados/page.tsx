@@ -3,10 +3,11 @@ import { EmpleadosClient } from './EmpleadosClient'
 
 export default async function EmpleadosPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: empleados } = await supabase
     .from('profiles')
-    .select('id, nombre, email, rol, activo, created_at')
+    .select('id, nombre, email, rol, area, activo, created_at')
     .in('rol', ['master', 'empleado', 'comisionista'])
     .order('rol')
     .order('nombre')
@@ -19,7 +20,7 @@ export default async function EmpleadosPage() {
       <p className="text-base mb-8" style={{ color: 'var(--color-acero-oscuro)' }}>
         Administradores, empleados y comisionistas con acceso al panel.
       </p>
-      <EmpleadosClient empleados={empleados ?? []} />
+      <EmpleadosClient empleados={empleados ?? []} miId={user?.id ?? null} />
     </div>
   )
 }

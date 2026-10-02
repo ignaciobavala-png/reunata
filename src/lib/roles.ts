@@ -64,3 +64,45 @@ export function colorRol(rol?: string | null): string {
   for (const c of rol) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return PALETA_ROL[h % PALETA_ROL.length]
 }
+
+/**
+ * Cómo se elige el rol de un usuario interno desde Empleados.
+ *
+ * Administración y Depósito son las dos áreas de `empleado` (columna
+ * `profiles.area`), no roles nuevos: para la base y las policies los dos siguen
+ * siendo `empleado`. Ver la migración 20261002000001_profiles_area_interna.sql.
+ */
+export type AreaInterna = 'administracion' | 'deposito'
+
+export const OPCIONES_ROL_INTERNO = [
+  { valor: 'master',         label: 'Master',         rol: 'master',       area: null },
+  { valor: 'administracion', label: 'Administración', rol: 'empleado',     area: 'administracion' },
+  { valor: 'deposito',       label: 'Depósito',       rol: 'empleado',     area: 'deposito' },
+  { valor: 'comisionista',   label: 'Comisionista',   rol: 'comisionista', area: null },
+] as const satisfies readonly { valor: string; label: string; rol: string; area: AreaInterna | null }[]
+
+export type OpcionRolInterno = (typeof OPCIONES_ROL_INTERNO)[number]['valor']
+
+/** La opción del selector que corresponde a un perfil. Empleado sin área = Administración. */
+export function opcionRolInterno(rol: string, area?: string | null): OpcionRolInterno | null {
+  if (rol === 'empleado') return area === 'deposito' ? 'deposito' : 'administracion'
+  if (rol === 'master' || rol === 'comisionista') return rol
+  return null
+}
+
+export function labelRolInterno(rol: string, area?: string | null): string {
+  const op = opcionRolInterno(rol, area)
+  return OPCIONES_ROL_INTERNO.find(o => o.valor === op)?.label ?? labelRol(rol)
+}
+
+/**
+ * Secciones del panel que ve Depósito. Permisos fijos por ahora: la sección para
+ * editarlos desde el panel queda para cuando Gastón defina qué ve cada rol.
+ * Lo usan el Sidebar (qué links muestra) y el proxy (qué URLs deja abrir).
+ */
+const SECCIONES_DEPOSITO = ['/dashboard/admin/pedidos', '/dashboard/admin/containers']
+
+export function depositoPuedeVer(pathname: string): boolean {
+  if (pathname === '/dashboard/admin') return true
+  return SECCIONES_DEPOSITO.some(s => pathname === s || pathname.startsWith(s + '/'))
+}
