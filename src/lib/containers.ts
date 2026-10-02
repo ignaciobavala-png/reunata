@@ -23,8 +23,14 @@ export type EtapaContainer =
   | 'cerrado'
   | 'cancelado'
 
-/** Etapas en las que se puede reservar. */
-export const ETAPAS_ABIERTAS: EtapaContainer[] = ['china', 'oceano']
+/**
+ * Etapas en las que se puede reservar.
+ *
+ * Nacionalizado (puerto) se abrió el 02/10/2026 a pedido del tester: se compra a
+ * precio web (`descuentoVigente` da 0 en esa etapa), con fecha aprox. de llegada,
+ * y la diferencia con la tienda es solo que todavía no hay entrega inmediata.
+ */
+export const ETAPAS_ABIERTAS: EtapaContainer[] = ['china', 'oceano', 'puerto']
 
 /**
  * Etapas que el cliente ve en el panel del producto.
@@ -117,8 +123,8 @@ function diasEntre(desde: string, hasta: string): number {
  * "Armando el contenedor" es un % fijo: el mejor precio, el mismo todos los días.
  *
  * "En viaje" es una rampa. Arranca en `descuento_oceano` y baja hasta 0 —el precio
- * de la web— a lo largo de los días que faltaban para el arribo el día en que una
- * persona apretó el botón. Son muchos escalones chicos: con 18% y 90 días de
+ * de la web— entre la fecha de embarque y el arribo estimado, tomados el día en
+ * que una persona apretó el botón (ver anclaRampa en actions/containers-admin.ts). Son muchos escalones chicos: con 18% y 90 días de
  * viaje, 0,2 puntos por día.
  *
  * La rampa se mide contra `oceano_desde` + `oceano_dias` congelados y NO contra

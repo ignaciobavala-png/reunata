@@ -75,6 +75,27 @@ export async function actualizarViaje(id: string, input: ViajeInput): Promise<{ 
 }
 
 /**
+ * Desde dónde y cuántos días corre la rampa de "En viaje".
+ *
+ * Arranca en la fecha "En viaje" del formulario (`fecha_embarque`) y termina en
+ * el arribo estimado (pedido del tester, 02/10/2026: antes arrancaba el día que se
+ * apretaba el botón, y nunca coincidía con lo que el equipo tenía en la cabeza).
+ * Sin fecha de embarque cargada, arranca hoy, como antes.
+ *
+ * Se calcula una vez y se congela en `oceano_desde` + `oceano_dias`: el arribo
+ * se lee acá y nunca más en vivo (ver descuentoVigente en lib/containers.ts).
+ * Devuelve dias = null si no hay arribo o si cae antes del arranque.
+ */
+function anclaRampa(viaje: { fecha_embarque: string | null; fecha_arribo_est: string | null }) {
+  const desde = viaje.fecha_embarque ?? hoyArgentina()
+  if (!viaje.fecha_arribo_est) return { desde, dias: null }
+  const dias = Math.round(
+    (Date.parse(`${viaje.fecha_arribo_est}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000,
+  )
+  return { desde, dias: dias > 0 ? dias : null }
+}
+
+/**
  * La etapa la avanza una persona, nunca el calendario ni la API: si el barco se
  * demora, el sistema no puede decir "llegó" solo. Por eso esto es una acción
  * explícita del panel y no un cron que mire `fecha_arribo_est`.
@@ -85,15 +106,15 @@ export async function cambiarEtapa(id: string, etapa: EtapaContainer): Promise<{
 
   const cambios: Record<string, unknown> = { etapa }
 
-  // Entrar en "En viaje" es lo que arranca la rampa de precio: desde hoy, y
-  // durante los días que falten para el arribo, el descuento baja hasta 0. Los
-  // días se congelan ACÁ porque después la fecha de arribo se puede correr por una
-  // demora, y una rampa que se estira le baja el precio a quien compre mañana
-  // respecto de quien compró ayer (ver descuentoVigente en lib/containers.ts).
+  // Entrar en "En viaje" es lo que congela la rampa de precio: desde la fecha de
+  // embarque hasta el arribo estimado, el descuento baja hasta 0. Se congela ACÁ
+  // porque después la fecha de arribo se puede correr por una demora, y una rampa
+  // que se estira le baja el precio a quien compre mañana respecto de quien
+  // compró ayer (ver descuentoVigente en lib/containers.ts).
   if (etapa === 'oceano') {
     const { data: viaje } = await supabase
       .from('containers')
-      .select('fecha_arribo_est, oceano_desde')
+      .select('fecha_embarque, fecha_arribo_est, oceano_desde')
       .eq('id', id)
       .single()
 
@@ -101,16 +122,11 @@ export async function cambiarEtapa(id: string, etapa: EtapaContainer): Promise<{
     // vuelta de etapa, reiniciar la rampa devolvería el descuento entero y el
     // precio bajaría de golpe.
     if (viaje && !viaje.oceano_desde) {
-      const hoy = hoyArgentina()
-      cambios.oceano_desde = hoy
-      if (viaje.fecha_arribo_est) {
-        const dias = Math.round(
-          (Date.parse(`${viaje.fecha_arribo_est}T00:00:00Z`) - Date.parse(`${hoy}T00:00:00Z`)) / 86_400_000,
-        )
-        // Sin días por delante no hay rampa posible: queda el % fijo de la etapa
-        // hasta que carguen una fecha de arribo y se reinicie a mano.
-        if (dias > 0) cambios.oceano_dias = dias
-      }
+      const { desde, dias } = anclaRampa(viaje)
+      cambios.oceano_desde = desde
+      // Sin días por delante no hay rampa posible: queda el % fijo de la etapa
+      // hasta que carguen una fecha de arribo y se recalcule a mano.
+      if (dias) cambios.oceano_dias = dias
     }
   }
 
@@ -121,12 +137,13 @@ export async function cambiarEtapa(id: string, etapa: EtapaContainer): Promise<{
 }
 
 /**
- * Reinicia la rampa de "En viaje" desde hoy hasta la fecha de arribo cargada.
+ * Recalcula la rampa de "En viaje" con las fechas que tiene hoy el formulario
+ * (embarque → arribo estimado).
  *
  * Es la única forma de que el descuento vuelva a subir, y es a mano y explícita:
  * el precio bajando solo es justo lo que la rampa congelada evita. Sirve cuando el
- * viaje pasó a "En viaje" sin fecha de arribo, o cuando la demora fue tan grande
- * que la rampa entera quedó vieja.
+ * viaje pasó a "En viaje" sin fecha de arribo, cuando corrigieron la fecha de
+ * embarque, o cuando la demora fue tan grande que la rampa entera quedó vieja.
  */
 export async function reiniciarRampa(id: string): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok, error } = await exigirInterno()
@@ -134,7 +151,7 @@ export async function reiniciarRampa(id: string): Promise<{ ok: boolean; error?:
 
   const { data: viaje } = await supabase
     .from('containers')
-    .select('fecha_arribo_est')
+    .select('fecha_embarque, fecha_arribo_est')
     .eq('id', id)
     .single()
 
@@ -142,15 +159,12 @@ export async function reiniciarRampa(id: string): Promise<{ ok: boolean; error?:
     return { ok: false, error: 'Cargá primero la fecha estimada de arribo.' }
   }
 
-  const hoy = hoyArgentina()
-  const dias = Math.round(
-    (Date.parse(`${viaje.fecha_arribo_est}T00:00:00Z`) - Date.parse(`${hoy}T00:00:00Z`)) / 86_400_000,
-  )
-  if (dias <= 0) return { ok: false, error: 'La fecha de arribo ya pasó.' }
+  const { desde, dias } = anclaRampa(viaje)
+  if (!dias) return { ok: false, error: 'La fecha de arribo tiene que ser posterior a la de "En viaje".' }
 
   const { error: err } = await supabase
     .from('containers')
-    .update({ oceano_desde: hoy, oceano_dias: dias })
+    .update({ oceano_desde: desde, oceano_dias: dias })
     .eq('id', id)
 
   if (err) return { ok: false, error: err.message }

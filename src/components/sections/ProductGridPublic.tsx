@@ -111,9 +111,11 @@ export function ProductGridPublic({
   if (productos.length === 0) return null
 
   function handleAgregar(p: ProductoPublico) {
-    if (sinStock(p)) return
     const tieneVariantes = (p.variantes?.length ?? 0) > 0
-    if (tieneVariantes) {
+    // Sin stock web pero con preventa (si no, la barra dice "Sin stock" y este
+    // botón no se muestra): solo se compra por barco, y eso se elige en la
+    // ficha. Antes el click no hacía nada (Lautaro, 02/10/2026).
+    if (tieneVariantes || sinStock(p)) {
       router.push(`/tienda/p/${p.id}`)
       return
     }
@@ -153,6 +155,11 @@ export function ProductGridPublic({
           // Mientras la disponibilidad de preventa todavía no llegó, no se puede
           // afirmar "sin stock" — se sabría recién con la respuesta del endpoint.
           const agotado = !disponibilidad.cargando && sinStock(p) && !hayPreventaDisponible
+          const vaALaFicha = (p.variantes?.length ?? 0) > 0 || sinStock(p)
+          // Con renglones de preventa abajo, el precio web aclara que es el de
+          // entrega inmediata — si no, son dos precios sin decir cuál es cuál
+          // (tester, 02/10/2026). Sin preventa no hace falta: es el único.
+          const rotularInmediata = viajes.length > 0 && !sinStock(p)
           return (
             <div key={p.id} className="group">
               {/* Contenedor foto — Link al detalle + botón agregar superpuesto */}
@@ -229,9 +236,9 @@ export function ProductGridPublic({
                     onClick={() => yaEsta ? router.push('/carrito') : handleAgregar(p)}
                     className="absolute inset-x-0 bottom-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out py-3 text-center text-xs tracking-[0.15em] uppercase"
                     style={{ background: yaEsta ? '#10b981' : 'var(--color-granito-oscuro)', color: 'white' }}
-                    aria-label={yaEsta ? 'Ver carrito' : (p.variantes?.length ?? 0) > 0 ? `Elegir color de ${p.titulo}` : `Agregar ${p.titulo}`}
+                    aria-label={yaEsta ? 'Ver carrito' : vaALaFicha ? `Ver ${p.titulo}` : `Agregar ${p.titulo}`}
                   >
-                    {yaEsta ? '✓ Ver carrito' : (p.variantes?.length ?? 0) > 0 ? 'Elegir color →' : '+ Agregar'}
+                    {yaEsta ? '✓ Ver carrito' : (p.variantes?.length ?? 0) > 0 ? 'Elegir color →' : sinStock(p) ? 'Ver opciones →' : '+ Agregar'}
                   </button>
                 )}
               </div>
@@ -262,18 +269,29 @@ export function ProductGridPublic({
                   // solo cambia dónde se lee.
                   const conIva = p.precio
                   const neto = netoDesdeBruto(p.precio, p.iva)
+                  const inmediata = rotularInmediata && (
+                    <span className="min-w-0 text-xs font-medium leading-tight" style={{ color: '#10b981' }}>
+                      Entrega inmediata
+                    </span>
+                  )
                   return esMayorista ? (
-                    <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                      {formatPrecio(neto, p.moneda)}{' '}
-                      <span className="text-[11px] font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>
-                        +IVA
-                      </span>
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                        {formatPrecio(neto, p.moneda)}{' '}
+                        <span className="text-[11px] font-normal" style={{ color: 'var(--color-acero-oscuro)' }}>
+                          +IVA
+                        </span>
+                      </p>
+                      {inmediata}
+                    </div>
                   ) : (
                     <>
-                      <p className="text-base font-bold mt-0.5" style={{ color: 'var(--foreground)' }}>
-                        {formatPrecio(conIva, p.moneda)}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-base font-bold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                          {formatPrecio(conIva, p.moneda)}
+                        </p>
+                        {inmediata}
+                      </div>
                       <p className="text-[11px]" style={{ color: 'var(--color-acero-oscuro)' }}>
                         Precio sin impuestos nacionales: {formatPrecio(neto, p.moneda)}
                       </p>

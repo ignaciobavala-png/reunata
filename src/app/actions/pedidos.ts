@@ -241,7 +241,7 @@ export async function crearPedidoBorrador(
       if (l.containerItemId == null) continue
       const item = itemsViaje.get(l.containerItemId)!
 
-      // Puerto son los 10 días de aduana: se ve, no se compra.
+      // Borrador, depósito, cerrado y cancelado: se ve (o no), no se compra.
       if (!aceptaReservas(item.containers.etapa)) {
         return { ok: false, error: `"${item.containers.nombre}" ya no está tomando pedidos.` }
       }

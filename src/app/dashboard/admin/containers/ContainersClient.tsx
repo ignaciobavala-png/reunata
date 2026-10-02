@@ -366,7 +366,7 @@ function FichaViaje({
               {anterior && (
                 <button
                   onClick={() => {
-                    if (!confirm(`¿Volver "${viaje.nombre}" a "${ETAPA_LABEL[anterior]}"? El precio cambia al instante para todos los clientes. La rampa de "En viaje" no se reinicia sola: si hace falta, usá "Reiniciar rampa" después.`)) return
+                    if (!confirm(`¿Volver "${viaje.nombre}" a "${ETAPA_LABEL[anterior]}"? El precio cambia al instante para todos los clientes. La rampa de "En viaje" no se reinicia sola: si hace falta, usá "Recalcular rampa" después.`)) return
                     ejecutar(() => cambiarEtapa(viaje.id, anterior), `"${viaje.nombre}" volvió a ${ETAPA_LABEL[anterior]}.`)
                   }}
                   disabled={pendiente}
@@ -1048,7 +1048,7 @@ function RampaOceano({
       {paso == null ? (
         <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
           Sin rampa: se está cobrando el {arranque}% fijo todos los días. Cargá la fecha
-          estimada de arribo y apretá &ldquo;Reiniciar rampa&rdquo; para que el precio empiece a subir.
+          estimada de arribo y apretá &ldquo;Recalcular rampa&rdquo; para que el precio empiece a subir.
         </p>
       ) : (
         <>
@@ -1064,26 +1064,30 @@ function RampaOceano({
           </p>
           {viaje.oceano_desde && (
             <p className="text-[11px] mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-              Rampa arrancó el <strong>{formatFechaEstimada(viaje.oceano_desde)}</strong> — no es la fecha
-              &ldquo;En viaje&rdquo; del formulario, sino el día que se apretó &ldquo;Avanzar a En viaje&rdquo; acá.
+              Rampa arrancó el <strong>{formatFechaEstimada(viaje.oceano_desde)}</strong>.
+              {viaje.fecha_embarque && viaje.fecha_embarque !== viaje.oceano_desde && (
+                <> No coincide con la fecha &ldquo;En viaje&rdquo; del formulario
+                ({formatFechaEstimada(viaje.fecha_embarque)}): apretá &ldquo;Recalcular rampa&rdquo; para alinearla.</>
+              )}
             </p>
           )}
         </>
       )}
 
       <p className="text-[11px] mt-2" style={{ color: 'var(--color-acero-oscuro)' }}>
-        Si el barco se demora, la rampa no se estira sola: el descuento llega a 0, se queda en
-        precio web y espera. Es a propósito — estirarla haría que el que compró ayer haya pagado
-        más que el que compra hoy.
+        La rampa va de la fecha &ldquo;En viaje&rdquo; al arribo estimado, tomados el día que se
+        avanzó de etapa. Si el barco se demora y corren el arribo, no se estira sola: el descuento
+        llega a 0, se queda en precio web y espera. Es a propósito — estirarla haría que el que
+        compró ayer haya pagado más que el que compra hoy.
       </p>
 
       <button
-        onClick={() => ejecutar(() => reiniciarRampa(viaje.id), 'Rampa reiniciada desde hoy.')}
+        onClick={() => ejecutar(() => reiniciarRampa(viaje.id), 'Rampa recalculada con las fechas del formulario.')}
         disabled={pendiente}
         className="mt-2 px-3 py-1.5 text-[11px] tracking-widest uppercase disabled:opacity-40"
         style={{ border: '1px solid var(--color-acero-claro)', color: 'var(--color-granito-oscuro)' }}
       >
-        Reiniciar rampa desde hoy
+        Recalcular rampa
       </button>
     </div>
   )

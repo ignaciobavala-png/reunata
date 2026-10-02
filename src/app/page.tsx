@@ -8,7 +8,7 @@ import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { PendingApproval } from '@/components/sections/PendingApproval'
@@ -26,7 +26,14 @@ export default async function Home() {
   ])
 
   const { user, canalId, listaPrecio, mostrarPrecios, pendienteAprobacion, tipoCambioUsd } = canalInfo
-  const { ids: idsCanal } = await getProductosDelCanal(canalId)
+  const [{ ids: idsCanal }, puedeContainers] = await Promise.all([
+    getProductosDelCanal(canalId),
+    // Misma consulta que (public)/layout.tsx: el home no pasa por ese layout,
+    // así que el menú Tienda tiene que resolver el permiso acá también.
+    user
+      ? createClient().then(c => c.rpc('puede_containers')).then(({ data }) => !!data)
+      : Promise.resolve(false),
+  ])
 
   const { data: fotosDestacadas } = await supabase
     .from('producto_fotos')
@@ -68,7 +75,7 @@ export default async function Home() {
 
   return (
     <>
-      <Header user={headerUser} categorias={headerCategorias} />
+      <Header user={headerUser} categorias={headerCategorias} puedeContainers={puedeContainers} />
       <main className="flex-1">
         {pendienteAprobacion ? (
           <PendingApproval nombre={user?.nombre} />
