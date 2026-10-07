@@ -63,19 +63,23 @@ export function ContainersClient({
         <p className="text-[10px] tracking-[0.25em] uppercase mb-3" style={{ color: 'var(--color-acero-oscuro)' }}>
           Contenedor
         </p>
-        {arribos.map(a => (
-          <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={seleccion.has(a.id)}
-              onChange={() => toggle(a.id)}
-              className="accent-[var(--color-granito)]"
-            />
-            <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-              {a.label} <span style={{ color: 'var(--color-acero-oscuro)' }}>({conteo.get(a.id) ?? 0})</span>
-            </span>
-          </label>
-        ))}
+        {/* Hasta 5 opciones visibles; si hay más, scrollea adentro. `data-lenis-prevent`
+            para que la rueda mueva el filtro y no los productos (tester 07/10). */}
+        <div className="max-h-[7.5rem] overflow-y-auto -mr-1 pr-1" data-lenis-prevent>
+          {arribos.map(a => (
+            <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={seleccion.has(a.id)}
+                onChange={() => toggle(a.id)}
+                className="accent-[var(--color-granito)]"
+              />
+              <span className="text-xs" style={{ color: 'var(--foreground)' }}>
+                {a.label} <span style={{ color: 'var(--color-acero-oscuro)' }}>({conteo.get(a.id) ?? 0})</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -112,7 +116,7 @@ export function ContainersClient({
 
       <div className="md:flex md:gap-12">
         <aside className="hidden md:block flex-shrink-0 w-52">
-          <div className="sticky top-28">
+          <div className="sticky top-28 max-h-[calc(100vh-9rem)] overflow-y-auto pr-1" data-lenis-prevent>
             <div className="flex items-center justify-between mb-5">
               <span className="text-xs font-medium tracking-wide" style={{ color: 'var(--foreground)' }}>
                 Filtros

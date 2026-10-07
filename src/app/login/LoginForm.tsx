@@ -3,7 +3,6 @@
 import { useFormStatus } from 'react-dom'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
-import { GoogleLoginButton } from './GoogleLoginButton'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -67,14 +66,6 @@ export function LoginForm({ error, next, email }: { error?: string; next?: strin
 
         <SubmitButton />
       </form>
-
-      <div className="my-6 flex items-center gap-4">
-        <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
-        <span className="text-xs" style={{ color: 'var(--color-acero-oscuro)' }}>o continuá con</span>
-        <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />
-      </div>
-
-      <GoogleLoginButton next={next} />
 
       <div className="my-6 flex items-center gap-4">
         <div className="flex-1 h-px" style={{ background: 'rgba(168,176,187,0.2)' }} />

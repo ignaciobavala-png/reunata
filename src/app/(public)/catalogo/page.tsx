@@ -9,7 +9,9 @@ import { CatalogoDescargas } from './CatalogoDescargas'
 import { CatalogoView } from './CatalogoView'
 import { esRolInterno, esRolMayorista } from '@/lib/roles'
 
-export const metadata: Metadata = { title: 'Catálogo — Reunata' }
+// `absolute` para que el template del layout no agregue "| Reunata" y el
+// encabezado de impresión salga una sola vez (tester 07/10).
+export const metadata: Metadata = { title: { absolute: 'Catálogo — Reunata' } }
 
 const ROLES_ADMIN = ['master', 'empleado']
 

@@ -64,14 +64,22 @@ interface Props {
 }
 
 // Dimensiones: se muestran y escriben con coma decimal (es-AR); se acepta también
-// el punto y se normaliza a coma al tipear.
-function dimToText(v: number | null | undefined): string {
-  return v == null ? '' : String(v).replace('.', ',')
+// el punto y se normaliza a coma al tipear. `decimales` permite 3 para el peso
+// (tester 07/10): un producto de 5 g pesa 0,005 kg y con 2 decimales no se podía
+// cargar. Se recortan los ceros finales para no mostrar "10,000" en alto/ancho/largo.
+function dimToText(v: number | string | null | undefined, decimales = 2): string {
+  if (v == null || v === '') return ''
+  const n = typeof v === 'number' ? v : Number(v)
+  if (!Number.isFinite(n)) return ''
+  return n.toFixed(decimales).replace('.', ',').replace(/(,\d*?)0+$/, '$1').replace(/,$/, '')
 }
 
 function textToDim(raw: string): number | null {
   const n = parseFloat(raw.replace(',', '.'))
-  return Number.isFinite(n) && n > 0 ? n : null
+  if (!Number.isFinite(n) || n <= 0) return null
+  // 3 decimales para no perder el peso de productos chicos; la columna es
+  // numeric(8,3) (tester 07/10). En las medidas enteras no cambia nada.
+  return Number(n.toFixed(3))
 }
 
 export function ProductoFichaDrawer({
@@ -112,7 +120,7 @@ export function ProductoFichaDrawer({
     alto: dimToText(dimensionesIniciales?.alto),
     ancho: dimToText(dimensionesIniciales?.ancho),
     largo: dimToText(dimensionesIniciales?.largo),
-    peso: dimToText(dimensionesIniciales?.peso),
+    peso: dimToText(dimensionesIniciales?.peso, 3),
   })
   const [guardandoDims, setGuardandoDims] = useState(false)
 

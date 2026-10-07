@@ -104,11 +104,19 @@ export function CatalogoView({ productos, config, supabaseUrl, esPreview, previe
       <div className="print-show" style={{ display: 'none' }}>
         <div style={{ padding: '0', fontFamily: 'sans-serif' }}>
 
-          {/* Encabezado del PDF */}
+          {/* Encabezado del PDF. Sin el nombre del canal: el catálogo no debe decir
+              a qué lista de precios pertenece (tester 07/10). El canal sigue visible
+              en la pantalla del admin para la preview por canal. */}
           <div style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Logo-Reunata.png"
+              alt="Reunata"
+              style={{ height: '2.25rem', width: 'auto', margin: '0 auto 0.5rem', display: 'block' }}
+            />
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0 0 0.25rem' }}>Catálogo Reunata</h1>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
-              {config.nombreCanal} · {productos.length} productos
+              {productos.length} productos
             </p>
           </div>
 

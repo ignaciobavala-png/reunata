@@ -85,7 +85,12 @@ export function ProductosListaClient({
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
-  const [ocultarSinActivos, setOcultarSinActivos] = useState(true)
+  // Filtros del tester (07/10): ver solo los productos de un canal y/o solo los
+  // activos. `ocultarSinActivos` arranca en false para que las categorías que
+  // quedaron 100% inactivas sigan visibles y se les puedan cambiar los canales.
+  const [ocultarSinActivos, setOcultarSinActivos] = useState(false)
+  const [soloActivos, setSoloActivos] = useState(false)
+  const [canalFiltro, setCanalFiltro] = useState<number | null>(null)
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
   const [ofertas, setOfertas] = useState<Set<string>>(new Set(ofertasIniciales))
   const [destacadas, setDestacadas] = useState<Set<number>>(new Set(destacadasIniciales))
@@ -122,14 +127,20 @@ export function ProductosListaClient({
   const [guardandoCat, setGuardandoCat] = useState<string | null>(null)
 
   const filtrados = useMemo(() => {
-    if (!busqueda) return productos
+    let list = productos
+    // Filtro por canal: solo los productos asignados a ese canal (tester 07/10).
+    if (canalFiltro !== null) {
+      list = list.filter(p => asignaciones.has(`${p.id}-${canalFiltro}`))
+    }
+    if (soloActivos) list = list.filter(p => p.activo)
+    if (!busqueda) return list
     const q = busqueda.toLowerCase()
-    return productos.filter(p =>
+    return list.filter(p =>
       p.titulo.toLowerCase().includes(q) ||
       (p.codigo_interno ?? '').toLowerCase().includes(q) ||
       (p.categoria ?? '').toLowerCase().includes(q)
     )
-  }, [productos, busqueda])
+  }, [productos, busqueda, canalFiltro, soloActivos, asignaciones])
 
   const porCategoria = useMemo(() => {
     const grupos: Record<string, Producto[]> = {}
@@ -351,7 +362,28 @@ export function ProductosListaClient({
                 style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
               />
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+            {/* Filtro por canal (tester 07/10) */}
+            <select
+              value={canalFiltro ?? ''}
+              onChange={e => setCanalFiltro(e.target.value ? Number(e.target.value) : null)}
+              className="px-3 py-2.5 text-sm rounded-lg border outline-none flex-shrink-0"
+              style={{ borderColor: 'var(--color-acero-claro)', background: 'white', color: 'var(--foreground)' }}
+            >
+              <option value="">Todos los canales</option>
+              {canalesIniciales.map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }}>
+              <input
+                type="checkbox"
+                checked={soloActivos}
+                onChange={e => setSoloActivos(e.target.checked)}
+                className="w-4 h-4 rounded accent-granito cursor-pointer"
+              />
+              Solo activos
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm flex-shrink-0" style={{ color: 'var(--color-acero-oscuro)' }}>
               <input
                 type="checkbox"
                 checked={ocultarSinActivos}
@@ -460,8 +492,10 @@ export function ProductosListaClient({
                         </div>
                       </td>
 
-                      {/* Stock, L1, L2, L3, Estado — vacíos */}
-                      <td /><td /><td /><td /><td />
+                      {/* Stock, L3, L5, Estado — vacíos. Eran 5 de cuando estaban L1/L2:
+                          la celda de más corría los controles de canales a la columna
+                          Fotos (tester 07/10). */}
+                      <td /><td /><td /><td />
 
                       {/* Canales — controles de asignación masiva */}
                       <td className="px-3 py-2 text-center" style={{ position: 'relative' }}>
@@ -538,7 +572,8 @@ export function ProductosListaClient({
                       </td>
 
                       {/* Fotos + Envío + Desc + Tags — vacíos */}
-                      <td /><td /><td /><td /><td /><td /><td />
+                      <td /><td /><td />
+                      {TAGS_VISIBLES.map(t => <td key={t.key} />)}
                     </tr>
 
                     {/* Productos individuales */}

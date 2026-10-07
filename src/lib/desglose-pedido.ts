@@ -86,11 +86,13 @@ export function desglosarAjustePedido(
   // al total real.
   const descuentoTotal = iva - sinFactura - ajusteReal
   if (descuentoTotal > 0) {
+    // Los % de los descuentos llevan el signo menos tipográfico, igual que en el
+    // carrito (tester 07/10): "Desc. Web −1%", no "Desc. Web 1%".
     const componentes = [
-      parseadas.web && `Desc. Web ${formatPct(parseadas.web.pct)}%`,
-      parseadas.vol && `Desc. Vol ${formatPct(parseadas.vol.pct)}%`,
+      parseadas.web && `Desc. Web −${formatPct(parseadas.web.pct)}%`,
+      parseadas.vol && `Desc. Vol −${formatPct(parseadas.vol.pct)}%`,
       parseadas.metodo && !parseadas.metodo.esRecargo
-        ? `Desc. ${parseadas.metodo.middle} ${formatPct(parseadas.metodo.pct)}%`
+        ? `Desc. ${parseadas.metodo.middle} −${formatPct(parseadas.metodo.pct)}%`
         : null,
     ].filter(Boolean) as string[]
 

@@ -51,7 +51,13 @@ function FiltroSeccion({ titulo, children }: { titulo: string; children: React.R
       >
         {titulo}
       </p>
-      {children}
+      {/* Hasta 5 opciones visibles (una fila ≈ 1.5rem): si el grupo tiene más,
+          scrollea adentro en vez de estirar el panel. `data-lenis-prevent` para
+          que la rueda mueva este grupo y no los productos —Lenis intercepta el
+          scroll de la página (tester 07/10). */}
+      <div className="max-h-[7.5rem] overflow-y-auto -mr-1 pr-1" data-lenis-prevent>
+        {children}
+      </div>
     </div>
   )
 }
@@ -342,8 +348,9 @@ export function TodosClient({
       <div className="md:flex md:gap-12">
         <aside className="hidden md:block flex-shrink-0 w-52">
           {/* max-h + overflow: si el panel es más alto que el viewport, scrollea adentro
-              en vez de quedar clavado hasta el final de la página */}
-          <div className="sticky top-28 max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
+              en vez de quedar clavado hasta el final de la página. `data-lenis-prevent`
+              para que la rueda mueva el panel y no los productos (tester 07/10). */}
+          <div className="sticky top-28 max-h-[calc(100vh-9rem)] overflow-y-auto pr-1" data-lenis-prevent>
             <div className="flex items-center justify-between mb-5">
               <span className="text-xs font-medium tracking-wide" style={{ color: 'var(--foreground)' }}>
                 Filtros

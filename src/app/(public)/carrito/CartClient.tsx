@@ -995,13 +995,13 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                     forma de pago se ven en el precio de cada opción, no acá */}
                 {ajusteAutogestion !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. Web ({descAutogestPct}%)</span>
+                    <span>Desc. Web (−{descAutogestPct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
                   </div>
                 )}
                 {ajusteVolumenCanal !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
-                    <span>Desc. Volumen ({descVolCanalPct}%)</span>
+                    <span>Desc. Volumen (−{descVolCanalPct}%)</span>
                     <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
                   </div>
                 )}
@@ -1134,7 +1134,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           onChange={() => setMetodoPagoMinorista(m.key)}
                           className="flex-shrink-0"
                         />
-                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (${m.descPct}%)` : ''}</span>
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (−${m.descPct}%)` : ''}</span>
                         {/* Total final en $ con el descuento del método aplicado — más claro que el % */}
                         {mostrarPrecios && totalGeneral > 0 && (
                           <span className="text-xs font-medium" style={{ color: m.descPct > 0 ? '#16a34a' : 'var(--color-acero-oscuro)' }}>
@@ -1270,7 +1270,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('con'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
+                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (−${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
@@ -1316,7 +1316,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           <input type="radio" name="metodo_pago" value={k} checked={metodoPago === k}
                             onChange={() => { setFacturaIva('sin'); setMetodoPago(k); setComprobantePath(null) }} className="sr-only" />
                           <span className="text-xs" style={{ color: 'var(--foreground)' }}>
-                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (${pctMetodoMayorista[k]}%)` : ''}
+                            {metodoLabelCorto(k)}{(pctMetodoMayorista[k] ?? 0) > 0 ? ` (−${pctMetodoMayorista[k]}%)` : ''}
                           </span>
                           {mostrarPrecios && totalGeneral > 0 && (
                             <span
@@ -1357,6 +1357,20 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
               {/* Aviso descuento por volumen cercano */}
               {avisoDescVolumen}
+
+              {/* Envío al transporte sin cargo (tester 07/10) — solo mayoristas: la
+                  mercadería sale por transporte/expreso y no se cobra flete. */}
+              <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-acero-brillo)', color: 'var(--color-acero-oscuro)', border: '1px solid var(--color-acero-claro)' }}>
+                El envío al transporte es sin cargo.
+              </div>
+
+              {/* Reserva de 48 hs para pagos en efectivo (tester 07/10). Solo texto:
+                  no dispara ningún vencimiento automático. */}
+              {metodoPago === 'efectivo' && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+                  Tu pedido queda reservado por 48 hs. Pasado ese plazo sin retirarlo, se libera el stock.
+                </div>
+              )}
 
               {/* Dirección de retiro */}
               {reglas?.mostrar_direccion_en_web && reglas?.direccion_negocio && (
@@ -1530,7 +1544,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                           onChange={() => setMetodoPagoMinorista(m.key)}
                           className="flex-shrink-0"
                         />
-                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (${m.descPct}%)` : ''}</span>
+                        <span className="text-sm flex-1" style={{ color: 'var(--foreground)' }}>{m.label}{m.descPct > 0 ? ` (−${m.descPct}%)` : ''}</span>
                         {mostrarPrecios && totalGeneral > 0 && (
                           <span className="text-xs font-medium" style={{ color: m.descPct > 0 ? '#16a34a' : 'var(--color-acero-oscuro)' }}>
                             {formatPrecio(totalMinoristaConMetodo(m.key))}

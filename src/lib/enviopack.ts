@@ -315,7 +315,9 @@ export async function cotizarEnvio({
   const params = new URLSearchParams({
     provincia,
     codigo_postal,
-    peso: String(Math.round(pesoTotal * 100) / 100),
+    // 3 decimales: un envío de productos de menos de 10 g se redondeaba a 0,01 kg
+    // (o 0,00), falseando el peso de la cotización (tester 07/10).
+    peso: String(Math.round(pesoTotal * 1000) / 1000),
   })
 
   if (paquetes.length > 0) {

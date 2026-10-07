@@ -184,9 +184,19 @@ export function PreventaResumen({
             {/* El precio no se parte nunca: en la card angosta de mobile quedaba
                 "$" arriba y "5.400" abajo, y no se leía a qué arribo pertenecía
                 (tester, 29/09/2026). Si no entra todo en una fila, el que baja a
-                dos renglones es "Arribo <mes>", centrado contra el precio. */}
-            <span className="text-base font-bold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                dos renglones es "Arribo <mes>", centrado contra el precio.
+                El +IVA del mayorista —y el tamaño— tienen que coincidir con el
+                precio principal del catálogo (tester 07/10): al mayorista el precio
+                principal es `text-sm font-medium` + "+IVA", no el `text-base font-bold`
+                del minorista. */}
+            <span
+              className={`whitespace-nowrap ${esMayorista ? 'text-sm font-medium' : 'text-base font-bold'}`}
+              style={{ color: 'var(--foreground)' }}
+            >
               {formatPrecio(desde, viaje.moneda)}
+              {esMayorista && (
+                <span className="text-[11px] font-normal ml-1" style={{ color: 'var(--color-acero-oscuro)' }}>+IVA</span>
+              )}
             </span>
             {mes && (
               <span className="min-w-0 text-xs font-medium leading-tight" style={{ color: 'var(--color-acero-oscuro)' }}>

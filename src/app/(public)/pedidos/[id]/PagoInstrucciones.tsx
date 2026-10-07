@@ -173,9 +173,15 @@ export function PagoInstrucciones({
       )}
 
       {bloque === 'efectivo' && (
-        <p className="text-sm py-4" style={{ color: 'var(--color-acero-oscuro)' }}>
-          Coordiná la entrega del efectivo con tu vendedor. Monto: <strong>{formatPrecio(total)}</strong>
-        </p>
+        <div className="py-4 flex flex-col gap-2">
+          <p className="text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
+            Coordiná la entrega del efectivo con tu vendedor. Monto: <strong>{formatPrecio(total)}</strong>
+          </p>
+          {/* Reserva de 48 hs (tester 07/10). Solo aviso: no hay vencimiento automático. */}
+          <p className="text-xs px-3 py-2 rounded-lg" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>
+            Tu pedido queda reservado por 48 hs. Pasado ese plazo sin retirarlo, se libera el stock.
+          </p>
+        </div>
       )}
 
       {bloque === 'echeq' && (

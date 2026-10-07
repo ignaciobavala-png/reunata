@@ -183,13 +183,13 @@ export function Footer() {
       </FadeIn>
 
       {/* Logo */}
-      <div className="flex justify-center py-10 md:py-20 border-t border-[var(--color-granito-claro)] bg-white mt-4 md:mt-0">
+      <div className="flex justify-center py-10 md:py-20 border-t border-[var(--color-granito-claro)] bg-[var(--color-granito-oscuro)] mt-4 md:mt-0">
         <Image
           src="/Logo-Reunata.png"
           alt="Reunata"
           width={7883}
           height={1719}
-          className="w-[clamp(200px,60vw,800px)] h-auto object-contain brightness-0"
+          className="w-[clamp(200px,60vw,800px)] h-auto object-contain brightness-0 invert"
           priority={false}
         />
       </div>
