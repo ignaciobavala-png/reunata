@@ -380,7 +380,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
                       href="/dashboard/admin"
                       onClick={() => setUserOpen(false)}
                       className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                      style={{ color: 'var(--color-granito)' }}
+                      style={{ color: 'var(--foreground)' }}
                     >
                       Panel de administración
                     </Link>
@@ -390,7 +390,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
                         href="/cuenta"
                         onClick={() => setUserOpen(false)}
                         className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                        style={{ color: 'var(--color-granito)' }}
+                        style={{ color: 'var(--foreground)' }}
                       >
                         Mi cuenta
                       </Link>
@@ -398,7 +398,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
                         href="/pedidos"
                         onClick={() => setUserOpen(false)}
                         className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                        style={{ color: 'var(--color-granito)' }}
+                        style={{ color: 'var(--foreground)' }}
                       >
                         Mis pedidos
                       </Link>
@@ -407,7 +407,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
                           href="/cuenta/financiacion"
                           onClick={() => setUserOpen(false)}
                           className="block px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                          style={{ color: 'var(--color-granito)' }}
+                          style={{ color: 'var(--foreground)' }}
                         >
                           Financiación
                         </Link>
@@ -417,7 +417,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
                   <div className="mx-5 h-px" style={{ background: 'var(--color-acero-claro)' }} />
                   <LogoutButton
                     className="block w-full text-left px-5 py-3 text-xs tracking-wide transition-colors duration-150 hover:bg-[var(--color-acero-claro)]"
-                    style={{ color: 'var(--color-acero-oscuro)' }}
+                    style={{ color: 'var(--foreground)' }}
                   >
                     Cerrar sesión
                   </LogoutButton>
@@ -586,7 +586,7 @@ export function Header({ user, categorias = [], variant = 'light', puedeContaine
               </>
             )}
             <LogoutButton
-              className="text-lg text-[var(--color-acero-oscuro)] py-1 text-left"
+              className="text-lg text-[var(--color-granito)] py-1 text-left"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Cerrar sesión

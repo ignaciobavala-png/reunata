@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, CheckCircle, Star } from 'lucide-react'
 import Image from 'next/image'
+import { optimizarImagen } from '@/lib/optimizar-imagen'
 
 interface Banner {
   id: number
@@ -74,9 +75,18 @@ export function BannerClient({
       const ext = 'webp'
       const path = `banners/${Date.now()}.${ext}`
 
+      let blob: Blob
+      try {
+        blob = await optimizarImagen(pendingFile)
+      } catch {
+        mostrarToast('No se pudo leer la imagen')
+        setSaving(false)
+        return
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('multimedia')
-        .upload(path, pendingFile, { contentType: 'image/webp', upsert: false })
+        .upload(path, blob, { contentType: 'image/webp', upsert: false })
 
       if (uploadError) {
         mostrarToast(`Error al subir: ${uploadError.message}`)

@@ -433,9 +433,12 @@ export function OpcionesDeCompra({
         }
 
         const elegido = viaje.colores.reduce((acc, c) => acc + (cantidades[c.itemId] ?? 0), 0)
+        // Mismo precio que la fila: el mayorista ve neto +IVA arriba y el botón
+        // sumaba el final con IVA, así que los números no cerraban (tester 07/10).
         const totalViaje = viaje.colores.reduce(
-          (acc, c) => acc + (cantidades[c.itemId] ?? 0) * c.precio, 0,
+          (acc, c) => acc + (cantidades[c.itemId] ?? 0) * (esMayorista ? c.neto : c.precio), 0,
         )
+        const sufijoIva = esMayorista ? ' +IVA' : ''
         const paso = Math.max(1, viaje.multiplo ?? 1)
         // Con bulto mínimo, "queda menos de un bulto" es lo mismo que no quedar:
         // el server no va a aceptar una cantidad que no sea múltiplo.
@@ -623,9 +626,9 @@ export function OpcionesDeCompra({
             {elegido === 0 && confirmadoViaje === 0 ? 'Elegí una cantidad'
               : elegido === 0 ? 'Quitar del carrito'
               : confirmadoViaje === 0 ? (
-            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(totalViaje, viaje.moneda)}</>
+            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(totalViaje, viaje.moneda)}{sufijoIva}</>
               ) : (
-            <>Actualizar a {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> · {formatPrecio(totalViaje, viaje.moneda)}</>
+            <>Actualizar a {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> · {formatPrecio(totalViaje, viaje.moneda)}{sufijoIva}</>
               )}
           </button>
         )}
@@ -884,7 +887,7 @@ function OpcionTienda({
           style={{ background: 'var(--color-granito)', color: 'white' }}
         >
           {elegido === 0 ? 'Elegí una cantidad' : (
-            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(total)}</>
+            <>+ Agregar {elegido}<span style={{ textTransform: 'lowercase' }}>u.</span> al carrito {formatPrecio(total)}{esMayorista ? ' +IVA' : ''}</>
           )}
         </button>
       )}

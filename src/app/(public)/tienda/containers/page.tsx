@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { resolverCanalTienda, getProductosDelCanal, esMayoristaPorCanal } from '@/lib/tienda'
 import { ContainersClient, type ArriboFiltro } from './ContainersClient'
@@ -10,7 +10,8 @@ import { PendingApproval } from '@/components/sections/PendingApproval'
 import { aplicarTipoCambio } from '@/lib/utils'
 import { stockDisponible } from '@/lib/stock'
 import { ordenarFotos } from '@/lib/fotos'
-import { ETAPAS_VISIBLES, formatMesArribo } from '@/lib/containers'
+import { COOKIE_CONDICIONES_IMPORTA, ETAPAS_VISIBLES, formatMesArribo } from '@/lib/containers'
+import { ReunataImportaCondiciones } from '@/components/sections/ReunataImportaCondiciones'
 
 export const metadata: Metadata = {
   title: 'Importá con Reunata — Reunata',
@@ -30,17 +31,40 @@ export const metadata: Metadata = {
  *
  * Gateada server-side con el mismo `puede_containers()` que ya usa
  * `/cuenta/reservas` — nadie sin el permiso ve ni un producto de acá, aunque
- * entre por la URL directa. Sin banner ni pantalla de condiciones todavía: eso
- * lo dejó explícitamente para después ("hasta que definamos el tema del
- * banner"), así que a quien no tiene acceso lo mandamos de vuelta a la tienda.
+ * entre por la URL directa.
+ *
+ * Desde el 07/10/2026 es también el destino del banner de la home, que ve todo
+ * el mundo. Por eso nadie rebota: primero van las condiciones, y después quien
+ * tiene permiso pasa a los productos y quien no, pide acceso. A los habilitados
+ * las condiciones se les muestran una vez (cookie) y quedan a un link.
  */
-export default async function ContainersPage() {
+export default async function ContainersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ condiciones?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) redirect(`/login?next=${encodeURIComponent('/tienda/containers')}`)
+
+  if (!authUser) {
+    return <Pantalla><ReunataImportaCondiciones modo={{ tipo: 'anonimo' }} /></Pantalla>
+  }
 
   const { data: habilitado } = await supabase.rpc('puede_containers')
-  if (!habilitado) redirect('/tienda')
+  if (!habilitado) {
+    const { data: perfil } = await supabase.from('profiles').select('nombre').eq('id', authUser.id).maybeSingle()
+    return (
+      <Pantalla>
+        <ReunataImportaCondiciones modo={{ tipo: 'sin-permiso', nombre: (perfil?.nombre as string | null) ?? null }} />
+      </Pantalla>
+    )
+  }
+
+  const { condiciones } = await searchParams
+  const yaLasVio = (await cookies()).get(COOKIE_CONDICIONES_IMPORTA)?.value === '1'
+  if (!yaLasVio || condiciones != null) {
+    return <Pantalla><ReunataImportaCondiciones modo={{ tipo: 'habilitado' }} /></Pantalla>
+  }
 
   const service = createServiceClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -147,6 +171,41 @@ export default async function ContainersPage() {
   })
 
   return (
+    <Pantalla
+      bajada={productos.length > 0
+        ? 'Productos que están por llegar en los próximos meses, a un precio mejor que el de la web.'
+        : 'Por el momento no hay ningún viaje abierto tomando pedidos.'}
+    >
+        <Link
+          href="/tienda/containers?condiciones"
+          className="inline-block -mt-8 mb-10 text-xs underline underline-offset-4"
+          style={{ color: 'var(--color-acero-oscuro)' }}
+        >
+          Ver condiciones
+        </Link>
+
+        {productos.length > 0 && (
+          <ContainersClient
+            productos={productos}
+            arribos={arribos}
+            mostrarPrecios={mostrarPrecios}
+            estaLogueado={!!user}
+            esMayorista={esMayoristaPorCanal(user)}
+          />
+        )}
+    </Pantalla>
+  )
+}
+
+/** Encabezado común: el catálogo y la pantalla de condiciones son la misma sección. */
+function Pantalla({
+  bajada = 'Comprá antes de que llegue el barco, a un precio mejor que el de la web. Así funciona:',
+  children,
+}: {
+  bajada?: string
+  children: React.ReactNode
+}) {
+  return (
     <main style={{ background: 'var(--background)' }}>
       <div className="px-6 md:px-16 max-w-5xl mx-auto py-20 md:py-28">
         <nav className="text-xs tracking-widest uppercase mb-6 flex items-center gap-2" style={{ color: 'var(--color-acero-oscuro)' }}>
@@ -165,20 +224,10 @@ export default async function ContainersPage() {
           REUNATA importa
         </h1>
         <p className="text-sm mb-12" style={{ color: 'var(--color-acero-oscuro)' }}>
-          {productos.length > 0
-            ? 'Productos que están por llegar en los próximos meses, a un precio mejor que el de la web.'
-            : 'Por el momento no hay ningún viaje abierto tomando pedidos.'}
+          {bajada}
         </p>
 
-        {productos.length > 0 && (
-          <ContainersClient
-            productos={productos}
-            arribos={arribos}
-            mostrarPrecios={mostrarPrecios}
-            estaLogueado={!!user}
-            esMayorista={esMayoristaPorCanal(user)}
-          />
-        )}
+        {children}
       </div>
     </main>
   )

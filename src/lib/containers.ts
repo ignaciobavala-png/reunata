@@ -51,7 +51,7 @@ export const ETAPAS_VISIBLES: EtapaContainer[] = ['china', 'oceano', 'puerto']
 export const ETAPA_LABEL: Record<EtapaContainer, string> = {
   borrador:  'Borrador',
   china:     'Armando el contenedor',
-  oceano:    'En viaje',
+  oceano:    'En viaje (fabricación/viaje)',
   puerto:    'Nacionalizado',
   deposito:  'Recibido en depósito',
   cerrado:   'Viaje cerrado',
@@ -291,3 +291,24 @@ export function textoDemora(fechaEstimada: string | null | undefined): string {
   const fecha = formatFechaEstimada(fechaEstimada)
   return fecha ? `Llega aprox. el ${fecha}` : 'Llega con el barco — fecha a confirmar'
 }
+
+/**
+ * Orden de las líneas de un pedido según cuándo se entregan: primero lo que sale
+ * del depósito (sin `container_item_id`), después la preventa por fecha de
+ * arribo, y al final lo que no tiene fecha. Pedido del tester (07/10/2026): un
+ * pedido mixto tiene que leerse como un cronograma, tanto el del cliente como la
+ * orden de armado. Estable: a igual fecha queda el orden en que se cargó.
+ */
+export function ordenarPorEntrega<T extends { container_item_id: number | null; fecha_estimada: string | null }>(
+  items: readonly T[],
+): T[] {
+  const clave = (i: T) =>
+    i.container_item_id == null ? '' : (i.fecha_estimada ?? '￿')
+  return [...items].sort((a, b) => {
+    const ka = clave(a), kb = clave(b)
+    return ka < kb ? -1 : ka > kb ? 1 : 0
+  })
+}
+
+/** Cookie que marca que ya se mostraron las condiciones de REUNATA importa. */
+export const COOKIE_CONDICIONES_IMPORTA = 'reunata_importa_condiciones'

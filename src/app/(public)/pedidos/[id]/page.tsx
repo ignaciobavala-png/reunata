@@ -8,7 +8,7 @@ import { VolverAPedirButton } from '../VolverAPedirButton'
 import { EditarBorradorButton } from '../EditarBorradorButton'
 import { getCuentaSinIvaDelUsuario } from '@/lib/tienda'
 import { formatPrecio } from '@/lib/utils'
-import { textoDemora } from '@/lib/containers'
+import { ordenarPorEntrega, textoDemora } from '@/lib/containers'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { whatsappLink } from '@/lib/whatsapp'
@@ -104,7 +104,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
             </tr>
           </thead>
           <tbody>
-            {(pedido.pedido_items ?? []).map((item, i) => {
+            {ordenarPorEntrega(pedido.pedido_items ?? []).map((item, i) => {
               const prod = item.producto as unknown as { codigo_interno: string; titulo: string } | null
               return (
                 <tr

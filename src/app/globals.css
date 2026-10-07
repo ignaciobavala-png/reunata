@@ -80,6 +80,15 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-track  { background: var(--color-acero-brillo); }
 ::-webkit-scrollbar-thumb  { background: var(--color-acero); border-radius: 2px; }
 
+/* Tailwind v4 dejó los <button> con cursor: default. Acá todo botón es una
+   acción, así que vuelve la manito (tester 07/10: "Ver opciones", "Cerrar sesión"). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 ::selection {
   background: var(--color-granito);
   color: var(--color-acero-brillo);

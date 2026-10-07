@@ -6,6 +6,7 @@ import { Hero } from '@/components/sections/Hero'
 import { CategoryGallery, type CategoriaHome } from '@/components/sections/CategoryGallery'
 import { InstagramSlider } from '@/components/sections/InstagramSlider'
 import { PromotionalBanner } from '@/components/sections/PromotionalBanner'
+import { ReunataImportaBanner } from '@/components/sections/ReunataImportaBanner'
 import { ProductSlider } from '@/components/sections/ProductSlider'
 import { PromoTicker } from '@/components/sections/PromoTicker'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
@@ -84,6 +85,7 @@ export default async function Home() {
             <Hero />
             <PromoTicker />
             <CategoryGallery initialCategorias={(categoriasGallery ?? []) as CategoriaHome[]} />
+            <ReunataImportaBanner />
             <ProductSlider fotos={fotos} esMayorista={tipoCliente === 'mayorista'} />
             <InstagramSlider posts={postsInstagram ?? []} />
             <PromotionalBanner banner={banner} />

@@ -10,7 +10,7 @@ import { GenerarEnvioButton } from './GenerarEnvioButton'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { esRolMayorista } from '@/lib/roles'
-import { textoDemora } from '@/lib/containers'
+import { ordenarPorEntrega, textoDemora } from '@/lib/containers'
 
 /** Los campos de preventa de una línea del pedido, para el embed de PostgREST. */
 type LineaPreventaAdmin = {
@@ -81,7 +81,9 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
   const esMayorista = esRolMayorista(cliente?.rol)
 
   // Derivados para la orden de armado (Tony). Sin importes: ver el bloque .pedido-armado.
-  const items = pedido.pedido_items ?? []
+  // En el orden en que se entregan: lo inmediato arriba, después cada arribo.
+  const items = ordenarPorEntrega(pedido.pedido_items ?? [])
+  const hayPreventa = items.some(i => i.container_item_id != null)
   const totalUnidades = items.reduce((acc, i) => acc + i.cantidad, 0)
   const cantLineas = items.length
   const env = pedido as unknown as Record<string, string | null | undefined>
@@ -200,7 +202,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             </tr>
           </thead>
           <tbody>
-            {(pedido.pedido_items ?? []).map((item, i) => {
+            {items.map((item, i) => {
               const prod = item.producto as unknown as { codigo_interno: string; titulo: string } | null
               return (
                 <tr
@@ -514,7 +516,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
             </tr>
           </thead>
           <tbody>
-            {(pedido.pedido_items ?? []).map(item => {
+            {items.map(item => {
               const prod = item.producto as unknown as { codigo_interno: string; titulo: string } | null
               return (
                 <tr key={`armado-${item.id}`}>
@@ -522,6 +524,13 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                   <td style={{ color: '#000' }}>
                     {prod?.titulo ?? '—'}
                     {item.variante && <> · {item.variante}</>}
+                    {/* En un pedido mixto, Tony tiene que ver qué arma hoy y qué
+                        espera al barco (tester 07/10). En uno de puro stock, nada. */}
+                    {hayPreventa && (
+                      <span className="block text-xs" style={{ color: '#000' }}>
+                        {item.container_item_id == null ? 'Entrega inmediata' : `⛴ ${textoDemora(item.fecha_estimada)}`}
+                      </span>
+                    )}
                   </td>
                   <td className="text-right font-bold text-base" style={{ color: '#000' }}>{item.cantidad}</td>
                   <td style={{ borderLeft: '1px solid #999' }}></td>

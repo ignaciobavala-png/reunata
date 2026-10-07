@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, CheckCircle, ChevronLeft, Play, Pencil, ArrowLeft, Video, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { BannerClient } from './BannerClient'
+import { optimizarImagen } from '@/lib/optimizar-imagen'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 import type { HeroFallbackConfig } from '@/components/sections/Hero'
@@ -109,29 +110,6 @@ export function HeroClient({
     e.preventDefault()
     if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files)
   }, [])
-
-  async function optimizarImagen(archivo: File): Promise<Blob> {
-    const MAX_LADO = 1920
-    const CALIDAD = 0.85
-    return new Promise((resolve, reject) => {
-      const img = new window.Image()
-      const url = URL.createObjectURL(archivo)
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        let { width, height } = img
-        if (width > MAX_LADO || height > MAX_LADO) {
-          if (width >= height) { height = Math.round((height * MAX_LADO) / width); width = MAX_LADO }
-          else { width = Math.round((width * MAX_LADO) / height); height = MAX_LADO }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width; canvas.height = height
-        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob falló')), 'image/webp', CALIDAD)
-      }
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo cargar')) }
-      img.src = url
-    })
-  }
 
   async function comprimirVideo(file: File): Promise<Blob> {
     if (!ffmpegRef.current) {
