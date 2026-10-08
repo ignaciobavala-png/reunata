@@ -2,6 +2,7 @@ import { createClient as createAdmin } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 import { TOOLS, handleToolCall } from '@/lib/chatbot/tools'
 import { FILTRO_ROL_CLIENTE } from '@/lib/roles'
+import { esMasterDeSesion } from '@/lib/auth-servidor'
 
 const admin = createAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,11 +12,6 @@ const admin = createAdmin(
 function getGroq() {
   if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY no configurada')
   return new Groq({ apiKey: process.env.GROQ_API_KEY })
-}
-
-async function verificarMaster(request: Request) {
-  const isMaster = request.headers.get('X-Is-Master')
-  return isMaster === 'true'
 }
 
 async function fetchKPIs() {
@@ -126,7 +122,7 @@ IMPORTANTE: sé conciso, directo y útil. Cuando el usuario pregunte por datos e
 }
 
 export async function POST(request: Request) {
-  if (!await verificarMaster(request)) {
+  if (!await esMasterDeSesion()) {
     return Response.json({ error: 'No autorizado' }, { status: 401 })
   }
 

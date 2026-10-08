@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const SYNC_SECRET = process.env.SYNC_SECRET
-
-function autorizado(req: NextRequest): boolean {
-  if (req.headers.get('x-vercel-cron')) return true
-  const auth = req.headers.get('authorization')
-  if (SYNC_SECRET && auth === `Bearer ${SYNC_SECRET}`) return true
-  return false
-}
+import { esLlamadaDeServidor } from '@/lib/auth-servidor'
 
 export async function POST(req: NextRequest) {
-  if (!autorizado(req)) {
+  if (!esLlamadaDeServidor(req)) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 

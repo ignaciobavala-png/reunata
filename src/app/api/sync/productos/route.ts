@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { esLlamadaDeServidor, esMasterDeSesion } from '@/lib/auth-servidor'
 import { CATEGORIAS_INTERNAS } from '@/lib/gesu'
 
 function slugify(str: string): string {
@@ -13,7 +14,6 @@ function slugify(str: string): string {
 
 const GESU_BASE = process.env.GESU_API_BASE_URL!
 const GESU_TOKEN = process.env.GESU_API_TOKEN!
-const SYNC_SECRET = process.env.SYNC_SECRET!
 
 if (!GESU_TOKEN) {
   console.error('[sync/productos] GESU_API_TOKEN no configurada')
@@ -95,25 +95,11 @@ async function fetchPagina(pag: number): Promise<{ header: Record<string, number
 }
 
 async function verificarAuth(request: Request): Promise<boolean> {
-  // Manual desde el dashboard via X-Is-Master (seteado por server component)
-  if (request.headers.get('X-Is-Master') === 'true') return true
+  if (esLlamadaDeServidor(request)) return true
+  // Manual desde el panel: el rol sale de la sesión, nunca de un header del navegador
+  if (await esMasterDeSesion()) return true
 
-  // Vercel Cron envía x-vercel-cron automáticamente
-  if (request.headers.get('x-vercel-cron')) return true
-
-  // Cron de Vercel o server-to-server con CRON_SECRET o SYNC_SECRET
-  const auth = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`) return true
-  if (SYNC_SECRET && auth === `Bearer ${SYNC_SECRET}`) return true
-
-  console.warn('[sync/productos] Auth fallida - headers:', {
-    'x-is-master': request.headers.get('X-Is-Master'),
-    'x-vercel-cron': request.headers.get('x-vercel-cron'),
-    hasAuth: !!auth,
-    hasCronSecret: !!process.env.CRON_SECRET,
-    hasSyncSecret: !!SYNC_SECRET,
-  })
-
+  console.warn('[sync/productos] Auth fallida')
   return false
 }
 
