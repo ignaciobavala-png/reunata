@@ -12,17 +12,6 @@ export const metadata: Metadata = {
 }
 import { createServiceClient } from '@/lib/supabase/server'
 
-const categorias = [
-  { label: 'Mates',                   href: '/tienda/mates' },
-  { label: 'Térmicos de acero',       href: '/tienda/termicos-de-acero' },
-  { label: 'Bombillas y sorbetes',    href: '/tienda/bombillas-y-sorbetes' },
-  { label: 'Materas y mochilas',      href: '/tienda/materas-y-mochilas' },
-  { label: 'Accesorios para el mate', href: '/tienda/accesorios' },
-  { label: 'Para la cocina',          href: '/tienda/cocina' },
-  { label: 'Merchandising',           href: '/tienda/merchandising' },
-  { label: 'Gift Card',               href: '/tienda/gift-card' },
-]
-
 function FotoLateral({ path, supabaseUrl }: { path: string | null; supabaseUrl: string }) {
   if (!path) return (
     <div className="hidden lg:flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed min-h-[400px] px-6 py-12 text-center"
@@ -47,6 +36,16 @@ function FotoLateral({ path, supabaseUrl }: { path: string | null; supabaseUrl: 
 export default async function NosotrosPage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabase = createServiceClient()
+  // Mismas categorías que el nav (layout de (public)): la tabla es la fuente, no una lista fija
+  // que se desincroniza con los slugs reales (antes daba 404 en los 8 links).
+  const { data: categoriasRows } = await supabase
+    .from('categorias_home')
+    .select('nombre, href')
+    .eq('activo', true)
+    .not('href', 'is', null)
+    .order('orden')
+  const categorias = (categoriasRows ?? []).map(c => ({ label: c.nombre as string, href: c.href as string }))
+
   const { data: rows } = await supabase
     .from('configuracion')
     .select('clave, valor')

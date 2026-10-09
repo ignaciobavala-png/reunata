@@ -80,7 +80,7 @@ const ESTADOS_EDITABLES = ['borrador', 'pendiente_pago', 'comprobante_subido']
 export async function crearPedidoBorrador(
   lineas: LineaPedido[],
   opciones?: { medioPago?: string; facturaIva?: boolean; comprobantePath?: string; pedidoIdToEdit?: string; envio?: EnvioBorrador },
-): Promise<{ ok: boolean; pedidoId?: string; error?: string }> {
+): Promise<{ ok: boolean; pedidoId?: string; error?: string; pedidoCerrado?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'No autenticado' }
@@ -89,6 +89,8 @@ export async function crearPedidoBorrador(
 
   // Edición in-place de un borrador propio: solo mientras siga en "borrador"
   // (una vez subido el comprobante, el pedido queda en revisión y no se toca más).
+  // `pedidoCerrado` le avisa al carrito que el vínculo con ese pedido ya no sirve
+  // (cancelado, enviado o borrado) y que tiene que confirmar como pedido nuevo.
   if (opciones?.pedidoIdToEdit) {
     const { data: pedidoAEditar } = await service
       .from('pedidos')
@@ -96,10 +98,10 @@ export async function crearPedidoBorrador(
       .eq('id', opciones.pedidoIdToEdit)
       .single()
     if (!pedidoAEditar || pedidoAEditar.cliente_id !== user.id) {
-      return { ok: false, error: 'Pedido no encontrado.' }
+      return { ok: false, error: 'Pedido no encontrado.', pedidoCerrado: true }
     }
     if (pedidoAEditar.estado !== 'borrador') {
-      return { ok: false, error: 'Este pedido ya no se puede editar.' }
+      return { ok: false, error: 'Este pedido ya no se puede editar.', pedidoCerrado: true }
     }
   }
 

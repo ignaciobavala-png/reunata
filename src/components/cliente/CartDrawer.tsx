@@ -17,7 +17,7 @@ import { textoDemora } from '@/lib/containers'
 type ReglasDrawer = ConfigVolumen & { minimo_compra: number | null }
 
 export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'mayorista' | 'minorista'; aprobado?: boolean }) {
-  const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen } = useCartStore()
+  const { items, remove, updateCantidad, total, totalItems, clear, cartOpen, setCartOpen, editingPedidoId, editingPedidoNumero, stopEditingPedido } = useCartStore()
   const [enviando, setEnviando] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [reglas, setReglas] = useState<ReglasDrawer | null>(null)
@@ -50,13 +50,20 @@ export function CartDrawer({ tipoCliente, aprobado = true }: { tipoCliente: 'may
     if (items.length === 0) return
     setEnviando(true)
     setErrorEnvio(null)
+    // Si el carrito viene de editar un borrador, se actualiza ese mismo pedido (igual que en /carrito)
+    // en vez de crear un duplicado que deja el borrador viejo vivo.
     const result = await crearPedidoBorrador(
-      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId }))
+      items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad, variante: i.variante, containerItemId: i.containerItemId })),
+      { pedidoIdToEdit: editingPedidoId ?? undefined },
     )
     if (result.ok && result.pedidoId) {
       clear()
       setCartOpen(false)
       router.push(`/pedidos/${result.pedidoId}`)
+    } else if (result.pedidoCerrado) {
+      stopEditingPedido()
+      setErrorEnvio(`El pedido #${editingPedidoNumero} ya fue cancelado o enviado. Volvé a enviar y se crea un pedido nuevo con otro número.`)
+      setEnviando(false)
     } else {
       setErrorEnvio(result.error ?? 'Error al enviar el pedido. Intentá de nuevo.')
       setEnviando(false)

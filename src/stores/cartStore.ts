@@ -41,6 +41,13 @@ export interface PreventaVigente {
 // Maneja ítems viejos (sin itemKey) del localStorage
 const ik = (i: CartItem) => i.itemKey ?? `${i.productoId}:`
 
+// Carrito vacío = sin pedido que editar. Evita que un carrito vacío siga
+// apuntando a un borrador viejo y lo reabra al confirmar.
+const sinItemsSinEdicion = (items: CartItem[]): Partial<CartStore> =>
+  items.length === 0
+    ? { items, editingPedidoId: null, editingPedidoNumero: null }
+    : { items }
+
 interface CartStore {
   items: CartItem[]
   ownerId: string | null
@@ -96,14 +103,15 @@ export const useCartStore = create<CartStore>()(
         return { items: [...state.items, { ...item, multiplo, cantidad: cantidadInicial }] }
       }),
 
-      remove: (itemKey) => set(state => ({
-        items: state.items.filter(i => ik(i) !== itemKey),
-      })),
+      // Si el carrito queda vacío, se corta también el vínculo con el borrador que
+      // se estaba editando: el próximo producto tiene que abrir un pedido nuevo,
+      // no reabrir el anterior (que puede estar cancelado o ya enviado).
+      remove: (itemKey) => set(state => sinItemsSinEdicion(state.items.filter(i => ik(i) !== itemKey))),
 
       // Última línea de defensa: sin importar quién llame esto (stepper, drawer,
       // localStorage editado a mano), nunca se persiste más cantidad que el stock conocido del ítem.
       updateCantidad: (itemKey, cantidad) => set(state => {
-        if (cantidad <= 0) return { items: state.items.filter(i => ik(i) !== itemKey) }
+        if (cantidad <= 0) return sinItemsSinEdicion(state.items.filter(i => ik(i) !== itemKey))
         return {
           items: state.items.map(i => {
             if (ik(i) !== itemKey) return i

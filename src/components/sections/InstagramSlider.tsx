@@ -1,8 +1,12 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, type MouseEvent, type PointerEvent } from 'react'
 import { FadeIn } from '@/components/ui/FadeIn'
 import Image from 'next/image'
+
+// Distancia (px) a partir de la cual un press + movimiento cuenta como arrastre
+// y no como click: después de arrastrar no se abre la publicación.
+const UMBRAL_ARRASTRE = 5
 
 interface Post {
   id: number
@@ -15,6 +19,37 @@ interface Post {
 
 export function InstagramSlider({ posts }: { posts: Post[] }) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Arrastre con el mouse. Con ref y no con state: no hace falta re-renderizar en cada movimiento.
+  const arrastre = useRef({ activo: false, startX: 0, startLeft: 0, movio: false })
+
+  // Solo mouse: el touch ya scrollea nativo y el puntero de pluma no aplica acá.
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    const el = scrollRef.current
+    if (!el || e.pointerType !== 'mouse' || e.button !== 0) return
+    arrastre.current = { activo: true, startX: e.clientX, startLeft: el.scrollLeft, movio: false }
+  }
+
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
+    const el = scrollRef.current
+    const d = arrastre.current
+    if (!el || !d.activo) return
+    const dx = e.clientX - d.startX
+    if (!d.movio && Math.abs(dx) < UMBRAL_ARRASTRE) return
+    d.movio = true
+    el.scrollLeft = d.startLeft - dx
+  }
+
+  function terminarArrastre() {
+    arrastre.current.activo = false
+  }
+
+  // Si hubo arrastre, el click que cierra el gesto no abre la publicación.
+  function onClickCapture(e: MouseEvent<HTMLDivElement>) {
+    if (!arrastre.current.movio) return
+    e.preventDefault()
+    e.stopPropagation()
+    arrastre.current.movio = false
+  }
 
   useEffect(() => {
     const el = scrollRef.current
@@ -65,8 +100,14 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
 
           <div
             ref={scrollRef}
-            className="overflow-x-auto"
+            className="overflow-x-auto cursor-grab active:cursor-grabbing select-none"
             style={{ scrollbarWidth: 'none' }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={terminarArrastre}
+            onPointerLeave={terminarArrastre}
+            onPointerCancel={terminarArrastre}
+            onClickCapture={onClickCapture}
           >
             <div className="flex gap-2 pl-6 md:pl-10 pr-6 w-max">
               {posts.map((post) => (
@@ -77,6 +118,7 @@ export function InstagramSlider({ posts }: { posts: Post[] }) {
                   rel="noopener noreferrer"
                   className="flex-none w-[260px] md:w-[300px] aspect-square relative overflow-hidden group"
                   style={{ border: '1px solid var(--border)' }}
+                  onDragStart={e => e.preventDefault()}
                 >
                   {post.thumbnail_url ? (
                     <Image
