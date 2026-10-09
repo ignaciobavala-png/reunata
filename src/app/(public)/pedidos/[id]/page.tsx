@@ -12,6 +12,7 @@ import { ordenarPorEntrega, textoDemora } from '@/lib/containers'
 import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { whatsappLink } from '@/lib/whatsapp'
+import { netoDesdeBruto } from '@/lib/iva'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 
@@ -27,7 +28,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
       id, numero, estado, editable, medio_pago, total_usd, costo_envio, envio_descripcion, notas, created_at, expira_en, descuento_nota,
       pedido_items (
         id, cantidad, precio_unit, fecha_estimada, container_item_id,
-        producto:producto_id ( id, codigo_interno, titulo )
+        producto:producto_id ( id, codigo_interno, titulo, iva )
       )
     `)
     .eq('id', id)
@@ -41,6 +42,24 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
     .select('clave, valor')
 
   const cfg = Object.fromEntries((config ?? []).map(r => [r.clave, r.valor ?? '']))
+
+  // Mayoristas ven el pedido en neto (sin IVA), igual que el carrito y la card "+IVA".
+  // El canal es el actual del cliente: solo cambia la presentación, no el total guardado.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('canal_id')
+    .eq('id', user.id)
+    .single()
+  const { data: canalRow } = profile?.canal_id
+    ? await createServiceClient().from('canales').select('categoria_comercial').eq('id', profile.canal_id).maybeSingle()
+    : { data: null }
+  const esMayorista = canalRow?.categoria_comercial === 'mayorista' || canalRow?.categoria_comercial === 'especial'
+  const precioMostrado = (i: { precio_unit: number | string; producto: unknown }) => {
+    const bruto = Number(i.precio_unit)
+    if (!esMayorista) return bruto
+    const iva = (i.producto as { iva?: number | null } | null)?.iva ?? null
+    return netoDesdeBruto(bruto, iva)
+  }
 
   const col = estadoColor(pedido.estado)
   const mostrarInstrucciones = pedido.editable
@@ -129,10 +148,10 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                   </td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--foreground)' }}>{item.cantidad}</td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {formatPrecio(Number(item.precio_unit))}
+                    {formatPrecio(precioMostrado(item))}{esMayorista ? ' +IVA' : ''}
                   </td>
                   <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(Number(item.precio_unit) * item.cantidad)}
+                    {formatPrecio(precioMostrado(item) * item.cantidad)}
                   </td>
                 </tr>
               )
@@ -144,9 +163,12 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
               const costoEnvio = Number(pedido.costo_envio ?? 0)
               const ajusteReal = Math.round(Number(pedido.total_usd) - costoEnvio - subtotalItems)
               const descNota = (pedido as { descuento_nota?: string | null }).descuento_nota
-              const hasExtras = ajusteReal !== 0 || costoEnvio > 0
+              const subtotalNeto = esMayorista
+                ? (pedido.pedido_items ?? []).reduce((acc, i) => acc + precioMostrado(i) * i.cantidad, 0)
+                : undefined
+              const hasExtras = ajusteReal !== 0 || costoEnvio > 0 || subtotalNeto != null
               if (!hasExtras) return null
-              const lineasAjuste = desglosarAjustePedido(subtotalItems, descNota, ajusteReal)
+              const lineasAjuste = desglosarAjustePedido(subtotalItems, descNota, ajusteReal, subtotalNeto)
               return (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -154,7 +176,7 @@ export default async function DetallePedidoPage({ params }: { params: Promise<{ 
                       Subtotal productos
                     </td>
                     <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      {formatPrecio(subtotalItems)}
+                      {formatPrecio(subtotalNeto ?? subtotalItems)}
                     </td>
                   </tr>
                   {lineasAjuste.map((linea, idx) => {

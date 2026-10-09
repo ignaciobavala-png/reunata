@@ -33,8 +33,10 @@ function formatPctExacto(pct: number): string {
 export function desglosarAjustePedido(
   subtotalItems: number,
   descuentoNota: string | null | undefined,
-  ajusteReal: number
+  ajusteReal: number,
+  subtotalNeto?: number
 ): LineaAjustePedido[] {
+  if (subtotalNeto != null) return desglosarEnNeto(subtotalItems, subtotalNeto, descuentoNota, ajusteReal)
   if (ajusteReal === 0) return []
 
   if (!descuentoNota) {
@@ -108,6 +110,55 @@ export function desglosarAjustePedido(
   } else if (descuentoTotal < 0 && iva === 0) {
     // Caso raro: la nota no describe un IVA pero el pedido terminó más caro.
     lineas.push({ label: 'Ajuste', monto: ajusteReal, esIva: false })
+  }
+
+  return lineas
+}
+
+// Variante mayorista (tester 09/10, "que mantenga la línea" del carrito): las líneas
+// y el subtotal van en neto, así que el resumen arranca del neto y no del bruto.
+//
+//   Subtotal productos (neto)                           $84.318
+//   IVA                                                 +$…        ← solo con factura
+//   Descuento total (Desc. efectivo −3%) −3,00%         −$2.530
+//   Total                                               $81.788
+//
+// Sin factura no hay línea de IVA: el neto ya es lo que se cobra. Con factura el
+// IVA es lo que separa el neto del bruto guardado (nunca se suma un 21% encima, ver
+// lib/iva.ts). El descuento se despeja contra el total real, igual que arriba, así
+// que el % efectivo es el mismo que mostraba la versión en bruto.
+function desglosarEnNeto(
+  subtotalBruto: number,
+  subtotalNeto: number,
+  descuentoNota: string | null | undefined,
+  ajusteReal: number
+): LineaAjustePedido[] {
+  const nota = descuentoNota ?? ''
+  const sinFactura = /Sin factura\s+[\d.,]+%/.test(nota)
+  const lineas: LineaAjustePedido[] = []
+
+  const iva = sinFactura ? 0 : subtotalBruto - subtotalNeto
+  if (iva !== 0) lineas.push({ label: 'IVA', monto: iva, esIva: true })
+
+  // total de mercadería = subtotalBruto + ajusteReal
+  const base = subtotalNeto + iva
+  const descuentoTotal = base - (subtotalBruto + ajusteReal)
+  if (descuentoTotal > 0) {
+    const componentes: string[] = []
+    for (const parte of nota.split(',').map(p => p.trim())) {
+      const m = parte.match(/^Desc\.\s+(.+?)\s+([\d.,]+)%$/)
+      if (m) componentes.push(`Desc. ${m[1]} −${formatPct(parseFloat(m[2].replace(',', '.')))}%`)
+    }
+    const pctEfectivo = base > 0 ? (descuentoTotal / base) * 100 : 0
+    const detalle = componentes.length ? ` (${componentes.join(', ')})` : ''
+    lineas.push({
+      label: `Descuento total${detalle} −${formatPctExacto(pctEfectivo)}%`,
+      monto: -descuentoTotal,
+      esIva: false,
+    })
+  } else if (descuentoTotal < 0) {
+    // Pedidos viejos con "Recargo" de factura A sobre un precio que ya traía IVA.
+    lineas.push({ label: 'Ajuste', monto: -descuentoTotal, esIva: false })
   }
 
   return lineas
