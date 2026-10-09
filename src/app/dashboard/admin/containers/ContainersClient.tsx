@@ -417,7 +417,7 @@ function FichaViaje({
                 onChange={v => setForm({ ...form, descuento_oceano: v })}
               />
               <Campo label="Cierre de pedidos a China" tipo="date" valor={form.fecha_cierre_china} onChange={v => setForm({ ...form, fecha_cierre_china: v })} />
-              <Campo label="En viaje" tipo="date" valor={form.fecha_embarque} onChange={v => setForm({ ...form, fecha_embarque: v })} />
+              <Campo label="En viaje (fabricación/venta)" tipo="date" valor={form.fecha_embarque} onChange={v => setForm({ ...form, fecha_embarque: v })} />
               <Campo label="Arribo estimado" tipo="date" valor={form.fecha_arribo_est} onChange={v => setForm({ ...form, fecha_arribo_est: v })} />
               <Campo label="Liberación de aduana" tipo="date" valor={form.fecha_liberacion} onChange={v => setForm({ ...form, fecha_liberacion: v })} />
             </div>

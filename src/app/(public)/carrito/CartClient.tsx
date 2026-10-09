@@ -577,10 +577,11 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
 
   // Desglose IVA — el precio de lista SIEMPRE incluye IVA (ver lib/iva.ts), tanto
   // para minoristas como para mayoristas. El neto se despeja dividiendo.
-  const totalSinIVA = items.reduce(
-    (acc, i) => acc + netoDesdeBruto(i.precio, ivaRates[i.productoId] * 100) * i.cantidad,
-    0,
-  )
+  // Neto de una línea. Antes de que llegue la alícuota del producto (ivaRates vacío)
+  // se usa la default, en vez de NaN.
+  const netoDeLinea = (i: { precio: number; productoId: number }) =>
+    netoDesdeBruto(i.precio, ivaRates[i.productoId] != null ? ivaRates[i.productoId] * 100 : null)
+  const totalSinIVA = items.reduce((acc, i) => acc + netoDeLinea(i) * i.cantidad, 0)
 
   // ── Cascada de descuentos (orden del tester): 1) WEB, 2) Volumen, 3) forma de pago ──
   // El total final no depende del orden (dos descuentos multiplicativos dan lo mismo),
@@ -834,7 +835,10 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
           >
             {items.map((item, idx) => {
               const multiplo = item.multiplo ?? 1
-              const subtotal = item.precio * item.cantidad
+              // Mayorista: se muestra el neto (sin IVA), igual que la card de producto "+IVA".
+              // Minorista: precio con IVA incluido, como siempre.
+              const precioMostrado = esMayorista ? netoDeLinea(item) : item.precio
+              const subtotal = precioMostrado * item.cantidad
               const esUltimo = idx === items.length - 1
               const stockItem = stockDisponible(item)
               const masAllaDelStock = exceedeStock(item)
@@ -885,7 +889,7 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                       )}
                       {mostrarPrecios && item.precio > 0 && (
                         <p className="text-sm mt-1" style={{ color: 'var(--color-acero-oscuro)' }}>
-                          {formatPrecio(item.precio)} c/u
+                          {formatPrecio(precioMostrado)} c/u{esMayorista ? ' +IVA' : ''}
                         </p>
                       )}
                       {/* Preventa: la demora va en la línea, no en el pie del
@@ -975,23 +979,23 @@ export function CartClient({ user, mostrarPrecios, cbuSinIva, aliasSinIva, tipoC
                 {/* Línea que separa productos de subtotales/descuentos */}
                 <div className="h-px my-1" style={{ background: 'var(--color-acero-claro)' }} />
                 {/* Subtotal — minoristas y guests: precio con IVA.
-                    Mayoristas: precio bruto (sin IVA). */}
+                    Mayoristas: neto (sin IVA), igual que las líneas del carrito. */}
                 <div className="flex justify-between" style={{ color: 'var(--color-acero-oscuro)' }}>
                   <span>{esMayorista ? 'Subtotal Bruto' : 'Subtotal'}</span>
-                  <span>{formatPrecio(totalGeneral)}</span>
+                  <span>{formatPrecio(esMayorista ? totalSinIVA : totalGeneral)}</span>
                 </div>
                 {/* Solo descuentos previos al pago (web, volumen) — los descuentos por
                     forma de pago se ven en el precio de cada opción, no acá */}
                 {ajusteAutogestion !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
                     <span>Desc. Web (−{descAutogestPct}%)</span>
-                    <span>-{formatPrecio(Math.abs(ajusteAutogestion))}</span>
+                    <span>-{formatPrecio(Math.abs(esMayorista ? Math.round(ajusteAutogestion * factorNeto) : ajusteAutogestion))}</span>
                   </div>
                 )}
                 {ajusteVolumenCanal !== 0 && (
                   <div className="flex justify-between text-xs font-medium" style={{ color: '#16a34a' }}>
                     <span>Desc. Volumen (−{descVolCanalPct}%)</span>
-                    <span>-{formatPrecio(Math.abs(ajusteVolumenCanal))}</span>
+                    <span>-{formatPrecio(Math.abs(esMayorista ? Math.round(ajusteVolumenCanal * factorNeto) : ajusteVolumenCanal))}</span>
                   </div>
                 )}
                 {envioSeleccionado && (
