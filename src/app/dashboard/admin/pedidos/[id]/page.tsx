@@ -11,6 +11,7 @@ import { estadoLabel, estadoColor } from '@/lib/estadosPedido'
 import { desglosarAjustePedido } from '@/lib/desglose-pedido'
 import { esRolMayorista } from '@/lib/roles'
 import { ordenarPorEntrega, textoDemora } from '@/lib/containers'
+import { netoDesdeBruto } from '@/lib/iva'
 
 /** Los campos de preventa de una línea del pedido, para el embed de PostgREST. */
 type LineaPreventaAdmin = {
@@ -37,10 +38,10 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       cliente_id, guest_nombre, guest_email, guest_telefono,
       pedido_items (
         id, cantidad, precio_unit, variante, fecha_estimada, container_item_id, descuento_etapa_pct,
-        producto:producto_id ( id, codigo_interno, titulo ),
+        producto:producto_id ( id, codigo_interno, titulo, iva ),
         container_item:container_item_id ( id, containers ( nombre, etapa ) )
       ),
-      cliente:cliente_id ( nombre, razon_social, email, telefono, rol, cuit_dni, direccion, localidad, sitio_web, puntos_venta )
+      cliente:cliente_id ( nombre, razon_social, email, telefono, rol, canal_id, cuit_dni, direccion, localidad, sitio_web, puntos_venta )
     `)
     .eq('id', id)
     .single()
@@ -66,6 +67,20 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
       return { ...c, signedUrl: data?.signedUrl ?? null }
     })
   )
+
+  // Pedido de mayorista: se muestra en neto (sin IVA), igual que lo ve el cliente en
+  // /pedidos/[id] y en el carrito. Manda el canal del CLIENTE, no el del empleado.
+  const canalIdCliente = (pedido.cliente as { canal_id?: number | null } | null)?.canal_id ?? null
+  const { data: canalCliente } = canalIdCliente
+    ? await service.from('canales').select('categoria_comercial').eq('id', canalIdCliente).maybeSingle()
+    : { data: null }
+  const esPedidoMayorista = canalCliente?.categoria_comercial === 'mayorista' || canalCliente?.categoria_comercial === 'especial'
+  const precioMostrado = (i: { precio_unit: number | string; producto: unknown }) => {
+    const bruto = Number(i.precio_unit)
+    if (!esPedidoMayorista) return bruto
+    const iva = (i.producto as { iva?: number | null } | null)?.iva ?? null
+    return netoDesdeBruto(bruto, iva)
+  }
 
   const col = estadoColor(pedido.estado)
   const cliente = pedido.cliente as {
@@ -241,10 +256,10 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                   </td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--foreground)' }}>{item.cantidad}</td>
                   <td className="px-4 py-3 text-right" style={{ color: 'var(--color-acero-oscuro)' }}>
-                    {formatPrecio(Number(item.precio_unit))}
+                    {formatPrecio(precioMostrado(item))}{esPedidoMayorista ? ' +IVA' : ''}
                   </td>
                   <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--foreground)' }}>
-                    {formatPrecio(Number(item.precio_unit) * item.cantidad)}
+                    {formatPrecio(precioMostrado(item) * item.cantidad)}
                   </td>
                 </tr>
               )
@@ -259,8 +274,11 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
               // método de pago y cualquier combinación. Negativo = descuento, positivo = recargo.
               const ajusteReal = Math.round(Number(pedido.total_usd) - costoEnvio - subtotalItems)
               const descNota = (pedido as any).descuento_nota as string | null
-              const hasExtras = ajusteReal !== 0 || costoEnvio > 0
-              const lineasAjuste = desglosarAjustePedido(subtotalItems, descNota, ajusteReal)
+              const subtotalNeto = esPedidoMayorista
+                ? (pedido.pedido_items ?? []).reduce((acc, i) => acc + precioMostrado(i) * i.cantidad, 0)
+                : undefined
+              const hasExtras = ajusteReal !== 0 || costoEnvio > 0 || subtotalNeto != null
+              const lineasAjuste = desglosarAjustePedido(subtotalItems, descNota, ajusteReal, subtotalNeto)
               return hasExtras ? (
                 <>
                   <tr style={{ borderTop: '1px solid var(--color-acero-claro)', background: 'var(--color-acero-brillo)' }}>
@@ -268,7 +286,7 @@ export default async function AdminDetallePedidoPage({ params }: { params: Promi
                       Subtotal productos
                     </td>
                     <td className="px-4 py-2 text-right text-sm" style={{ color: 'var(--color-acero-oscuro)' }}>
-                      {formatPrecio(subtotalItems)}
+                      {formatPrecio(subtotalNeto ?? subtotalItems)}
                     </td>
                   </tr>
                   {lineasAjuste.map((linea, idx) => {
